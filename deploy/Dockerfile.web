@@ -39,7 +39,10 @@ RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/exporte
 # Tabelle rendern kann. Das Slim-Image ist der kleinere Preis.
 FROM python:3.12-slim
 
-RUN apt-get update && apt-get install -y --no-install-recommends nginx ca-certificates && rm -rf /var/lib/apt/lists/* && pip install --no-cache-dir "dbt-duckdb>=1.9,<2.0"
+# curl gehoert dazu, auch wenn die Seite es nicht braucht: Coolify fuehrt den
+# Healthcheck *im* Container aus und faellt sonst mit "curl: not found" durch,
+# worauf das Deployment zurueckgerollt wird (gemessen 2026-08-28).
+RUN apt-get update && apt-get install -y --no-install-recommends nginx ca-certificates curl && rm -rf /var/lib/apt/lists/* && pip install --no-cache-dir "dbt-duckdb>=1.9,<2.0"
 
 COPY --from=go  /out/exporter /usr/local/bin/exporter
 COPY --from=web /src/dist     /srv/www

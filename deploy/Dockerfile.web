@@ -3,13 +3,13 @@
 #
 # Die Seite selbst ist statisch und steckt im Image. Die exportierten JSON-Dateien
 # liegen dagegen auf dem Persistent Volume (/data/export/web/daten) und werden
-# stuendlich neu gebaut — sie sind abgeleitet, aber sie muessen einen Redeploy
+# stuendlich neu gebaut — sie sind abgeleitet, muessen aber einen Redeploy
 # ueberleben, sonst zeigt die Seite nach jedem Deployment bis zum naechsten Task
 # nichts an.
 #
-# WICHTIG (Regel 2): Das Volume muss auf /data gemountet sein — dieselbe Ablage,
-# aus der der Collector liest und schreibt. Der Webcontainer liest raw/ und
-# static/ und schreibt ausschliesslich warehouse/ und export/.
+# WICHTIG (Regel 2): Das Volume muss auf /data liegen — dieselbe Ablage, aus der
+# der Collector liest und schreibt. Der Webcontainer liest raw/ und static/ und
+# schreibt ausschliesslich warehouse/ und export/.
 
 # --- Frontend ---------------------------------------------------------------
 FROM node:22-alpine AS web
@@ -31,16 +31,25 @@ COPY internal/ internal/
 RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/exporter ./cmd/exporter
 
 # --- Laufzeit ---------------------------------------------------------------
-FROM python:3.12-alpine
+# Debian statt Alpine, gemessen 2026-08-28: dbt-core zieht
+# dbt-core-experimental-parser nach, und davon gibt es kein musl-Wheel ("no
+# prebuilt ... wheel for this platform; available platforms: ...
+# manylinux_2_28_x86_64"). Auf Alpine muesste die Abhaengigkeit aus dem
+# Quelltext gebaut werden — eine Rust-Toolchain im Image, damit die Seite eine
+# Tabelle rendern kann. Das Slim-Image ist der kleinere Preis.
+FROM python:3.12-slim
 
-RUN apk add --no-cache nginx ca-certificates \
- && pip install --no-cache-dir "dbt-duckdb>=1.9,<2.0"
+RUN apt-get update && apt-get install -y --no-install-recommends nginx ca-certificates && rm -rf /var/lib/apt/lists/* && pip install --no-cache-dir "dbt-duckdb>=1.9,<2.0"
 
 COPY --from=go  /out/exporter /usr/local/bin/exporter
 COPY --from=web /src/dist     /srv/www
 
 COPY transform/ /app/transform/
-COPY deploy/nginx.conf        /etc/nginx/http.d/default.conf
+
+# Debian-nginx laedt sites-enabled/ mit; die Standardseite dort belegt Port 80
+# und muss weg, sonst verdeckt sie die eigene Konfiguration.
+RUN rm -f /etc/nginx/sites-enabled/default
+COPY deploy/nginx.conf        /etc/nginx/conf.d/default.conf
 COPY deploy/rebuild.sh        /usr/local/bin/rebuild.sh
 COPY deploy/entrypoint-web.sh /usr/local/bin/entrypoint-web.sh
 RUN chmod +x /usr/local/bin/rebuild.sh /usr/local/bin/entrypoint-web.sh

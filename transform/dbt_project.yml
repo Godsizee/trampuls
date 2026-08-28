@@ -1,0 +1,34 @@
+name: trampuls
+version: "1.0.0"
+config-version: 2
+profile: trampuls
+
+model-paths: ["models"]
+macro-paths: ["macros"]
+seed-paths: ["seeds"]
+target-path: "target"
+clean-targets: ["target", "dbt_packages"]
+
+# Layer-Grenzen aus TramPuls_Datenmodell: staging normalisiert (view),
+# intermediate traegt die Zustandslogik (table), marts sind die einzige Schicht,
+# die der Exporter liest (incremental ab M1, Regel 10).
+models:
+  trampuls:
+    staging:
+      +materialized: view
+      +schema: staging
+    intermediate:
+      +materialized: table
+      +schema: intermediate
+    marts:
+      +materialized: incremental
+      +incremental_strategy: delete+insert
+      +unique_key: betriebstag
+      +schema: marts
+
+vars:
+  # Wurzel der Daten auf dem Volume. Relative Pfade loesen dbt/DuckDB gegen das
+  # Projektverzeichnis auf, nicht gegen das Repo — deshalb steht die Wurzel hier
+  # explizit und wird im Container ueberschrieben:
+  #   dbt build --vars '{"datenwurzel": "/data"}'
+  datenwurzel: ".."

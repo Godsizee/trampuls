@@ -1,0 +1,75 @@
+version: 2
+
+models:
+  - name: mart_linie
+    description: >
+      T1 — Linienprofil je Betriebstag, Linie und Richtung. Puenktlichkeit fuer
+      fuenf Schwellen nebeneinander; Ausfaelle stehen daneben, nie darin (Regel 8).
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [betriebstag, route_id, richtung]
+    columns:
+      - name: betriebstag
+        data_tests: [not_null]
+      - name: route_id
+        description: "Schluessel der Linie. Nie route_short_name — sieben Nummern sind doppelt vergeben (Regel 12)."
+        data_tests: [not_null]
+      - name: verkehrsart
+        data_tests:
+          - accepted_values: {values: ['tram', 'bus', 'sonstige']}
+      - name: bewertbare_halte
+        description: "Nenner der Puenktlichkeit. Enthaelt keine Ausfaelle und keine ausgelassenen Halte."
+        data_tests: [not_null]
+      - name: soll_halte
+        description: "Zweiter Nenner: alle Soll-Halte, inklusive Ausfaellen."
+        data_tests: [not_null]
+
+  - name: mart_linie_stunde
+    description: "T2 — Tagesgang. Betriebsstunde, nicht Kalenderstunde: 24/25/26 sind Nachtlaeufe (Regel 6)."
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [betriebstag, route_id, richtung, betriebsstunde]
+    columns:
+      - name: betriebsstunde
+        data_tests:
+          - not_null
+          - dbt_utils.accepted_range: {min_value: 0, max_value: 30}
+
+  - name: mart_linie_halt
+    description: "T3 — Haltestellenprofil. zuwachs_schnitt_sek zeigt, wo Verspaetung neu entsteht."
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [betriebstag, route_id, richtung, station_id]
+    columns:
+      - name: station_id
+        description: "parent_station, nicht der einzelne Mast — der Mast ist als Anzeige unbrauchbar."
+        data_tests: [not_null]
+
+  - name: mart_ausfall
+    description: "T4 — Ausfaelle je Betriebstag, Linie, Richtung. Eigener Mart, weil Ausfall keine Verspaetung ist."
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [betriebstag, route_id, richtung]
+    columns:
+      - name: fahrten_ausgefallen
+        data_tests: [not_null]
+
+  - name: mart_netz
+    description: "T5 — RNV gesamt je Betriebstag und Verkehrsart. Traegt die Zahl der Startseite."
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [betriebstag, verkehrsart]
+    columns:
+      - name: verkehrsart
+        data_tests:
+          - not_null
+          - accepted_values: {values: ['tram', 'bus', 'sonstige']}
+
+  - name: mart_datenqualitaet
+    description: "T8 — Deckung und Luecken je Betriebstag. Erscheint auf /methodik als Abfrageergebnis."
+    columns:
+      - name: betriebstag
+        data_tests: [unique, not_null]
+      - name: deckung
+        data_tests:
+          - dbt_utils.accepted_range: {min_value: 0, max_value: 1}

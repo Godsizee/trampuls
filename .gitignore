@@ -6,6 +6,21 @@
 *.parquet
 *.duckdb
 
+# Python/dbt — lokale Entwicklungsumgebung und Zwischenprodukte
+.venv/
+__pycache__/
+/transform/target/
+/transform/dbt_packages/
+/transform/logs/
+/transform/.user.yml
+/warehouse/
+
+# Frontend — dist und die lokale Datenkopie sind abgeleitet
+/web/node_modules/
+/web/dist/
+/web/public/daten/
+/export/
+
 # Go
 /bin/
 *.exe

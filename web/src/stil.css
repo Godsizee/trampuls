@@ -1,0 +1,136 @@
+/* Helles und dunkles Farbschema ueber prefers-color-scheme. Die Linienfarben
+   der RNV (route_color) sind Markenfarben und keine Kontrastwerte — sie werden
+   fuer Diagrammflaechen benutzt, nie fuer Text, und nie als Seitenidentitaet
+   (TramPuls_Recht_und_Lizenz: keine Verwechslung mit dem VRN). */
+
+:root {
+  --grund: #ffffff;
+  --flaeche: #f4f5f7;
+  --rand: #d7dae0;
+  --text: #16181d;
+  --gedaempft: #5b6270;
+  --akzent: #1f5f8b;
+  --plus: #b4532a;
+  --minus: #2e6f4e;
+  --schrift: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --grund: #14161a;
+    --flaeche: #1d2026;
+    --rand: #2f343d;
+    --text: #e9ebef;
+    --gedaempft: #a0a7b4;
+    --akzent: #6fb3dd;
+    --plus: #e0885f;
+    --minus: #6cc39a;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--grund);
+  color: var(--text);
+  font-family: var(--schrift);
+  line-height: 1.5;
+}
+
+.huelle { max-width: 60rem; margin: 0 auto; padding: 1.5rem 1rem 4rem; }
+
+header.kopfleiste {
+  border-bottom: 1px solid var(--rand);
+  background: var(--flaeche);
+}
+header.kopfleiste .huelle { padding: 0.75rem 1rem; display: flex; flex-wrap: wrap; gap: 1rem; align-items: baseline; }
+header.kopfleiste a { color: var(--text); text-decoration: none; font-weight: 600; }
+header.kopfleiste nav { display: flex; gap: 1rem; }
+header.kopfleiste nav a { font-weight: 400; color: var(--gedaempft); }
+header.kopfleiste nav a:hover { color: var(--akzent); }
+
+h1 { font-size: 1.9rem; margin: 0 0 0.25rem; }
+h2 { font-size: 1.2rem; margin: 2rem 0 0.5rem; }
+h3 { font-size: 1rem; margin: 1.25rem 0 0.35rem; }
+
+.klein { font-size: 0.85rem; color: var(--gedaempft); margin: 0.15rem 0; }
+.gross { font-size: 3rem; font-weight: 700; margin: 0.25rem 0 0; line-height: 1.1; }
+.hinweis, .fehler {
+  background: var(--flaeche);
+  border: 1px solid var(--rand);
+  border-left: 3px solid var(--akzent);
+  padding: 0.75rem 1rem;
+  border-radius: 4px;
+}
+.fehler { border-left-color: var(--plus); }
+
+.kennzahlen { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); }
+.kennzahl {
+  background: var(--flaeche);
+  border: 1px solid var(--rand);
+  border-radius: 6px;
+  padding: 1rem;
+}
+.kennzahl h2 { margin: 0; font-size: 1rem; color: var(--gedaempft); }
+
+dl { display: grid; grid-template-columns: 1fr auto; gap: 0.2rem 1rem; margin: 0.75rem 0 0; font-size: 0.9rem; }
+dt { color: var(--gedaempft); }
+dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+
+table { border-collapse: collapse; width: 100%; font-size: 0.85rem; margin-top: 0.5rem; }
+th, td { text-align: right; padding: 0.3rem 0.5rem; border-bottom: 1px solid var(--rand); }
+th[scope="row"], thead th:first-child { text-align: left; }
+thead th { color: var(--gedaempft); font-weight: 600; }
+td { font-variant-numeric: tabular-nums; }
+
+.tabellenhuelle { overflow-x: auto; }
+
+details { margin-top: 0.75rem; }
+summary { cursor: pointer; color: var(--akzent); font-size: 0.9rem; }
+
+.diagramm { width: 100%; height: 10rem; display: block; margin: 0.5rem 0; }
+.profil { width: 100%; max-width: 22rem; height: auto; display: block; margin: 0.5rem 0; }
+.gitter { stroke: var(--rand); stroke-width: 1; }
+.achse { fill: var(--gedaempft); font-size: 9px; }
+.achse.mitte { text-anchor: middle; }
+.saeule { fill: var(--akzent); }
+.nulllinie { stroke: var(--rand); stroke-width: 1; }
+.balken.plus { fill: var(--plus); }
+.balken.minus { fill: var(--minus); }
+
+.regler { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: end; margin: 1rem 0; }
+.regler label { display: flex; flex-direction: column; font-size: 0.8rem; color: var(--gedaempft); gap: 0.2rem; }
+select, input[type="search"], button {
+  font: inherit;
+  padding: 0.4rem 0.5rem;
+  background: var(--grund);
+  color: var(--text);
+  border: 1px solid var(--rand);
+  border-radius: 4px;
+}
+select { max-width: 22rem; }
+button { cursor: pointer; }
+button:hover { border-color: var(--akzent); }
+
+.linienliste { list-style: none; padding: 0; margin: 0; }
+.linienliste li {
+  display: flex; justify-content: space-between; gap: 1rem; align-items: baseline;
+  padding: 0.5rem 0; border-bottom: 1px solid var(--rand);
+}
+.linienliste a { color: var(--text); text-decoration: none; display: flex; gap: 0.6rem; align-items: baseline; min-width: 0; }
+.linienliste a:hover .verlauf { color: var(--akzent); }
+.nummer {
+  display: inline-block; min-width: 3.5rem; padding: 0.1rem 0.4rem;
+  background: var(--akzent); color: #fff; border-radius: 4px;
+  font-weight: 700; text-align: center;
+}
+.verlauf { color: var(--gedaempft); font-size: 0.9rem; }
+.werte { text-align: right; display: flex; flex-direction: column; }
+
+footer.fuss {
+  border-top: 1px solid var(--rand);
+  margin-top: 3rem; padding-top: 1rem;
+  font-size: 0.8rem; color: var(--gedaempft);
+}
+footer.fuss a { color: var(--akzent); }

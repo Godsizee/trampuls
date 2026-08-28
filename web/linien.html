@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Linien — TramPuls</title>
+<meta name="description" content="Alle Linien der RNV mit Pünktlichkeit und Fallzahl.">
+<link rel="stylesheet" href="/src/stil.css">
+</head>
+<body>
+<header class="kopfleiste">
+  <div class="huelle">
+    <a href="/">TramPuls</a>
+    <nav>
+      <a href="/">Netz</a>
+      <a href="/linien.html">Linien</a>
+      <a href="/linie.html">Linienseite</a>
+      <a href="/methodik.html">Methodik</a>
+      <a href="/lizenz.html">Lizenz</a>
+    </nav>
+  </div>
+</header>
+<main class="huelle" data-inhalt>
+  <h1>Linien</h1>
+  <div class="regler">
+    <label>Suche
+      <input type="search" data-suche placeholder="Nummer oder Verlauf" value="">
+    </label>
+  </div>
+  <div data-linien><p class="hinweis">Linien werden geladen…</p></div>
+</main>
+<footer class="fuss huelle">
+  <p data-stand></p>
+  <p data-attribution></p>
+  <p>Ein privates Projekt. Keine Verbindung zum Verkehrsverbund Rhein-Neckar oder zur
+     Rhein-Neckar-Verkehr GmbH. <a href="/lizenz.html">Lizenz und Attribution</a>.</p>
+</footer>
+<script type="module" src="/src/linien.ts"></script>
+</body></html>

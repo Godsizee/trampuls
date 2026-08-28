@@ -1,0 +1,12 @@
+# DuckDB als eingebettete Engine (ADR: kein PostgreSQL/Supabase). Die Datei
+# warehouse/trampuls.duckdb ist ein Zwischenprodukt und jederzeit neu baubar —
+# sie ist ausdruecklich von der Retention ausgenommen.
+trampuls:
+  target: prod
+  outputs:
+    prod:
+      type: duckdb
+      path: "../warehouse/trampuls.duckdb"
+      threads: 4
+      extensions:
+        - parquet

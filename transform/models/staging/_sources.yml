@@ -1,0 +1,10 @@
+version: 2
+
+# Die Rohdaten sind unveraenderlich (Regel 1) und werden ausschliesslich gelesen.
+# Kein dbt-Modell schreibt je nach raw/ oder static/ zurueck.
+sources:
+  - name: volume
+    description: "Persistent Volume: Rohdaten des Collectors und versionierter Sollfahrplan."
+    tables:
+      - name: rt_roh
+        description: "Beobachtete Halt-/Fahrtzustaende, stuendliche Parquet-Partitionen."

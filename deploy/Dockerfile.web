@@ -1,0 +1,58 @@
+# trampuls-web: baut die statische Seite, den Exporter und das dbt-Projekt in ein
+# Image und liefert die Seite ueber nginx aus.
+#
+# Die Seite selbst ist statisch und steckt im Image. Die exportierten JSON-Dateien
+# liegen dagegen auf dem Persistent Volume (/data/export/web/daten) und werden
+# stuendlich neu gebaut — sie sind abgeleitet, aber sie muessen einen Redeploy
+# ueberleben, sonst zeigt die Seite nach jedem Deployment bis zum naechsten Task
+# nichts an.
+#
+# WICHTIG (Regel 2): Das Volume muss auf /data gemountet sein — dieselbe Ablage,
+# aus der der Collector liest und schreibt. Der Webcontainer liest raw/ und
+# static/ und schreibt ausschliesslich warehouse/ und export/.
+
+# --- Frontend ---------------------------------------------------------------
+FROM node:22-alpine AS web
+WORKDIR /src
+COPY web/package.json web/package-lock.json ./
+RUN npm ci
+COPY web/ ./
+# public/daten ist nur die lokale Entwicklungskopie; im Image hat sie nichts zu
+# suchen, sonst liefert die Seite einen eingefrorenen Stand aus.
+RUN rm -rf public/daten && npm run build
+
+# --- Exporter ---------------------------------------------------------------
+FROM golang:1.26-alpine AS go
+WORKDIR /src
+COPY go.mod go.sum ./
+RUN go mod download
+COPY cmd/ cmd/
+COPY internal/ internal/
+RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/exporter ./cmd/exporter
+
+# --- Laufzeit ---------------------------------------------------------------
+FROM python:3.12-alpine
+
+RUN apk add --no-cache nginx ca-certificates \
+ && pip install --no-cache-dir "dbt-duckdb>=1.9,<2.0"
+
+COPY --from=go  /out/exporter /usr/local/bin/exporter
+COPY --from=web /src/dist     /srv/www
+
+COPY transform/ /app/transform/
+COPY deploy/nginx.conf        /etc/nginx/http.d/default.conf
+COPY deploy/rebuild.sh        /usr/local/bin/rebuild.sh
+COPY deploy/entrypoint-web.sh /usr/local/bin/entrypoint-web.sh
+RUN chmod +x /usr/local/bin/rebuild.sh /usr/local/bin/entrypoint-web.sh
+
+# dbt deps braucht Netz; einmal beim Bauen statt bei jedem stuendlichen Lauf.
+RUN cd /app/transform && dbt deps --project-dir . --profiles-dir .
+
+ENV TRAMPULS_DATEN=/data \
+    TRAMPULS_TRANSFORM=/app/transform \
+    TRAMPULS_WEBDATEN=/data/export/web/daten
+
+WORKDIR /data
+EXPOSE 3000
+
+ENTRYPOINT ["/usr/local/bin/entrypoint-web.sh"]

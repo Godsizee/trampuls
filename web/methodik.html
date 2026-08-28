@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Methodik — TramPuls</title>
+<meta name="description" content="Wie die Kennzahlen entstehen, und wie vollständig die Erhebung je Betriebstag war.">
+<link rel="stylesheet" href="/src/stil.css">
+</head>
+<body>
+<header class="kopfleiste">
+  <div class="huelle">
+    <a href="/">TramPuls</a>
+    <nav>
+      <a href="/">Netz</a>
+      <a href="/linien.html">Linien</a>
+      <a href="/linie.html">Linienseite</a>
+      <a href="/methodik.html">Methodik</a>
+      <a href="/lizenz.html">Lizenz</a>
+    </nav>
+  </div>
+</header>
+<main class="huelle" data-inhalt>
+  <h1>Methodik</h1>
+
+  <h2>Was gemessen wird</h2>
+  <p>Der Collector ruft alle 30 Sekunden den GTFS-Realtime-Feed des VRN ab, filtert ihn
+     auf die Agency <code>vrn-05</code> (Rhein-Neckar-Verkehr GmbH) und schreibt jede
+     Zustandsänderung eines Halts mit. Diese Beobachtungen werden gegen den Sollfahrplan
+     gejoint — und zwar gegen die Version, die am jeweiligen Betriebstag gültig war,
+     nicht gegen die aktuelle.</p>
+
+  <h2>Pünktlichkeit</h2>
+  <p>Anteil der <strong>bewertbaren Halte</strong> mit einer Ankunftsverspätung unterhalb
+     der gewählten Schwelle. Bewertbar ist ein Halt, zu dem eine Verspätung gemeldet
+     wurde. Die Schwellen 1, 3, 6, 15 und 60 Minuten stehen nebeneinander: bei einem
+     5-Minuten-Takt ist „unter 6 Minuten" beinahe bedeutungslos, weil eine ausgefallene
+     Bahn rechnerisch als „die nächste kam pünktlich" durchgehen kann.</p>
+
+  <h2>Zwei Nenner</h2>
+  <p>Jede Quote wird mit ihrer Fallzahl gezeigt, und daneben steht immer die Zahl aller
+     Soll-Halte. Der Unterschied zwischen beiden ist genau das, was nicht gemessen werden
+     konnte — Ausfälle, ausgelassene Halte und Halte ohne Meldung.</p>
+
+  <h2>Ausfall ist keine Verspätung von null</h2>
+  <p>Fahrten mit <code>CANCELED</code> und Halte mit <code>SKIPPED</code> gehen
+     <strong>nicht</strong> in die Pünktlichkeit ein. Sie würden den Durchschnitt sonst
+     verbessern, obwohl gar nichts gefahren ist. Sie stehen stattdessen getrennt auf jeder
+     Linienseite.</p>
+
+  <h2>Betriebstag, nicht Kalendertag</h2>
+  <p>Ein Betriebstag reicht über Mitternacht hinaus. Eine Fahrt um 1:30 Uhr gehört zum
+     Betriebstag davor und erscheint als Betriebsstunde 25, nicht als Stunde 1 des
+     Folgetags.</p>
+
+  <h2>Was diese Seite nicht ist</h2>
+  <p>Keine Live-Auskunft. TramPuls zeigt Historie, nicht die nächste Bahn. Der jüngste
+     gezeigte Betriebstag ist der jüngste vollständig erhobene; der laufende Tag ist
+     per Definition unvollständig.</p>
+
+  <h2>Datenqualität je Betriebstag</h2>
+  <p class="klein">Deckung ist der Anteil der Soll-Halte, zu denen etwas beobachtet wurde.
+     Ein Tag gilt als vollständig erhoben, wenn mindestens 24 Betriebsstunden belegt sind.</p>
+  <div class="tabellenhuelle" data-qualitaet></div>
+</main>
+<footer class="fuss huelle">
+  <p data-stand></p>
+  <p data-attribution></p>
+  <p>Ein privates Projekt. Keine Verbindung zum Verkehrsverbund Rhein-Neckar oder zur
+     Rhein-Neckar-Verkehr GmbH. <a href="/lizenz.html">Lizenz und Attribution</a>.</p>
+</footer>
+<script type="module" src="/src/methodik.ts"></script>
+</body></html>

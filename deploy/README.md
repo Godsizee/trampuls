@@ -71,6 +71,8 @@ Historie gekostet.
 | Health Check Path | `/gesundheit` |
 | Domain | `https://trampuls.dasdann.jetzt` |
 | Scheduled Task | `rebuild-stuendlich`, `10 * * * *` |
+| Scheduled Task | `pruefung-stuendlich`, `15 * * * *` (nach `rebuild`) — `/usr/local/bin/pruefung-stuendlich.sh` |
+| Env (optional) | `TRAMPULS_NTFY_URL` — Ziel-URL fuer die Rot-Meldung (z. B. ein privates ntfy.sh-Thema). Ohne gesetzte URL laeuft die Pruefung, aber verschickt nichts — nur ein Log-Hinweis |
 
 Der Task läuft um `:10`, also nach dem Stundenflush des Collectors um `:00` — sonst
 fehlte der zuletzt abgeschlossenen Stunde regelmäßig ihre Partition.
@@ -121,4 +123,7 @@ Datenkontrolle läuft dauerhaft weiter und nicht nur in diesem einen Test.
   Bind-Mount macht es einfach: `/data/coolify/trampuls` additiv an einen zweiten Ort,
   plus monatliche Rückspielprobe.
 - **TPULS-012 — 24-Stunden-Messung.**
-- **TPULS-022 — stündliche fachliche Prüfung inklusive Benachrichtigungskanal.**
+- **TPULS-022 — Code steht** (`tools/pruefung-stuendlich/`, `deploy/pruefung-stuendlich.sh`,
+  Kanal ntfy.sh/Webhook), **Coolify-Seite offen:** Scheduled Task `pruefung-stuendlich`
+  auf `trampuls-web` anlegen (`15 * * * *`) und `TRAMPULS_NTFY_URL` setzen — beides von
+  hier aus nicht erreichbar.

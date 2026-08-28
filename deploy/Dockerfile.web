@@ -48,20 +48,24 @@ COPY --from=go  /out/exporter /usr/local/bin/exporter
 COPY --from=web /src/dist     /srv/www
 
 COPY transform/ /app/transform/
+COPY tools/     /app/tools/
 
 # Debian-nginx laedt sites-enabled/ mit; die Standardseite dort belegt Port 80
 # und muss weg, sonst verdeckt sie die eigene Konfiguration.
 RUN rm -f /etc/nginx/sites-enabled/default
-COPY deploy/nginx.conf        /etc/nginx/conf.d/default.conf
-COPY deploy/rebuild.sh        /usr/local/bin/rebuild.sh
-COPY deploy/entrypoint-web.sh /usr/local/bin/entrypoint-web.sh
-RUN chmod +x /usr/local/bin/rebuild.sh /usr/local/bin/entrypoint-web.sh
+COPY deploy/nginx.conf              /etc/nginx/conf.d/default.conf
+COPY deploy/rebuild.sh              /usr/local/bin/rebuild.sh
+COPY deploy/entrypoint-web.sh       /usr/local/bin/entrypoint-web.sh
+COPY deploy/pruefung-stuendlich.sh  /usr/local/bin/pruefung-stuendlich.sh
+RUN chmod +x /usr/local/bin/rebuild.sh /usr/local/bin/entrypoint-web.sh \
+             /usr/local/bin/pruefung-stuendlich.sh
 
 # dbt deps braucht Netz; einmal beim Bauen statt bei jedem stuendlichen Lauf.
 RUN cd /app/transform && dbt deps --project-dir . --profiles-dir .
 
 ENV TRAMPULS_DATEN=/data \
     TRAMPULS_TRANSFORM=/app/transform \
+    TRAMPULS_TOOLS=/app/tools \
     TRAMPULS_WEBDATEN=/data/export/web/daten
 
 WORKDIR /data

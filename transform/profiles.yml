@@ -1,12 +1,19 @@
-# DuckDB als eingebettete Engine (ADR: kein PostgreSQL/Supabase). Die Datei
-# warehouse/trampuls.duckdb ist ein Zwischenprodukt und jederzeit neu baubar —
-# sie ist ausdruecklich von der Retention ausgenommen.
+# DuckDB als eingebettete Engine (ADR-005: kein PostgreSQL/Supabase).
+#
+# Der Pfad steht als Umgebungsvariable, weil er lokal und im Container an
+# verschiedenen Stellen liegt: relative Pfade loest dbt gegen das Projekt-
+# verzeichnis auf (/app/transform im Image), die Datenbank gehoert aber auf das
+# Volume. Ohne das legt der Container sie in sein eigenes Dateisystem — wo sie
+# beim naechsten Redeploy verschwindet.
+#
+# warehouse/trampuls.duckdb ist ausdruecklich ein Zwischenprodukt und jederzeit
+# neu baubar; es ist das Einzige, was von der Retention ausgenommen ist.
 trampuls:
   target: prod
   outputs:
     prod:
       type: duckdb
-      path: "../warehouse/trampuls.duckdb"
+      path: "{{ env_var('TRAMPULS_WAREHOUSE', '../warehouse/trampuls.duckdb') }}"
       threads: 4
       extensions:
         - parquet

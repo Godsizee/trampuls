@@ -10,6 +10,10 @@ set -eu
 DATEN="${TRAMPULS_DATEN:-/data}"
 PROJEKT="${TRAMPULS_TRANSFORM:-/app/transform}"
 ZIEL="${TRAMPULS_WEBDATEN:-/data/export/web/daten}"
+# dbt loest relative Pfade gegen das Projektverzeichnis auf, nicht gegen die
+# Datenwurzel — die Datenbank gehoert aber auf das Volume.
+TRAMPULS_WAREHOUSE="${TRAMPULS_WAREHOUSE:-$DATEN/warehouse/trampuls.duckdb}"
+export TRAMPULS_WAREHOUSE
 
 echo "[rebuild] Datenwurzel=$DATEN Ziel=$ZIEL"
 

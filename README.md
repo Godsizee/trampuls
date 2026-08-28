@@ -7,10 +7,13 @@ Pünktlichkeits-Analytics für Straßenbahn und Bus der RNV (Rhein-Neckar-Verkeh
 
 ## Stand
 
-Der Collector ist deploybar: `cmd/collector` pollt den VRN-Echtzeitfeed alle 30 s,
-filtert auf die Agency `vrn-05`, dedupliziert unveränderte Zustände und schreibt
-stündliche Parquet-Partitionen auf das Persistent Volume. `cmd/statictool` baut die
-RNV-Ableitungen aus dem Sollfahrplan. `cmd/demo` bleibt daneben als Konsolen-Check.
+Beides läuft in Produktion seit dem 2026-08-28:
+
+- **Collector** — pollt den VRN-Echtzeitfeed alle 30 s, filtert auf die Agency `vrn-05`,
+  dedupliziert unveränderte Zustände und schreibt stündliche Parquet-Partitionen auf ein
+  Persistent Volume.
+- **Seite** — <https://trampuls.dasdann.jetzt>, stündlich neu gebaut aus den Rohdaten
+  über dbt-duckdb und den Exporter.
 
 Projektregeln: [CLAUDE.md](./CLAUDE.md). Vollständige Dokumentation, Architektur und
 Entscheidungen: Obsidian-Vault (`02 Projekte/TramPuls`).
@@ -21,7 +24,10 @@ Entscheidungen: Obsidian-Vault (`02 Projekte/TramPuls`).
 |---|---|
 | `cmd/collector` | Dauerprozess: pollt, filtert, dedupliziert, schreibt Parquet |
 | `cmd/statictool` | Täglicher Task: lädt den Sollfahrplan, baut die RNV-Ableitungen |
+| `cmd/exporter` | Marts → JSON für das Frontend |
 | `cmd/demo` | Einmaliger End-to-End-Check auf der Konsole |
+| `transform/` | dbt-duckdb: staging → intermediate → marts |
+| `web/` | Vite + TypeScript, keine Framework-Runtime |
 
 ## Lokal ausführen
 
@@ -37,6 +43,17 @@ dort versioniert. Der Collector liest die Fahrtenliste unter
 Zustand des letzten Polls: `health/heartbeat.json`, gleichlautend unter
 `http://localhost:3000/health` (200 = frisch und fehlerfrei, 503 = älter als fünf
 Minuten oder letzter Poll fehlgeschlagen).
+
+## Kennzahlen neu bauen
+
+```
+cd transform && dbt build --project-dir . --profiles-dir .
+                dbt run-operation export_marts --project-dir . --profiles-dir .
+cd .. && go run ./cmd/exporter
+cd web && npm run build
+```
+
+`deploy/rebuild.sh` macht genau das im Container, stündlich.
 
 ## Deployment
 

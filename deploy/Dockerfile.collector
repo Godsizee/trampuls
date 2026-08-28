@@ -1,0 +1,48 @@
+# Baut collector und statictool als statische Binaries in einem Image. Der Container
+# startet ueber entrypoint.sh, das bei leerem Volume einmalig die Fahrtenliste baut und
+# danach den Collector als PID 1 exec't (SIGTERM-Flush, Regel 4).
+#
+# statictool laeuft zusaetzlich als eigener taeglicher Scheduled Task mit demselben
+# Image, Befehl ueberschrieben:
+#   docker run <image> /usr/local/bin/statictool
+#
+# WICHTIG (Regel 2): WORKDIR /data muss beim Deploy auf das Persistent Volume gemountet
+# werden. collector/statictool schreiben ausschliesslich relative Pfade (static/, raw/,
+# health/) — die landen sonst im Container-Dateisystem und sind nach jedem Redeploy weg.
+# Redeploy-Test mit Datenkontrolle (TPULS-020) ist Pflicht vor dem ersten produktiven
+# Deploy.
+
+# Die Version folgt der go-Direktive in go.mod. Ein aelteres Image zwingt die
+# Toolchain zum Nachladen waehrend des Builds — das schlaegt ohne Netz fehl und macht
+# den Build von einer Quelle abhaengig, die hier nichts zu suchen hat.
+FROM golang:1.26-alpine AS build
+WORKDIR /src
+
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY cmd/ cmd/
+COPY internal/ internal/
+
+RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/collector ./cmd/collector
+RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/statictool ./cmd/statictool
+
+# alpine statt distroless: der Kaltstart braucht eine Shell fuer entrypoint.sh.
+# ca-certificates ist Pflicht — beide VRN-Endpunkte sind HTTPS, und distroless brachte
+# die Wurzelzertifikate noch mit, alpine nicht. tzdata wird nicht installiert: die
+# Zeitzonendatenbank steckt ueber time/tzdata im Binary (Regel 5).
+FROM alpine:3.21
+RUN apk add --no-cache ca-certificates
+
+COPY --from=build /out/collector /usr/local/bin/collector
+COPY --from=build /out/statictool /usr/local/bin/statictool
+COPY deploy/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+WORKDIR /data
+
+# Nur der Healthcheck-Endpunkt (siehe internal/health/server.go). Der Collector bedient
+# sonst keinen Verkehr.
+EXPOSE 3000
+
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

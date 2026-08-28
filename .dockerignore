@@ -1,0 +1,22 @@
+# Rohdaten/Cache gehören aufs Volume, nie ins Image (Regel 2)
+/static/
+/raw/
+/data/
+/health/
+*.parquet
+*.duckdb
+
+# Secrets (Regel 15) — nie in den Build-Kontext
+.env
+.env.*
+*.pem
+*.key
+
+# Go
+/bin/
+*.exe
+*.test
+
+.git/
+.gitignore
+*.md

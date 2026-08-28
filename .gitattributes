@@ -1,0 +1,11 @@
+# Der Container-Entrypoint wird auf einem Windows-Rechner bearbeitet und auf Linux
+# ausgefuehrt. Mit CRLF scheitert er dort an der Shebang-Zeile ("bad interpreter") —
+# ein Fehler, der erst im Deploy auftaucht und nicht im Build. Deshalb hart auf LF.
+*.sh text eol=lf
+Dockerfile* text eol=lf
+deploy/Dockerfile.collector text eol=lf
+
+# Parquet-Ableitungen und das GTFS-Zip nie durch die Textkonvertierung schicken.
+*.parquet binary
+*.zip binary
+*.pb binary

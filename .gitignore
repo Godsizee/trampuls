@@ -1,0 +1,22 @@
+# Rohdaten und Cache — gehören aufs Volume, nie ins Repo
+/static/
+/raw/
+/data/
+/health/
+*.parquet
+*.duckdb
+
+# Go
+/bin/
+*.exe
+*.test
+
+# Secrets (Regel 15 — nie im Repo)
+.env
+.env.*
+*.pem
+*.key
+
+# Editor/OS
+.DS_Store
+Thumbs.db

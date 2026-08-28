@@ -39,8 +39,14 @@ export function escape(s: string): string {
   );
 }
 
-/** Tabellenentsprechung zu jedem Diagramm (Barrierefreiheit). */
-export function tabelle(kopf: string[], zeilen: string[][]): HTMLTableElement {
+/**
+ * Tabellenentsprechung zu jedem Diagramm (Barrierefreiheit).
+ *
+ * Die Tabelle kommt in einem eigenen Scrollkasten zurueck, nicht nackt: keine
+ * dieser Tabellen passt mit ihren sechs bis neun Spalten auf ein Telefon, und
+ * ohne den Kasten scrollt stattdessen die ganze Seite waagerecht.
+ */
+export function tabelle(kopf: string[], zeilen: string[][]): HTMLDivElement {
   const t = document.createElement("table");
   const thead = document.createElement("thead");
   const kopfzeile = document.createElement("tr");
@@ -65,5 +71,9 @@ export function tabelle(kopf: string[], zeilen: string[][]): HTMLTableElement {
     tbody.appendChild(tr);
   }
   t.appendChild(tbody);
-  return t;
+
+  const huelle = document.createElement("div");
+  huelle.className = "tabellenhuelle";
+  huelle.appendChild(t);
+  return huelle;
 }

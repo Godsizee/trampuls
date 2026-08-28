@@ -5,7 +5,7 @@ import { ladeIndex, ladeLinie, ladeLinieHalte } from "./daten";
 import type { HalteDatei, IndexDatei, LinieDatei } from "./daten";
 import { datum, prozent, quote, quoteText, sekunden, stunde, zahl } from "./format";
 import { escape, fussnote, tabelle, zeigeFehler } from "./seite";
-import { balkenProfil, saeulen } from "./diagramm";
+import { balkenProfil, saeulenIn } from "./diagramm";
 import { SCHWELLEN, gemerkteLinie, leseAuswahl, merkeLinie, schreibeAuswahl } from "./zustand";
 
 async function start(): Promise<void> {
@@ -202,7 +202,7 @@ function tagesgang(linie: LinieDatei, richtung: number, schwelle: number): void 
   ziel.innerHTML = `<h2>Tagesgang</h2>
     <p class="klein">Pünktlichkeit unter ${schwelle} Minuten je Betriebsstunde.
     Stunde 24 und höher sind Nachtläufe desselben Betriebstags.</p>`;
-  ziel.appendChild(saeulen(punkte));
+  saeulenIn(ziel, punkte);
 
   const details = document.createElement("details");
   details.innerHTML = "<summary>Zahlen dazu</summary>";

@@ -8,7 +8,7 @@ import { ladeIndex, ladeNetz } from "./daten";
 import type { IndexDatei, NetzDatei } from "./daten";
 import { datum, prozent, quoteText, sekunden, zahl, VERKEHRSART_NAME } from "./format";
 import { fussnote, tabelle, zeigeFehler } from "./seite";
-import { saeulen } from "./diagramm";
+import { saeulenIn } from "./diagramm";
 
 async function start(): Promise<void> {
   const index = await ladeIndex();
@@ -79,7 +79,7 @@ async function zeigeVerlauf(): Promise<void> {
 
     const block = document.createElement("section");
     block.innerHTML = `<h3>${VERKEHRSART_NAME[art]}</h3>`;
-    block.appendChild(saeulen(punkte));
+    saeulenIn(block, punkte);
 
     const details = document.createElement("details");
     details.innerHTML = "<summary>Zahlen dazu</summary>";

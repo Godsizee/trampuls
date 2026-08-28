@@ -1,9 +1,15 @@
 /* Helles und dunkles Farbschema ueber prefers-color-scheme. Die Linienfarben
    der RNV (route_color) sind Markenfarben und keine Kontrastwerte — sie werden
    fuer Diagrammflaechen benutzt, nie fuer Text, und nie als Seitenidentitaet
-   (TramPuls_Recht_und_Lizenz: keine Verwechslung mit dem VRN). */
+   (TramPuls_Recht_und_Lizenz: keine Verwechslung mit dem VRN).
+
+   Das Layout ist von der schmalsten Breite her gebaut: Grundregeln gelten fuer
+   das Telefon, die Medienabfragen weiter unten fuegen erst ab Tabletbreite
+   etwas hinzu. Auf keiner Breite darf die Seite waagerecht scrollen — breite
+   Tabellen und Diagramme scrollen in ihrem eigenen Kasten. */
 
 :root {
+  color-scheme: light dark;
   --grund: #ffffff;
   --flaeche: #f4f5f7;
   --rand: #d7dae0;
@@ -13,6 +19,9 @@
   --plus: #b4532a;
   --minus: #2e6f4e;
   --schrift: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --schleier: rgba(22, 24, 29, 0.38);
+  /* Fingerbreite. Alles, was angetippt wird, ist mindestens so hoch. */
+  --tippziel: 2.75rem;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -25,10 +34,17 @@
     --akzent: #6fb3dd;
     --plus: #e0885f;
     --minus: #6cc39a;
+    --schleier: rgba(0, 0, 0, 0.7);
   }
 }
 
 * { box-sizing: border-box; }
+
+html {
+  /* iOS vergroessert im Querformat sonst eigenmaechtig die Schrift und bringt
+     die gemessenen Spaltenbreiten der Diagramme durcheinander. */
+  -webkit-text-size-adjust: 100%;
+}
 
 body {
   margin: 0;
@@ -36,26 +52,36 @@ body {
   color: var(--text);
   font-family: var(--schrift);
   line-height: 1.5;
+  /* Haltestellennamen wie "Heidelberg Betriebshof/Gaisbergstraße" brechen
+     lieber um, als die Seite breiter zu machen als das Fenster. */
+  overflow-wrap: break-word;
 }
 
-.huelle { max-width: 60rem; margin: 0 auto; padding: 1.5rem 1rem 4rem; }
+svg, img { max-width: 100%; }
+
+.huelle { max-width: 60rem; margin: 0 auto; padding: 1.25rem 1rem 3rem; }
 
 header.kopfleiste {
   border-bottom: 1px solid var(--rand);
   background: var(--flaeche);
 }
-header.kopfleiste .huelle { padding: 0.75rem 1rem; display: flex; flex-wrap: wrap; gap: 1rem; align-items: baseline; }
-header.kopfleiste a { color: var(--text); text-decoration: none; font-weight: 600; }
-header.kopfleiste nav { display: flex; gap: 1rem; }
+header.kopfleiste .huelle {
+  padding: 0.5rem 1rem;
+  display: flex; flex-wrap: wrap; gap: 0 1rem; align-items: baseline;
+}
+header.kopfleiste a { color: var(--text); text-decoration: none; font-weight: 600; padding: 0.45rem 0; }
+/* Fuenf Eintraege passen auf 320 px nicht in eine Zeile — sie brechen um,
+   statt die Kopfleiste ueber den Bildschirmrand zu schieben. */
+header.kopfleiste nav { display: flex; flex-wrap: wrap; gap: 0 1rem; }
 header.kopfleiste nav a { font-weight: 400; color: var(--gedaempft); }
 header.kopfleiste nav a:hover { color: var(--akzent); }
 
-h1 { font-size: 1.9rem; margin: 0 0 0.25rem; }
+h1 { font-size: clamp(1.5rem, 5.5vw, 1.9rem); margin: 0 0 0.25rem; }
 h2 { font-size: 1.2rem; margin: 2rem 0 0.5rem; }
 h3 { font-size: 1rem; margin: 1.25rem 0 0.35rem; }
 
 .klein { font-size: 0.85rem; color: var(--gedaempft); margin: 0.15rem 0; }
-.gross { font-size: 3rem; font-weight: 700; margin: 0.25rem 0 0; line-height: 1.1; }
+.gross { font-size: clamp(2.25rem, 11vw, 3rem); font-weight: 700; margin: 0.25rem 0 0; line-height: 1.1; }
 .hinweis, .fehler {
   background: var(--flaeche);
   border: 1px solid var(--rand);
@@ -65,7 +91,8 @@ h3 { font-size: 1rem; margin: 1.25rem 0 0.35rem; }
 }
 .fehler { border-left-color: var(--plus); }
 
-.kennzahlen { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); }
+/* min() statt 15rem: auf 320 px ist eine Karte sonst breiter als die Spalte. */
+.kennzahlen { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(min(15rem, 100%), 1fr)); }
 .kennzahl {
   background: var(--flaeche);
   border: 1px solid var(--rand);
@@ -75,24 +102,46 @@ h3 { font-size: 1rem; margin: 1.25rem 0 0.35rem; }
 .kennzahl h2 { margin: 0; font-size: 1rem; color: var(--gedaempft); }
 
 dl { display: grid; grid-template-columns: 1fr auto; gap: 0.2rem 1rem; margin: 0.75rem 0 0; font-size: 0.9rem; }
-dt { color: var(--gedaempft); }
-dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+dt { color: var(--gedaempft); min-width: 0; }
+dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 
 table { border-collapse: collapse; width: 100%; font-size: 0.85rem; margin-top: 0.5rem; }
-th, td { text-align: right; padding: 0.3rem 0.5rem; border-bottom: 1px solid var(--rand); }
+th, td { text-align: right; padding: 0.35rem 0.5rem; border-bottom: 1px solid var(--rand); }
 th[scope="row"], thead th:first-child { text-align: left; }
 thead th { color: var(--gedaempft); font-weight: 600; }
 td { font-variant-numeric: tabular-nums; }
 
-.tabellenhuelle { overflow-x: auto; }
+/* Neun Spalten passen auf kein Telefon. Statt die Zahlen zu quetschen, scrollt
+   die Tabelle waagerecht in ihrem Kasten — die Seite selbst bleibt stehen. */
+.tabellenhuelle {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  /* Auf dem Telefon ist kein Scrollbalken zu sehen. Der Schleier an der Kante
+     ist dort der einzige Hinweis, dass rechts noch Spalten stehen; er
+     verschwindet von selbst, sobald das Ende erreicht ist. */
+  background:
+    linear-gradient(to right, var(--grund), rgba(0, 0, 0, 0)) 0 0 / 2rem 100% no-repeat local,
+    linear-gradient(to left, var(--grund), rgba(0, 0, 0, 0)) 100% 0 / 2rem 100% no-repeat local,
+    radial-gradient(farthest-side at 0 50%, var(--schleier), rgba(0, 0, 0, 0)) 0 0 / 1.25rem 100% no-repeat scroll,
+    radial-gradient(farthest-side at 100% 50%, var(--schleier), rgba(0, 0, 0, 0)) 100% 0 / 1.25rem 100% no-repeat scroll;
+}
+.tabellenhuelle > table { width: max-content; min-width: 100%; }
+.tabellenhuelle th, .tabellenhuelle td { white-space: nowrap; }
+/* Die erste Spalte bleibt stehen: ohne sie ist nach zwei Spalten Scrollen
+   nicht mehr erkennbar, zu welchem Tag oder Halt eine Zahl gehoert. */
+.tabellenhuelle thead th:first-child,
+.tabellenhuelle th[scope="row"] {
+  position: sticky; left: 0; background: var(--grund);
+  box-shadow: 1px 0 0 var(--rand);
+}
 
 details { margin-top: 0.75rem; }
-summary { cursor: pointer; color: var(--akzent); font-size: 0.9rem; }
+summary { cursor: pointer; color: var(--akzent); font-size: 0.9rem; padding: 0.5rem 0; }
 
 .diagramm { width: 100%; height: 10rem; display: block; margin: 0.5rem 0; }
 .profil { width: 100%; max-width: 22rem; height: auto; display: block; margin: 0.5rem 0; }
 .gitter { stroke: var(--rand); stroke-width: 1; }
-.achse { fill: var(--gedaempft); font-size: 9px; }
+.achse { fill: var(--gedaempft); font-size: 10px; }
 .achse.mitte { text-anchor: middle; }
 .saeule { fill: var(--akzent); }
 .nulllinie { stroke: var(--rand); stroke-width: 1; }
@@ -100,32 +149,45 @@ summary { cursor: pointer; color: var(--akzent); font-size: 0.9rem; }
 .balken.minus { fill: var(--minus); }
 
 .regler { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: end; margin: 1rem 0; }
-.regler label { display: flex; flex-direction: column; font-size: 0.8rem; color: var(--gedaempft); gap: 0.2rem; }
+/* min-width: 0 laesst die Beschriftung schrumpfen; ohne sie macht die laengste
+   Option im Auswahlfeld die Zeile breiter als den Bildschirm. */
+.regler label {
+  display: flex; flex-direction: column; font-size: 0.8rem; color: var(--gedaempft); gap: 0.2rem;
+  flex: 1 1 12rem; min-width: 0; max-width: 22rem;
+}
 select, input[type="search"], button {
-  font: inherit;
+  font-family: inherit;
+  /* Unter 16 px zoomt iOS beim Antippen in das Feld hinein und kommt von
+     alleine nicht wieder heraus — deshalb nicht die 0.8rem der Beschriftung. */
+  font-size: 1rem;
   padding: 0.4rem 0.5rem;
+  min-height: var(--tippziel);
+  max-width: 100%;
   background: var(--grund);
   color: var(--text);
   border: 1px solid var(--rand);
   border-radius: 4px;
 }
-select { max-width: 22rem; }
-button { cursor: pointer; }
+select, input[type="search"] { width: 100%; }
+button { cursor: pointer; padding: 0.4rem 1rem; }
 button:hover { border-color: var(--akzent); }
 
 .linienliste { list-style: none; padding: 0; margin: 0; }
 .linienliste li {
-  display: flex; justify-content: space-between; gap: 1rem; align-items: baseline;
-  padding: 0.5rem 0; border-bottom: 1px solid var(--rand);
+  display: flex; justify-content: space-between; gap: 0.25rem 1rem; align-items: baseline;
+  flex-wrap: wrap; padding: 0.6rem 0; border-bottom: 1px solid var(--rand);
 }
-.linienliste a { color: var(--text); text-decoration: none; display: flex; gap: 0.6rem; align-items: baseline; min-width: 0; }
+.linienliste a {
+  color: var(--text); text-decoration: none; display: flex; gap: 0.6rem; align-items: baseline;
+  flex: 1 1 14rem; min-width: 0; padding: 0.15rem 0;
+}
 .linienliste a:hover .verlauf { color: var(--akzent); }
 .nummer {
   display: inline-block; min-width: 3.5rem; padding: 0.1rem 0.4rem;
   background: var(--akzent); color: #fff; border-radius: 4px;
-  font-weight: 700; text-align: center;
+  font-weight: 700; text-align: center; flex: none;
 }
-.verlauf { color: var(--gedaempft); font-size: 0.9rem; }
+.verlauf { color: var(--gedaempft); font-size: 0.9rem; min-width: 0; }
 .werte { text-align: right; display: flex; flex-direction: column; }
 
 footer.fuss {
@@ -134,3 +196,32 @@ footer.fuss {
   font-size: 0.8rem; color: var(--gedaempft);
 }
 footer.fuss a { color: var(--akzent); }
+
+/* Schmale Bildschirme: was nebeneinander stand, steht untereinander. */
+@media (max-width: 34rem) {
+  .regler { gap: 0.6rem; }
+  .regler label { flex-basis: 100%; max-width: none; }
+  button[data-merken] { width: 100%; }
+
+  .linienliste li { flex-direction: column; align-items: stretch; gap: 0.3rem; }
+  /* In der Spalte ist die Flexbasis die Hoehe — 14rem waeren hier Luft. */
+  .linienliste a { flex: 0 0 auto; }
+  .werte {
+    flex-direction: row; flex-wrap: wrap; align-items: baseline;
+    gap: 0 0.6rem; text-align: left;
+  }
+
+  /* Die stehende erste Spalte darf nicht die ganze Breite fuellen: sonst sieht
+     man auf dem Telefon nur Haltestellennamen und keine einzige Zahl. */
+  .tabellenhuelle th[scope="row"] {
+    max-width: 9rem; white-space: normal;
+    /* Umbrechen ja, aber an Wortgrenzen: "Handschuhshei/m Nord" liest niemand. */
+    overflow-wrap: normal;
+  }
+
+  .huelle { padding-bottom: 2.5rem; }
+}
+
+@media (min-width: 34.0625rem) {
+  .huelle { padding-top: 1.5rem; padding-bottom: 4rem; }
+}

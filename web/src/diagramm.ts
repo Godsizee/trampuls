@@ -32,9 +32,15 @@ export interface Saeule {
  * "keine Fallzahl" und wird als Luecke gezeichnet, nicht als 0 — ein Balken der
  * Hoehe null waere die Aussage "hier war nichts puenktlich", und das ist etwas
  * anderes als "hier fuhr nichts".
+ *
+ * `breite` ist die Breite in CSS-Pixeln, in der das SVG spaeter steht. Sie wird
+ * hereingereicht statt geraten, weil `preserveAspectRatio="none"` die
+ * Achsenbeschriftung mitverzerrt: auf einem Telefon wurden aus 24 Stunden in
+ * 624 viewBox-Einheiten auf ~330 px halbbreit gequetschte Ziffern. Bei
+ * gemessener Breite ist der Massstab 1 und die Schrift steht, wie sie soll.
+ * `saeulenIn` nimmt einem das Messen ab.
  */
-export function saeulen(daten: Saeule[], hoehe = 160): SVGSVGElement {
-  const breite = Math.max(daten.length * 26, 260);
+export function saeulen(daten: Saeule[], breite = Math.max(daten.length * 26, 260), hoehe = 160): SVGSVGElement {
   const rand = { oben: 8, unten: 22, links: 34 };
   const zeichenHoehe = hoehe - rand.oben - rand.unten;
   const spalte = (breite - rand.links) / Math.max(daten.length, 1);
@@ -56,16 +62,22 @@ export function saeulen(daten: Saeule[], hoehe = 160): SVGSVGElement {
     svg.appendChild(beschriftung);
   }
 
+  // Zwei Ziffern brauchen rund 24 px, sonst kleben die Beschriftungen
+  // aneinander. Bei 24 Stunden auf einem Telefon ist das jede zweite Stunde,
+  // auf dem Schreibtisch jede erste.
+  const schritt = Math.max(1, Math.ceil(24 / spalte));
+  const saeulenBreite = Math.min(Math.max(spalte - 4, 1), 36);
+
   daten.forEach((d, i) => {
     const x = rand.links + i * spalte;
     if (d.wert !== null) {
       const h = Math.max(zeichenHoehe * d.wert, 1);
       svg.appendChild(el("rect", {
-        x: x + 2, y: rand.oben + zeichenHoehe - h,
-        width: Math.max(spalte - 4, 1), height: h, class: "saeule", rx: 2,
+        x: x + (spalte - saeulenBreite) / 2, y: rand.oben + zeichenHoehe - h,
+        width: saeulenBreite, height: h, class: "saeule", rx: 2,
       }));
     }
-    if (i % 3 === 0) {
+    if (i % schritt === 0) {
       const t = el("text", { x: x + spalte / 2, y: hoehe - 6, class: "achse mitte" });
       t.textContent = d.beschriftung;
       svg.appendChild(t);
@@ -73,6 +85,41 @@ export function saeulen(daten: Saeule[], hoehe = 160): SVGSVGElement {
   });
 
   return svg;
+}
+
+/**
+ * Zeichnet ein Saeulendiagramm in `ziel` und haelt es an dessen Breite — beim
+ * Drehen des Telefons und beim Ein- und Ausblenden der Adressleiste wird neu
+ * gezeichnet, statt das vorhandene Bild zu verzerren.
+ */
+export function saeulenIn(ziel: Element, daten: Saeule[], hoehe = 160): void {
+  // Beim ersten Aufruf haengt der Abschnitt oft noch nicht im Dokument und ist
+  // damit 0 breit; dann zeichnet die Vorgabebreite, und der Beobachter
+  // korrigiert, sobald die echte Breite feststeht.
+  const gemessen = Math.round(ziel.clientWidth);
+  let letzteBreite = gemessen;
+  let svg = saeulen(daten, gemessen > 0 ? gemessen : undefined, hoehe);
+  ziel.appendChild(svg);
+
+  if (typeof ResizeObserver === "undefined") return;
+
+  const beobachter = new ResizeObserver((eintraege) => {
+    // Der Aufrufer baut seinen Abschnitt bei jeder Reglerauswahl neu auf. Ist
+    // das gezeichnete SVG nicht mehr im Dokument, gehoert es zu einem
+    // vergangenen Aufbau — dann ist auch diese Beobachtung erledigt.
+    if (!svg.isConnected) {
+      beobachter.disconnect();
+      return;
+    }
+    const breite = Math.round(eintraege[0]?.contentRect.width ?? 0);
+    // Kleine Spruenge (Scrollbalken, Rundung) sind kein Neuzeichnen wert.
+    if (breite <= 0 || Math.abs(breite - letzteBreite) < 16) return;
+    letzteBreite = breite;
+    const neu = saeulen(daten, breite, hoehe);
+    svg.replaceWith(neu);
+    svg = neu;
+  });
+  beobachter.observe(ziel);
 }
 
 export interface Balken {

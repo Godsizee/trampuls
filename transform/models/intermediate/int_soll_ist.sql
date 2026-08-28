@@ -15,36 +15,108 @@ with tage as (
 
 ),
 
--- Fahrten, die an diesem Betriebstag ueberhaupt beobachtet wurden. Ohne diese
--- Einschraenkung enthielte der Soll-Rahmen alle ~20.600 Fahrten des Fahrplans,
--- auch die, die an diesem Wochentag gar nicht verkehren — calendar.txt wird
--- hier bewusst noch nicht ausgewertet (siehe _marts.yml, offene Punkte).
+-- Welche service_id gilt an diesem Betriebstag? Regulaer (calendar.txt,
+-- Wochentag im Datumsbereich) union Ausnahme-hinzugefuegt, minus
+-- Ausnahme-entfernt -- Mengensemantik wie aktive_dienste() in
+-- tools/quelle-pruefen/quelle-pruefen.py.
+kalender_regulaer as (
+
+    select t.betriebstag, t.static_version, t.version_ersatzweise, k.service_id
+    from tage t
+    join {{ ref('stg_static_kalender') }} k
+      on  k.static_version = t.static_version
+      and k.quelle         = 'calendar'
+      and k.wochentag      = lower(dayname(t.betriebstag))
+      and t.betriebstag between k.start_date and k.end_date
+
+),
+
+kalender_hinzu as (
+
+    select t.betriebstag, t.static_version, t.version_ersatzweise, k.service_id
+    from tage t
+    join {{ ref('stg_static_kalender') }} k
+      on  k.static_version = t.static_version
+      and k.quelle         = 'calendar_dates'
+      and k.ausnahme_datum = t.betriebstag
+      and k.exception_type = 1
+
+),
+
+kalender_entfernt as (
+
+    select t.betriebstag, t.static_version, t.version_ersatzweise, k.service_id
+    from tage t
+    join {{ ref('stg_static_kalender') }} k
+      on  k.static_version = t.static_version
+      and k.quelle         = 'calendar_dates'
+      and k.ausnahme_datum = t.betriebstag
+      and k.exception_type = 2
+
+),
+
+aktive_dienste as (
+    (
+        select betriebstag, static_version, version_ersatzweise, service_id from kalender_regulaer
+        union
+        select betriebstag, static_version, version_ersatzweise, service_id from kalender_hinzu
+    )
+    except
+    select betriebstag, static_version, version_ersatzweise, service_id from kalender_entfernt
+),
+
+kalender_fahrten as (
+
+    -- Jede RNV-Fahrt, die laut Kalender an diesem Betriebstag verkehrt --
+    -- unabhaengig davon, ob je eine Meldung ankam. Behebt TPULS-042: eine
+    -- Linie ganz ohne Beobachtung (4/4A/6/6A, siehe Recent 2026-08-28) bekam
+    -- bisher gar keinen Soll-Rahmen, weil beobachtete_fahrten allein aus
+    -- int_betriebstag kam.
+    select distinct
+        ad.betriebstag, ad.static_version, ad.version_ersatzweise, f.trip_id
+    from aktive_dienste ad
+    join {{ ref('stg_static_fahrt') }} f
+      on f.static_version = ad.static_version
+     and f.service_id     = ad.service_id
+
+),
+
 beobachtete_fahrten as (
 
+    -- Sicherheitsnetz, nicht der Regelfall: faellt ein Betriebstag auf
+    -- version_ersatzweise (aelteste verfuegbare Version statt der eigentlich
+    -- gueltigen), kann deren calendar.txt-Datumsbereich den Tag verfehlen. Eine
+    -- tatsaechlich beobachtete Fahrt darf dadurch nie verlorengehen.
     select distinct betriebstag, trip_id
     from {{ ref('int_betriebstag') }}
 
 ),
 
+soll_fahrten as (
+    select betriebstag, static_version, version_ersatzweise, trip_id from kalender_fahrten
+    union
+    select bf.betriebstag, t.static_version, t.version_ersatzweise, bf.trip_id
+    from beobachtete_fahrten bf
+    join tage t on t.betriebstag = bf.betriebstag
+),
+
 soll as (
 
     select
-        bf.betriebstag,
-        t.static_version,
-        t.version_ersatzweise,
+        sf.betriebstag,
+        sf.static_version,
+        sf.version_ersatzweise,
         sh.trip_id,
         sh.stop_id,
         sh.stop_sequence,
         sh.soll_an_sek,
         sh.soll_ab_sek,
-        {{ gtfs_zeitstempel('bf.betriebstag', 'sh.soll_an_sek') }} as soll_an,
-        {{ gtfs_zeitstempel('bf.betriebstag', 'sh.soll_ab_sek') }} as soll_ab
-    from beobachtete_fahrten bf
-    join tage t
-      on t.betriebstag = bf.betriebstag
+        {{ gtfs_zeitstempel('sf.betriebstag', 'sh.soll_an_sek') }} as soll_an,
+        {{ gtfs_zeitstempel('sf.betriebstag', 'sh.soll_ab_sek') }} as soll_ab
+    from soll_fahrten sf
     join {{ ref('stg_static_sollhalt') }} sh
-      on sh.trip_id = bf.trip_id
-     and sh.static_version = t.static_version
+      on sh.trip_id = sf.trip_id
+     and sh.static_version = sf.static_version
 
 ),
 
@@ -83,6 +155,7 @@ select
     s.stop_sequence,
     s.soll_an,
     s.soll_ab,
+    {{ betriebsstunde('s.betriebstag', 'coalesce(s.soll_ab, s.soll_an)') }} as betriebsstunde,
     i.ist_an,
     i.ist_ab,
     i.delay_an_sek,

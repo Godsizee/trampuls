@@ -133,9 +133,11 @@ export interface MethodikDatei {
   soll_halte: number[];
   bewertbare_halte: number[];
   halte_ohne_meldung: number[];
+  halte_nicht_erhoben: number[];
   fahrten: number[];
   linien: number[];
   belegte_stunden: number[];
+  erhebungsluecken_stunden: number[];
   deckung: number[];
   erhebung_vollstaendig: boolean[];
   erste_beobachtung: string[];

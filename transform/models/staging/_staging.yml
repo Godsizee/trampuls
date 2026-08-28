@@ -1,0 +1,23 @@
+version: 2
+
+models:
+  - name: stg_static_kalender
+    description: >
+      Normalisierte calendar.txt/calendar_dates.txt: welche service_id an
+      welchem Wochentag gilt (quelle='calendar'), und welche Ausnahmedaten
+      (quelle='calendar_dates', exception_type 1=hinzugefuegt/2=entfernt).
+      Die Entscheidung "aktiv an Tag X" bleibt int_soll_ist vorbehalten.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [service_id, static_version, quelle, wochentag, ausnahme_datum]
+    columns:
+      - name: service_id
+        data_tests: [not_null]
+      - name: static_version
+        data_tests: [not_null]
+      - name: quelle
+        data_tests:
+          - accepted_values: {values: ['calendar', 'calendar_dates']}
+      - name: exception_type
+        data_tests:
+          - accepted_values: {values: [1, 2], quote: false}

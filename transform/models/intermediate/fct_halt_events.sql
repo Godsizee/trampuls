@@ -22,15 +22,10 @@ select
     hz.zustand,
     hz.static_version,
 
-    -- Die Stunde des *Betriebstags*, nicht des Kalendertags: eine Fahrt um
-    -- 01:30 nach einem Betriebstag gehoert in Stunde 25, nicht in Stunde 1
-    -- (Regel 6). Sonst wandern die Nachtlaeufe in den Morgen des Vortags.
-    case
-        when hz.soll_ab is not null
-            then cast(floor(date_diff('second', hz.betriebstag::timestamp, hz.soll_ab) / 3600.0) as integer)
-        when hz.soll_an is not null
-            then cast(floor(date_diff('second', hz.betriebstag::timestamp, hz.soll_an) / 3600.0) as integer)
-    end as betriebsstunde,
+    -- Kommt jetzt aus int_soll_ist (ueber int_halt_zustand) -- dieselbe Formel
+    -- wird auch von int_erhebungsluecke gebraucht, deshalb dort und nicht mehr
+    -- hier berechnet (Makro betriebsstunde() in gtfs_zeit.sql).
+    hz.betriebsstunde,
 
     hz.beobachtet_am
 from {{ ref('int_halt_zustand') }} hz

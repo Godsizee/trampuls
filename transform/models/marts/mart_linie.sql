@@ -37,6 +37,7 @@ select
     count(*) filter (where b.zustand = 'fahrt_ausgefallen')            as halte_fahrt_ausgefallen,
     count(*) filter (where b.zustand = 'ausgelassen')                  as halte_ausgelassen,
     count(*) filter (where b.zustand = 'ohne_meldung')                 as halte_ohne_meldung,
+    count(*) filter (where b.zustand = 'nicht_erhoben')                as halte_nicht_erhoben,
 
     avg(b.delay_an_sek) filter (where {{ ist_bewertbar('b.zustand') }}) as delay_schnitt_sek,
     median(b.delay_an_sek) filter (where {{ ist_bewertbar('b.zustand') }}) as delay_median_sek,

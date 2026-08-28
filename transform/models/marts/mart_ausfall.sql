@@ -22,7 +22,12 @@ je_fahrt as (
         max(case when zustand = 'fahrt_ausgefallen' then 1 else 0 end) = 1 as fahrt_ausgefallen,
         count(*) filter (where zustand = 'ausgelassen')                     as ausgelassene_halte,
         count(*)                                                           as soll_halte,
-        count(*) filter (where zustand = 'ohne_meldung')                    as halte_ohne_meldung
+        -- ohne_meldung UND nicht_erhoben zaehlen hier gleich: beides heisst
+        -- "zu diesem Halt liegt nichts vor" -- einmal weil nie gemeldet, einmal
+        -- weil die Erhebung in dieser Stunde lueckenhaft war (TPULS-036). Sonst
+        -- faellt eine Fahrt, die komplett in eine Erhebungsluecke faellt, hier
+        -- stillschweigend aus fahrten_unbedient_beobachtet heraus.
+        count(*) filter (where zustand in ('ohne_meldung', 'nicht_erhoben'))  as halte_ohne_auswertbare_meldung
     from basis
     group by 1, 2, 3, 4
 
@@ -36,10 +41,11 @@ select
     count(*) filter (where fahrt_ausgefallen)                    as fahrten_ausgefallen,
     sum(ausgelassene_halte)                                      as halte_ausgelassen,
     sum(soll_halte)                                              as soll_halte,
-    -- "Unbedient beobachtet": eine Fahrt, von der kein einziger Halt je gemeldet
-    -- wurde, obwohl sie im Sollfahrplan steht. Das ist nicht dasselbe wie
-    -- CANCELED — der Feed sagt nichts, die Fahrt fehlt aber. Getrennt
-    -- ausgewiesen, weil die Ursache offen ist (Ausfall oder Sammelluecke).
-    count(*) filter (where not fahrt_ausgefallen and halte_ohne_meldung = soll_halte) as fahrten_unbedient_beobachtet
+    -- "Unbedient beobachtet": eine Fahrt, von der kein einziger Halt je
+    -- auswertbar gemeldet wurde, obwohl sie im Sollfahrplan steht. Das ist
+    -- nicht dasselbe wie CANCELED — der Feed sagt nichts, die Fahrt fehlt aber.
+    -- Getrennt ausgewiesen, weil die Ursache offen ist (Ausfall oder
+    -- Sammelluecke).
+    count(*) filter (where not fahrt_ausgefallen and halte_ohne_auswertbare_meldung = soll_halte) as fahrten_unbedient_beobachtet
 from je_fahrt
 group by 1, 2, 3

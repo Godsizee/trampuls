@@ -488,19 +488,21 @@ func runde(f float64) float64 {
 // ---------------------------------------------------------------------------
 
 type methodikDatei struct {
-	Attribution    string    `json:"attribution"`
-	SchwellenMin   []int     `json:"schwellen_min"`
-	Betriebstag    []string  `json:"betriebstag"`
-	SollHalte      []int64   `json:"soll_halte"`
-	Bewertbare     []int64   `json:"bewertbare_halte"`
-	OhneMeldung    []int64   `json:"halte_ohne_meldung"`
-	Fahrten        []int64   `json:"fahrten"`
-	Linien         []int64   `json:"linien"`
-	BelegteStunden []int64   `json:"belegte_stunden"`
-	Deckung        []float64 `json:"deckung"`
-	Vollstaendig   []bool    `json:"erhebung_vollstaendig"`
-	Erste          []string  `json:"erste_beobachtung"`
-	Letzte         []string  `json:"letzte_beobachtung"`
+	Attribution        string    `json:"attribution"`
+	SchwellenMin       []int     `json:"schwellen_min"`
+	Betriebstag        []string  `json:"betriebstag"`
+	SollHalte          []int64   `json:"soll_halte"`
+	Bewertbare         []int64   `json:"bewertbare_halte"`
+	OhneMeldung        []int64   `json:"halte_ohne_meldung"`
+	NichtErhoben       []int64   `json:"halte_nicht_erhoben"`
+	Fahrten            []int64   `json:"fahrten"`
+	Linien             []int64   `json:"linien"`
+	BelegteStunden     []int64   `json:"belegte_stunden"`
+	ErhebungsluekenStd []int64   `json:"erhebungsluecken_stunden"`
+	Deckung            []float64 `json:"deckung"`
+	Vollstaendig       []bool    `json:"erhebung_vollstaendig"`
+	Erste              []string  `json:"erste_beobachtung"`
+	Letzte             []string  `json:"letzte_beobachtung"`
 }
 
 func schreibeMethodik(zielDir string, d *daten) error {
@@ -513,9 +515,11 @@ func schreibeMethodik(zielDir string, d *daten) error {
 		out.SollHalte = append(out.SollHalte, q.SollHalte)
 		out.Bewertbare = append(out.Bewertbare, q.BewertbareHalte)
 		out.OhneMeldung = append(out.OhneMeldung, q.HalteOhneMeldung)
+		out.NichtErhoben = append(out.NichtErhoben, q.HalteNichtErhoben)
 		out.Fahrten = append(out.Fahrten, q.Fahrten)
 		out.Linien = append(out.Linien, q.Linien)
 		out.BelegteStunden = append(out.BelegteStunden, q.BelegteStunden)
+		out.ErhebungsluekenStd = append(out.ErhebungsluekenStd, q.ErhebungsluekenStunden)
 		out.Deckung = append(out.Deckung, wert(q.Deckung))
 		out.Vollstaendig = append(out.Vollstaendig, q.ErhebungVollstaendig)
 		out.Erste = append(out.Erste, text(q.ErsteBeobachtung))

@@ -127,12 +127,14 @@ type Netz struct {
 type Datenqualitaet struct {
 	Betriebstag string `parquet:"betriebstag"`
 
-	SollHalte        int64 `parquet:"soll_halte"`
-	BewertbareHalte  int64 `parquet:"bewertbare_halte"`
-	HalteOhneMeldung int64 `parquet:"halte_ohne_meldung"`
-	Fahrten          int64 `parquet:"fahrten"`
-	Linien           int64 `parquet:"linien"`
-	BelegteStunden   int64 `parquet:"belegte_stunden"`
+	SollHalte              int64 `parquet:"soll_halte"`
+	BewertbareHalte        int64 `parquet:"bewertbare_halte"`
+	HalteOhneMeldung       int64 `parquet:"halte_ohne_meldung"`
+	HalteNichtErhoben      int64 `parquet:"halte_nicht_erhoben"`
+	Fahrten                int64 `parquet:"fahrten"`
+	Linien                 int64 `parquet:"linien"`
+	BelegteStunden         int64 `parquet:"belegte_stunden"`
+	ErhebungsluekenStunden int64 `parquet:"erhebungsluecken_stunden"`
 
 	ErsteBeobachtung  *string `parquet:"erste_beobachtung"`
 	LetzteBeobachtung *string `parquet:"letzte_beobachtung"`

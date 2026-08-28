@@ -28,7 +28,8 @@ async function start(): Promise<void> {
   ziel.appendChild(
     tabelle(
       ["Betriebstag", "Vollständig", "Deckung", "Soll-Halte", "Bewertbar",
-       "Ohne Meldung", "Fahrten", "Linien", "Belegte Stunden"],
+       "Ohne Meldung", "Nicht erhoben", "Fahrten", "Linien", "Belegte Stunden",
+       "Lücken-Stunden"],
       reihenfolge.map((i) => [
         datum(m.betriebstag[i] ?? ""),
         m.erhebung_vollstaendig[i] ? "ja" : "nein",
@@ -36,9 +37,11 @@ async function start(): Promise<void> {
         zahl(m.soll_halte[i] ?? 0),
         zahl(m.bewertbare_halte[i] ?? 0),
         zahl(m.halte_ohne_meldung[i] ?? 0),
+        zahl(m.halte_nicht_erhoben[i] ?? 0),
         zahl(m.fahrten[i] ?? 0),
         zahl(m.linien[i] ?? 0),
         zahl(m.belegte_stunden[i] ?? 0),
+        zahl(m.erhebungsluecken_stunden[i] ?? 0),
       ]),
     ),
   );

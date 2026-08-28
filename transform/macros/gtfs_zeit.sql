@@ -31,3 +31,17 @@
         else ({{ betriebstag }}::timestamp + to_seconds({{ sekunden }}))
     end
 {% endmacro %}
+
+
+{#
+    Betriebsstunde (0-29, Regel 6) aus einem beliebigen Zeitstempel -- Soll- oder
+    Beobachtungszeit. Bisher nur inline in fct_halt_events (Soll-Zeit); jetzt auch
+    von int_erhebungsluecke gebraucht (gegen beobachtet_am) -- ein Makro statt
+    zweimal derselben Formel (CLAUDE.md: Zustandslogik liegt einmal).
+#}
+{% macro betriebsstunde(betriebstag, zeitstempel) %}
+    case
+        when {{ zeitstempel }} is null then null
+        else cast(floor(date_diff('second', {{ betriebstag }}::timestamp, {{ zeitstempel }}) / 3600.0) as integer)
+    end
+{% endmacro %}

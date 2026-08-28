@@ -14,15 +14,36 @@ models:
         data_tests:
           - not_null
           - accepted_values:
-              values: ['gemessen', 'nur_abfahrt', 'ausgelassen', 'fahrt_ausgefallen', 'ohne_meldung']
+              values: ['gemessen', 'nur_abfahrt', 'ausgelassen', 'fahrt_ausgefallen', 'ohne_meldung', 'nicht_erhoben']
       - name: richtung
         data_tests:
           - accepted_values: {values: [0, 1], quote: false}
       - name: betriebstag
         data_tests: [not_null]
+      - name: route_id
+        data_tests:
+          - relationships: {to: ref('stg_static_linie'), field: route_id}
+      - name: delay_an_sek
+        data_tests:
+          - dbt_utils.accepted_range:
+              min_value: -600
+              max_value: 7200
+              config: {severity: warn}
+      - name: delay_ab_sek
+        data_tests:
+          - dbt_utils.accepted_range:
+              min_value: -600
+              max_value: 7200
+              config: {severity: warn}
 
   - name: int_richtung
-    description: "Richtungsname je (route_id, richtung), abgeleitet aus dem haeufigsten Endhalt (ADR-006)."
+    description: >
+      Richtungsname je (route_id, richtung), abgeleitet aus dem haeufigsten Endhalt
+      (ADR-006). Der Uniqueness-Test unten erfuellt bereits die Pflichtliste
+      "assert_richtung_eindeutig" (Referenz/TramPuls_Datenmodell.md) -- die
+      qualify row_number()-Auswahl im Modell garantiert strukturell genau eine
+      Zeile je (route_id, richtung), ein zusaetzlicher Singular-Test waere
+      redundant.
     data_tests:
       - dbt_utils.unique_combination_of_columns:
           combination_of_columns: [route_id, richtung]
@@ -32,3 +53,21 @@ models:
     columns:
       - name: betriebstag
         data_tests: [unique, not_null]
+
+  - name: int_erhebungsluecke
+    description: >
+      Je (Betriebstag, Betriebsstunde): lag eine verwertbare Beobachtung vor?
+      Quelle sind Beobachtungszeitpunkte aus int_betriebstag (routenunabhaengig),
+      nicht der Heartbeat (kein Verlauf vorhanden, TPULS-036).
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [betriebstag, stunde]
+    columns:
+      - name: betriebstag
+        data_tests: [not_null]
+      - name: stunde
+        data_tests:
+          - not_null
+          - dbt_utils.accepted_range: {min_value: 0, max_value: 30}
+      - name: erhoben
+        data_tests: [not_null]

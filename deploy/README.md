@@ -69,6 +69,7 @@ Historie gekostet.
 | Dockerfile | `/deploy/Dockerfile.web` |
 | Ports Exposes | `3000` |
 | Health Check Path | `/gesundheit` |
+| Health Check Start Period | `150` — stand auf dem Coolify-Standardwert `300`; nginx steht Sekunden nach Containerstart, der 5-Minuten-Puffer war unnötig lang (verkürzt 2026-08-29) |
 | Domain | `https://trampuls.dasdann.jetzt` |
 | Scheduled Task | `rebuild-stuendlich`, `10 * * * *` |
 | Scheduled Task | `pruefung-stuendlich`, `15 * * * *` (nach `rebuild`) — `/usr/local/bin/pruefung-stuendlich.sh` |

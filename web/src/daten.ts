@@ -154,7 +154,13 @@ async function hole<T>(pfad: string): Promise<T> {
   return (await antwort.json()) as T;
 }
 
-export const ladeIndex = () => hole<IndexDatei>("index.json");
+export async function ladeIndex(): Promise<IndexDatei> {
+  const index = await hole<IndexDatei>("index.json");
+  // Eine Linie ohne gemessenen Halt hat nichts zu zeigen (Diagnose 2026-08-28:
+  // der Live-Feed liefert fuer sie schlicht nichts) — sie bleibt im Datenmodell,
+  // verschwindet aber aus Liste und Auswahl, statt eine leere Kennzahl zu zeigen.
+  return { ...index, linien: index.linien.filter((l) => l.bewertbare_halte > 0) };
+}
 export const ladeNetz = () => hole<NetzDatei>("netz.json");
 export const ladeMethodik = () => hole<MethodikDatei>("methodik.json");
 export const ladeLinie = (datei: string) => hole<LinieDatei>(`linie/${datei}.json`);

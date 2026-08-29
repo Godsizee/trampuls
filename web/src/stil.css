@@ -693,6 +693,19 @@ h1 .nummer { font-size: 1.35rem; min-width: 3.2rem; padding: 0.15rem 0.5rem; }
 }
 .werte strong { font-weight: 600; }
 
+/* Die Richtungsnamen stehen als eigene Zeile ausserhalb von .werte, nicht als
+   letzte Zeile darin. .werte hat keine feste Breite — sie schrumpft auf den
+   breitesten Inhalt. Die Richtungsnamen ("Ludwigshafen, Rathaus ·
+   Oggersheim, Grossparthweiher") sind oft die laengste Zeile im ganzen
+   Eintrag; stuenden sie in .werte, wuerde ihre Laenge dessen Breite
+   bestimmen, und die kurzen Zahlenzeilen (Prozent, Fallzahl) richteten sich
+   an dieser zufaelligen, von Linie zu Linie springenden Breite aus statt an
+   einer eigenen (gesehen 2026-08-29 auf /linien.html: die Prozentzahl klebte
+   am rechten Rand, waehrend die Richtungszeile fast die volle Breite der
+   Karte einnahm). `flex: 1 1 100%` zwingt sie im Flex-Layout des `li`
+   immer auf eine eigene, volle Zeile — unabhaengig von der Breite von .werte. */
+.richtungen { flex: 1 1 100%; text-align: left; }
+
 /* Der Kopf der Linienseite: Schild links, Ueberschrift und Verlauf daneben.
    Das Schild ist `aria-hidden` — die Ueberschrift sagt Verkehrsart und Nummer
    ohnehin in Worten, und zweimal dieselbe Zahl vorgelesen zu bekommen hilft

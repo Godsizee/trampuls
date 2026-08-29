@@ -66,8 +66,8 @@ function eintrag(l: LinieKopf): HTMLLIElement {
       <strong>${quoteText(l.puenktlich_3min, l.bewertbare_halte)}</strong>
       <span class="klein">weniger als 3 Min zu spät</span>
       <span class="klein">${zahl(l.bewertbare_halte)} gemessene Halte</span>
-      ${richtungen ? `<span class="klein">${richtungen}</span>` : ""}
-    </span>`;
+    </span>
+    ${richtungen ? `<span class="klein richtungen">${richtungen}</span>` : ""}`;
   return li;
 }
 

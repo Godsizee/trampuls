@@ -3,19 +3,25 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#f4f5f7" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#1d2026" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#faf9f6" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#121317" media="(prefers-color-scheme: dark)">
 <title>Straßenbahn und Bus im Überblick — TramPuls</title>
 <meta name="description" content="Wie pünktlich Straßenbahn und Bus der Rhein-Neckar-Verkehr zuletzt waren, mit dem Verlauf der letzten 30 Tage.">
+<!-- Nur die Groteske wird vorgeladen: sie traegt die erste Zahl. Die Serif
+     traegt Ueberschriften und darf per font-display:swap nachkommen.
+     crossorigin ist auch bei gleicher Herkunft Pflicht — Schriften werden
+     im CORS-Modus geholt, und ohne das Attribut laedt der Browser die
+     Datei ein zweites Mal. -->
+<link rel="preload" href="/schrift/archivo-var-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/src/stil.css">
 </head>
 <body>
 <header class="kopfleiste">
   <div class="huelle">
-    <a href="/">TramPuls</a>
-    <nav>
+    <a class="marke" href="/">TramPuls</a>
+    <nav aria-label="Hauptnavigation">
       <a href="/">Start</a>
-      <a href="/netz.html">Netz</a>
+      <a href="/netz.html" aria-current="page">Netz</a>
       <a href="/linien.html">Linien</a>
       <a href="/methodik.html">Methodik</a>
       <a href="/lizenz.html">Lizenz</a>
@@ -31,8 +37,8 @@
     <p class="hinweis">Zahlen werden geladen…</p>
   </section>
   <p class="vorbehalt" data-vorbehalt></p>
-  <section data-verlauf></section>
-  <p style="margin-top:2rem"><a href="/linien.html">Alle Linien ansehen →</a></p>
+  <section class="breit" data-verlauf></section>
+  <p class="weiter"><a href="/linien.html">Alle Linien ansehen →</a></p>
 </main>
 <footer class="fuss huelle">
   <p data-stand></p>

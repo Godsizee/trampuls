@@ -1,40 +1,173 @@
-/* Helles und dunkles Farbschema ueber prefers-color-scheme. Die Linienfarben
-   der RNV (route_color) sind Markenfarben und keine Kontrastwerte — sie werden
-   fuer Diagrammflaechen benutzt, nie fuer Text, und nie als Seitenidentitaet
-   (TramPuls_Recht_und_Lizenz: keine Verwechslung mit dem VRN).
+/* TramPuls — Gestaltung
+   ===========================================================================
 
-   Das Layout ist von der schmalsten Breite her gebaut: Grundregeln gelten fuer
-   das Telefon, die Medienabfragen weiter unten fuegen erst ab Tabletbreite
-   etwas hinzu. Auf keiner Breite darf die Seite waagerecht scrollen — breite
-   Tabellen und Diagramme scrollen in ihrem eigenen Kasten. */
+   Richtung: "statistisches Jahrbuch". Serif fuer Ueberschriften und den Lead,
+   Groteske fuer alles, was gezaehlt oder bedient wird — Zahlen, Tabellen,
+   Regler, Liniennummern. Haarlinien und Weissraum statt gefuellter Kaesten.
+
+   Drei Dinge, die dabei nicht verhandelbar sind:
+
+   - Die Linienfarben der RNV (route_color) kommen hier nicht vor. Sie sind
+     Markenfarben und keine Kontrastwerte, und als Seitenidentitaet waeren sie
+     eine Verwechslungsgefahr mit dem VRN (TramPuls_Recht_und_Lizenz). Die
+     Verkehrsart bekommt stattdessen einen eigenen, gedaempften Marker — als
+     Flaeche, nie als Textfarbe.
+   - Das Layout ist von der schmalsten Breite her gebaut. Grundregeln gelten
+     fuer das Telefon; die Medienabfragen fuegen erst ab Tabletbreite etwas
+     hinzu. Geprueft wird bei 320 / 344 / 360 / 390 / 768 / 1024 / 1440 —
+     344 und 360 decken das Frontdisplay eines Galaxy Z Fold ab, dessen
+     Besonderheit weniger die Breite als das Seitenverhaeltnis von rund 1:2,4
+     ist: sehr hoch, sehr schmal.
+   - Auf keiner dieser Breiten scrollt die Seite waagerecht. Breite Tabellen
+     und Diagramme scrollen in ihrem eigenen Kasten.
+
+   Kontraste sind gegen WCAG AA im gebauten Stand im Browser gemessen, nicht
+   geschaetzt (2026-08-29, Chrome, beide Farbschemata):
+
+     hell    Tinte 17,20:1 · gedaempft 6,08:1 · Akzent 7,62:1
+     dunkel  Tinte 14,88:1 · gedaempft 7,06:1 · Akzent 8,27:1
+     Liniennummer auf ihrem Markerton 7,62:1 (hell) / 8,27:1 (dunkel)
+
+   Die Haarlinie --linie liegt bei 1,35:1 und ist deshalb ausschliesslich
+   dekorativ. Alles, was eine Bedienflaeche begrenzt — Auswahlfeld, Suchfeld,
+   Knopf — benutzt --linie-stark: 3,34:1 hell, 3,55:1 dunkel, damit ueber der
+   Grenze von 3:1 fuer Bedienelemente.
+   =========================================================================== */
+
+/* ---------------------------------------------------------------------------
+   Schrift
+
+   Selbst gehostet, kein Google-Fonts-CDN: eine Seite, die mit "kein Tracking"
+   wirbt, darf nicht bei jedem Aufruf die IP ihrer Leser an einen Dritten
+   schicken (Regel 13). Beide Dateien sind auf Latin-1 plus die Sonderzeichen
+   subsettet, die die Oberflaeche wirklich benutzt, und ihre Gewichtsachse ist
+   auf den benutzten Bereich beschnitten. Gemessen 2026-08-29:
+   Groteske 25,6 KB, Serif 28,6 KB, zusammen 54,2 KB.
+
+   Nur die Groteske wird vorgeladen. Sie traegt die erste Zahl; die Serif
+   traegt Ueberschriften und darf nachkommen. Damit liegen auf dem kritischen
+   Pfad 25,6 KB und nicht 54.
+   --------------------------------------------------------------------------- */
+
+@font-face {
+  font-family: "Archivo Var";
+  src: url("/schrift/archivo-var-latin.woff2") format("woff2");
+  font-weight: 380 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Die Serif heisst hier nicht mehr "Source Serif 4", und das ist kein
+   Geschmack: die OFL 1.1 verbietet in Klausel 3, dass eine modifizierte
+   Fassung den Reserved Font Name fuehrt, und "Source" ist ein solcher. Das
+   Subset ist eine Modifikation. Der Copyright-Vermerk von Adobe steht
+   unveraendert in der Datei — den zu erhalten verlangt dieselbe Lizenz.
+   Archivo hat keinen Reserved Font Name und behaelt deshalb seinen. */
+@font-face {
+  font-family: "TramPuls Serif";
+  src: url("/schrift/trampuls-serif-var-latin.woff2") format("woff2");
+  font-weight: 400 620;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Metrisch angeglichene Ersatzschriften. Ohne sie springt das Layout in dem
+   Moment, in dem die echte Schrift eintrifft — bei `font-display: swap` sieht
+   das jeder Besucher mit langsamer Verbindung. Die Werte sind aus den
+   gemessenen Fontmetriken gerechnet (2026-08-29):
+   Archivo x-Hoehe 526/1000, Aufstrich 878, Abstrich 210;
+   Source Serif 4 x-Hoehe 475/1000, Aufstrich 1036, Abstrich 335. */
+@font-face {
+  font-family: "Groteske Ersatz";
+  src: local("Segoe UI"), local("Roboto"), local("Helvetica Neue"), local("Arial");
+  size-adjust: 101.4%;
+  ascent-override: 86.6%;
+  descent-override: 20.7%;
+  line-gap-override: 0%;
+}
+
+@font-face {
+  font-family: "Serif Ersatz";
+  src: local("Georgia"), local("Times New Roman"), local("Liberation Serif");
+  size-adjust: 98.7%;
+  ascent-override: 105%;
+  descent-override: 34%;
+  line-gap-override: 0%;
+}
+
+/* ---------------------------------------------------------------------------
+   Merkmale
+   --------------------------------------------------------------------------- */
 
 :root {
   color-scheme: light dark;
-  --grund: #ffffff;
-  --flaeche: #f4f5f7;
-  --rand: #d7dae0;
-  --text: #16181d;
-  --gedaempft: #5b6270;
-  --akzent: #1f5f8b;
-  --plus: #b4532a;
-  --minus: #2e6f4e;
-  --schrift: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --schleier: rgba(22, 24, 29, 0.38);
+
+  --papier: #faf9f6;
+  --flaeche: #f2f0eb;
+  --tinte: #14161a;
+  --gedaempft: #5a5f6a;
+  --linie: #dcd8d0;
+  --linie-stark: #8e887e;
+  --akzent: #12595e;
+  --plus: #9c4a21;
+  --minus: #2f6b46;
+  --tram: #12595e;
+  --bus: #3f5570;
+  --schleier: rgba(20, 22, 26, 0.34);
+
+  --schrift-serif: "TramPuls Serif", "Serif Ersatz", Georgia, "Times New Roman", serif;
+  --schrift-grotesk: "Archivo Var", "Groteske Ersatz", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  /* Schriftgrade. Die Skala ist fluid, aber nach oben gedeckelt: eine
+     Ueberschrift, die auf einem 27-Zoll-Schirm weiterwaechst, wird nicht
+     edler, sondern nur groesser. */
+  --t-display: clamp(2.6rem, 12vw, 4.25rem);
+  --t-h1: clamp(1.65rem, 5.2vw, 2.5rem);
+  --t-h2: clamp(1.15rem, 3.2vw, 1.45rem);
+  --t-h3: 1.02rem;
+  --t-lead: clamp(1rem, 2.4vw, 1.12rem);
+  --t-klein: 0.875rem;
+  --t-mikro: 0.75rem;
+
+  /* Abstaende auf einer 4px-Basis. Vorher standen hier ad hoc gewaehlte
+     rem-Werte; ein Raster ist der Unterschied zwischen "aufgeraeumt" und
+     "zufaellig ordentlich". */
+  --r1: 0.25rem;
+  --r2: 0.5rem;
+  --r3: 0.75rem;
+  --r4: 1rem;
+  --r5: 1.5rem;
+  --r6: 2rem;
+  --r7: 3rem;
+  --r8: 4.5rem;
+
+  /* Die Huelle fasst gerade so das Raster mit Randspalte: 40 rem Hauptteil
+     + 3 rem Rinne + 16 rem Rand + Innenabstand. Bei 72 rem blieb auf Seiten
+     ohne Randspalte rechts eine tote Flaeche stehen, waehrend die Navigation
+     am aeusseren Rand klebte — die Seite sah dann unfertig aus statt
+     grosszuegig. */
+  --breite-seite: 66rem;
+  --breite-text: 40rem;
+  --breite-rand: 16rem;
+
   /* Fingerbreite. Alles, was angetippt wird, ist mindestens so hoch. */
   --tippziel: 2.75rem;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --grund: #14161a;
-    --flaeche: #1d2026;
-    --rand: #2f343d;
-    --text: #e9ebef;
-    --gedaempft: #a0a7b4;
-    --akzent: #6fb3dd;
-    --plus: #e0885f;
-    --minus: #6cc39a;
-    --schleier: rgba(0, 0, 0, 0.7);
+    --papier: #121317;
+    --flaeche: #1a1c21;
+    --tinte: #e8e6e1;
+    --gedaempft: #9aa0aa;
+    --linie: #2c2f36;
+    --linie-stark: #676d79;
+    --akzent: #6fb9bd;
+    --plus: #e09a6a;
+    --minus: #7cc79c;
+    --tram: #6fb9bd;
+    --bus: #93a8c4;
+    --schleier: rgba(0, 0, 0, 0.72);
   }
 }
 
@@ -48,70 +181,332 @@ html {
 
 body {
   margin: 0;
-  background: var(--grund);
-  color: var(--text);
-  font-family: var(--schrift);
-  line-height: 1.5;
-  /* Haltestellennamen wie "Heidelberg Betriebshof/Gaisbergstraße" brechen
+  background: var(--papier);
+  color: var(--tinte);
+  font-family: var(--schrift-grotesk);
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.6;
+  /* Haltestellennamen wie "Heidelberg Betriebshof/Gaisbergstrasse" brechen
      lieber um, als die Seite breiter zu machen als das Fenster. */
   overflow-wrap: break-word;
+  -webkit-font-smoothing: antialiased;
 }
 
 svg, img { max-width: 100%; }
 
-.huelle { max-width: 60rem; margin: 0 auto; padding: 1.25rem 1rem 3rem; }
-
-header.kopfleiste {
-  border-bottom: 1px solid var(--rand);
-  background: var(--flaeche);
+:focus-visible {
+  outline: 2px solid var(--akzent);
+  outline-offset: 2px;
+  border-radius: 2px;
 }
+
+@media (prefers-reduced-motion: no-preference) {
+  a, button, .knopf, summary { transition: color 120ms ease, border-color 120ms ease; }
+}
+
+/* ---------------------------------------------------------------------------
+   Geruest
+
+   Zwei Breiten: `--breite-seite` fasst die Seite, `--breite-text` haelt den
+   Lesetext auf ein Mass, das man ohne Kopfbewegung liest. Vorher lief jeder
+   Erklaersatz ueber die vollen 60rem.
+   --------------------------------------------------------------------------- */
+
+.huelle {
+  width: 100%;
+  max-width: var(--breite-seite);
+  margin-inline: auto;
+  padding: var(--r5) var(--r4) var(--r8);
+}
+
+main.huelle > * { max-width: var(--breite-text); }
+main.huelle > .breit,
+main.huelle > .block { max-width: none; }
+
+/* Der Abstand zwischen zwei Abschnitten haengt am Abschnitt, nicht an seiner
+   Ueberschrift: die traegt `margin-top: 0`, weil sie ganz oben im Hauptteil
+   steht und ihr eigener Vorlauf den Rand aus der Rasterzeile schieben wuerde. */
+main.huelle > section { margin-top: var(--r7); }
+.block { margin-top: var(--r7); }
+
+/* Ein Abschnitt mit Randspalte. Auf dem Telefon steht der Rand einfach unter
+   dem Hauptteil; ab Laptopbreite rueckt er daneben und beginnt oben.
+
+   Der Abschnitt hat genau zwei Kinder — Hauptteil und Rand. Das ist keine
+   ueberfluessige Verschachtelung, sondern die Bedingung dafuer, dass beide in
+   derselben Rasterzeile liegen: mit lose eingehaengten Kindern waere der Rand
+   an Zeile 1 gebunden und wuerde in der Hauptspalte eine Luecke aufreissen. */
+.block > .block-haupt { min-width: 0; }
+.block > .block-rand { min-width: 0; }
+
+.block-rand {
+  margin-top: var(--r5);
+  padding-top: var(--r3);
+  border-top: 1px solid var(--linie);
+  font-size: var(--t-klein);
+  color: var(--gedaempft);
+}
+.block-rand > :first-child { margin-top: 0; }
+.block-rand > :last-child { margin-bottom: 0; }
+.block-rand p { margin: var(--r3) 0; }
+
+/* ---------------------------------------------------------------------------
+   Typografie
+   --------------------------------------------------------------------------- */
+
+h1, h2, h3 {
+  font-family: var(--schrift-serif);
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.005em;
+  text-wrap: balance;
+}
+
+h1 { font-size: var(--t-h1); margin: 0 0 var(--r3); }
+h2 { font-size: var(--t-h2); margin: var(--r7) 0 var(--r3); }
+h3 { font-size: var(--t-h3); margin: var(--r5) 0 var(--r2); }
+
+/* Die erste Ueberschrift eines Abschnitts braucht ihren Vorlauf nicht, wenn
+   direkt darueber schon die Abschnittsgrenze sitzt. */
+section > h2:first-child,
+.block-haupt > h2:first-child { margin-top: 0; }
+
+p { margin: var(--r3) 0; }
+
+a { color: var(--akzent); text-underline-offset: 0.18em; text-decoration-thickness: from-font; }
+
+.lead {
+  font-family: var(--schrift-serif);
+  font-size: var(--t-lead);
+  line-height: 1.55;
+  max-width: 38rem;
+  margin: var(--r4) 0 0;
+}
+
+.klein { font-size: var(--t-klein); color: var(--gedaempft); margin: var(--r1) 0; }
+
+/* Der Attributionstext auf /lizenz steht im Wortlaut und soll auch so
+   aussehen: zitiert, nicht umformuliert. */
+blockquote {
+  margin: var(--r4) 0;
+  padding: 0 0 0 var(--r4);
+  border-left: 2px solid var(--akzent);
+  font-family: var(--schrift-serif);
+  font-size: var(--t-lead);
+  line-height: 1.55;
+  max-width: 38rem;
+}
+blockquote p { margin: 0; }
+
+/* Spaltennamen des Datenmodells in der Begriffstabelle. Sie stehen absichtlich
+   in derselben Groteske wie die Zahlen und nicht in einer eigenen
+   Monospace-Schrift — das waere eine dritte Schriftdatei fuer ein Dutzend
+   Woerter. */
+code {
+  font-family: var(--schrift-grotesk);
+  font-size: 0.92em;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  padding: 0.05em 0.3em;
+  background: var(--flaeche);
+  border-radius: 2px;
+}
+
+/* Eine Legende erklaert ein Diagramm und ist Lesetext, kein Datenblock. Sie
+   bekommt deshalb das Lesemass auch dann, wenn der Abschnitt um sie herum
+   die volle Seitenbreite nutzt. */
+.legende { max-width: 38rem; }
+
+/* Weiterfuehrender Verweis am Ende einer Seite. Vorher stand hier ein
+   Inline-Stil; Abstaende gehoeren ins Raster, nicht ins Markup. */
+.weiter { margin-top: var(--r7); }
+
+/* ---------------------------------------------------------------------------
+   Kopf- und Fusszeile
+
+   Kein graues Band mehr: eine Haarlinie trennt, die Wortmarke steht in der
+   Serif und die Navigation in der Groteske. Der Rangunterschied entsteht aus
+   der Schrift, nicht aus einer Flaeche.
+   --------------------------------------------------------------------------- */
+
+header.kopfleiste { border-bottom: 1px solid var(--linie); }
+
 header.kopfleiste .huelle {
-  padding: 0.5rem 1rem;
-  display: flex; flex-wrap: wrap; gap: 0 1rem; align-items: baseline;
+  padding-block: var(--r2);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--r5);
+  align-items: baseline;
 }
-header.kopfleiste a { color: var(--text); text-decoration: none; font-weight: 600; padding: 0.45rem 0; }
-/* Fuenf Eintraege passen auf 320 px nicht in eine Zeile — sie brechen um,
-   statt die Kopfleiste ueber den Bildschirmrand zu schieben. */
-header.kopfleiste nav { display: flex; flex-wrap: wrap; gap: 0 1rem; }
-header.kopfleiste nav a { font-weight: 400; color: var(--gedaempft); }
+
+.marke {
+  font-family: var(--schrift-serif);
+  font-size: 1.2rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--tinte);
+  text-decoration: none;
+  padding-block: var(--r2);
+}
+.marke:hover { color: var(--akzent); }
+
+/* Fuenf Eintraege plus Wortmarke passen auf 344 px nicht in eine Zeile. Sie
+   brechen um, statt die Kopfleiste ueber den Bildschirmrand zu schieben —
+   umbrechen ist hier richtiger als ein Scrollstreifen, in dem Eintraege
+   unsichtbar werden. */
+header.kopfleiste nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--r4);
+  margin-inline-start: auto;
+}
+header.kopfleiste nav a {
+  display: inline-flex;
+  align-items: center;
+  /* Auch ein Navigationseintrag ist ein Tippziel und haelt die Fingerbreite
+     ein. Mit blossem Innenabstand kam er auf 38 px (gemessen 2026-08-29). */
+  min-height: var(--tippziel);
+  font-size: var(--t-klein);
+  color: var(--gedaempft);
+  text-decoration: none;
+}
 header.kopfleiste nav a:hover { color: var(--akzent); }
+header.kopfleiste nav a[aria-current="page"] {
+  color: var(--tinte);
+  font-weight: 600;
+  box-shadow: inset 0 -2px 0 var(--akzent);
+}
 
-h1 { font-size: clamp(1.5rem, 5.5vw, 1.9rem); margin: 0 0 0.25rem; }
-h2 { font-size: 1.2rem; margin: 2rem 0 0.5rem; }
-h3 { font-size: 1rem; margin: 1.25rem 0 0.35rem; }
+footer.fuss {
+  border-top: 1px solid var(--linie);
+  margin-top: var(--r8);
+  padding-top: var(--r4);
+  font-size: var(--t-klein);
+  color: var(--gedaempft);
+}
+footer.fuss p { max-width: 38rem; }
+footer.fuss a { color: var(--akzent); }
 
-.klein { font-size: 0.85rem; color: var(--gedaempft); margin: 0.15rem 0; }
-.gross { font-size: clamp(2.25rem, 11vw, 3rem); font-weight: 700; margin: 0.25rem 0 0; line-height: 1.1; }
+/* ---------------------------------------------------------------------------
+   Kennzahlen
+
+   Vorher: gefuellte graue Karten mit Rahmen und Radius. Jetzt Bloecke, die nur
+   durch eine Haarlinie und Weissraum getrennt sind. Die Verkehrsart bekommt
+   einen kurzen farbigen Strich — die einzige Farbflaeche im Block.
+   --------------------------------------------------------------------------- */
+
+.kennzahlen {
+  display: grid;
+  max-width: 52rem;
+  gap: var(--r6);
+  /* min() statt 16rem: auf 320 px ist eine Spalte sonst breiter als die Seite. */
+  grid-template-columns: repeat(auto-fit, minmax(min(16rem, 100%), 1fr));
+  margin-top: var(--r6);
+}
+
+.kennzahl { border-top: 2px solid var(--linie); padding-top: var(--r3); }
+.kennzahl[data-art="tram"] { border-top-color: var(--tram); }
+.kennzahl[data-art="bus"] { border-top-color: var(--bus); }
+.kennzahl h2 {
+  font-family: var(--schrift-grotesk);
+  font-size: var(--t-mikro);
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--gedaempft);
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* Die grosse Zahl. Tabellenziffern, damit sie beim Umschalten des Reglers
+   nicht in der Breite springt; das Prozentzeichen ist kleiner und gedaempft,
+   weil es die Zahl begleitet und nicht Teil von ihr ist.
+   `nowrap` ist hier Pflicht: auf 320 px wuerde das Zeichen sonst allein in
+   die zweite Zeile rutschen. */
+.gross {
+  font-family: var(--schrift-grotesk);
+  font-size: var(--t-display);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums lining-nums;
+  margin: var(--r2) 0 0;
+  display: flex;
+  align-items: baseline;
+  gap: 0.1em;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+.gross .einheit {
+  font-size: 0.32em;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--gedaempft);
+  flex: none;
+}
+
 .hinweis, .fehler {
+  border-left: 2px solid var(--akzent);
   background: var(--flaeche);
-  border: 1px solid var(--rand);
-  border-left: 3px solid var(--akzent);
-  padding: 0.75rem 1rem;
-  border-radius: 4px;
+  padding: var(--r3) var(--r4);
+  margin: var(--r4) 0;
 }
 .fehler { border-left-color: var(--plus); }
 
-/* min() statt 15rem: auf 320 px ist eine Karte sonst breiter als die Spalte. */
-.kennzahlen { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(min(15rem, 100%), 1fr)); }
-.kennzahl {
-  background: var(--flaeche);
-  border: 1px solid var(--rand);
-  border-radius: 6px;
-  padding: 1rem;
+/* Zahlenpaare. Der Begriff links, der Wert rechts, dazwischen so viel Luft,
+   wie die Zeile hergibt. */
+dl {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0 var(--r4);
+  margin: var(--r5) 0 0;
+  font-size: var(--t-klein);
 }
-.kennzahl h2 { margin: 0; font-size: 1rem; color: var(--gedaempft); }
+dt {
+  color: var(--gedaempft);
+  min-width: 0;
+  padding: var(--r2) 0;
+  border-bottom: 1px solid var(--linie);
+}
+dd {
+  margin: 0;
+  padding: var(--r2) 0;
+  text-align: right;
+  font-variant-numeric: tabular-nums lining-nums;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--linie);
+}
+dt .klein { display: block; margin: 0; font-size: var(--t-mikro); line-height: 1.4; }
 
-dl { display: grid; grid-template-columns: 1fr auto; gap: 0.2rem 1rem; margin: 0.75rem 0 0; font-size: 0.9rem; }
-dt { color: var(--gedaempft); min-width: 0; }
-dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+/* ---------------------------------------------------------------------------
+   Tabellen
+   --------------------------------------------------------------------------- */
 
-table { border-collapse: collapse; width: 100%; font-size: 0.85rem; margin-top: 0.5rem; }
-th, td { text-align: right; padding: 0.35rem 0.5rem; border-bottom: 1px solid var(--rand); }
+table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: var(--t-klein);
+  margin-top: var(--r3);
+}
+th, td {
+  text-align: right;
+  padding: var(--r2) var(--r3);
+  border-bottom: 1px solid var(--linie);
+}
 th[scope="row"], thead th:first-child { text-align: left; }
-thead th { color: var(--gedaempft); font-weight: 600; }
-td { font-variant-numeric: tabular-nums; }
+thead th {
+  color: var(--gedaempft);
+  font-weight: 600;
+  font-size: var(--t-mikro);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border-bottom-color: var(--linie-stark);
+  vertical-align: bottom;
+}
+td { font-variant-numeric: tabular-nums lining-nums; }
 
-/* Neun Spalten passen auf kein Telefon. Statt die Zahlen zu quetschen, scrollt
+/* Elf Spalten passen auf kein Telefon. Statt die Zahlen zu quetschen, scrollt
    die Tabelle waagerecht in ihrem Kasten — die Seite selbst bleibt stehen. */
 .tabellenhuelle {
   overflow-x: auto;
@@ -120,8 +515,8 @@ td { font-variant-numeric: tabular-nums; }
      ist dort der einzige Hinweis, dass rechts noch Spalten stehen; er
      verschwindet von selbst, sobald das Ende erreicht ist. */
   background:
-    linear-gradient(to right, var(--grund), rgba(0, 0, 0, 0)) 0 0 / 2rem 100% no-repeat local,
-    linear-gradient(to left, var(--grund), rgba(0, 0, 0, 0)) 100% 0 / 2rem 100% no-repeat local,
+    linear-gradient(to right, var(--papier), rgba(0, 0, 0, 0)) 0 0 / 2rem 100% no-repeat local,
+    linear-gradient(to left, var(--papier), rgba(0, 0, 0, 0)) 100% 0 / 2rem 100% no-repeat local,
     radial-gradient(farthest-side at 0 50%, var(--schleier), rgba(0, 0, 0, 0)) 0 0 / 1.25rem 100% no-repeat scroll,
     radial-gradient(farthest-side at 100% 50%, var(--schleier), rgba(0, 0, 0, 0)) 100% 0 / 1.25rem 100% no-repeat scroll;
 }
@@ -131,182 +526,311 @@ td { font-variant-numeric: tabular-nums; }
    nicht mehr erkennbar, zu welchem Tag oder Halt eine Zahl gehoert. */
 .tabellenhuelle thead th:first-child,
 .tabellenhuelle th[scope="row"] {
-  position: sticky; left: 0; background: var(--grund);
-  box-shadow: 1px 0 0 var(--rand);
+  position: sticky;
+  left: 0;
+  background: var(--papier);
+  box-shadow: 1px 0 0 var(--linie);
 }
 
-details { margin-top: 0.75rem; }
-summary { cursor: pointer; color: var(--akzent); font-size: 0.9rem; padding: 0.5rem 0; }
-
-.diagramm { width: 100%; height: 10rem; display: block; margin: 0.5rem 0; }
-.profil { width: 100%; max-width: 22rem; height: auto; display: block; margin: 0.5rem 0; }
-.gitter { stroke: var(--rand); stroke-width: 1; }
-.achse { fill: var(--gedaempft); font-size: 10px; }
-.achse.mitte { text-anchor: middle; }
-.saeule { fill: var(--akzent); }
-.nulllinie { stroke: var(--rand); stroke-width: 1; }
-.balken.plus { fill: var(--plus); }
-.balken.minus { fill: var(--minus); }
-
-.regler { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: end; margin: 1rem 0; }
-/* min-width: 0 laesst die Beschriftung schrumpfen; ohne sie macht die laengste
-   Option im Auswahlfeld die Zeile breiter als den Bildschirm. */
-.regler label {
-  display: flex; flex-direction: column; font-size: 0.8rem; color: var(--gedaempft); gap: 0.2rem;
-  flex: 1 1 12rem; min-width: 0; max-width: 22rem;
-}
-select, input[type="search"], button {
-  font-family: inherit;
-  /* Unter 16 px zoomt iOS beim Antippen in das Feld hinein und kommt von
-     alleine nicht wieder heraus — deshalb nicht die 0.8rem der Beschriftung. */
-  font-size: 1rem;
-  padding: 0.4rem 0.5rem;
+details { margin-top: var(--r4); }
+summary {
+  cursor: pointer;
+  color: var(--akzent);
+  font-size: var(--t-klein);
+  padding: var(--r2) 0;
   min-height: var(--tippziel);
-  max-width: 100%;
-  background: var(--grund);
-  color: var(--text);
-  border: 1px solid var(--rand);
-  border-radius: 4px;
-}
-select, input[type="search"] { width: 100%; }
-button { cursor: pointer; padding: 0.4rem 1rem; }
-button:hover { border-color: var(--akzent); }
-
-.linienliste { list-style: none; padding: 0; margin: 0; }
-.linienliste li {
-  display: flex; justify-content: space-between; gap: 0.25rem 1rem; align-items: baseline;
-  flex-wrap: wrap; padding: 0.6rem 0; border-bottom: 1px solid var(--rand);
-}
-.linienliste a {
-  color: var(--text); text-decoration: none; display: flex; gap: 0.6rem; align-items: baseline;
-  flex: 1 1 14rem; min-width: 0; padding: 0.15rem 0;
-}
-.linienliste a:hover .verlauf { color: var(--akzent); }
-.nummer {
-  display: inline-block; min-width: 3.5rem; padding: 0.1rem 0.4rem;
-  background: var(--akzent); color: #fff; border-radius: 4px;
-  font-weight: 700; text-align: center; flex: none;
-}
-.verlauf { color: var(--gedaempft); font-size: 0.9rem; min-width: 0; }
-.werte { text-align: right; display: flex; flex-direction: column; }
-
-footer.fuss {
-  border-top: 1px solid var(--rand);
-  margin-top: 3rem; padding-top: 1rem;
-  font-size: 0.8rem; color: var(--gedaempft);
-}
-footer.fuss a { color: var(--akzent); }
-
-/* Schmale Bildschirme: was nebeneinander stand, steht untereinander. */
-@media (max-width: 34rem) {
-  .regler { gap: 0.6rem; }
-  .regler label { flex-basis: 100%; max-width: none; }
-  button[data-merken] { width: 100%; }
-
-  .linienliste li { flex-direction: column; align-items: stretch; gap: 0.3rem; }
-  /* In der Spalte ist die Flexbasis die Hoehe — 14rem waeren hier Luft. */
-  .linienliste a { flex: 0 0 auto; }
-  .werte {
-    flex-direction: row; flex-wrap: wrap; align-items: baseline;
-    gap: 0 0.6rem; text-align: left;
-  }
-
-  /* Die stehende erste Spalte darf nicht die ganze Breite fuellen: sonst sieht
-     man auf dem Telefon nur Haltestellennamen und keine einzige Zahl. */
-  .tabellenhuelle th[scope="row"] {
-    max-width: 9rem; white-space: normal;
-    /* Umbrechen ja, aber an Wortgrenzen: "Handschuhshei/m Nord" liest niemand. */
-    overflow-wrap: normal;
-  }
-
-  .huelle { padding-bottom: 2.5rem; }
-}
-
-@media (min-width: 34.0625rem) {
-  .huelle { padding-top: 1.5rem; padding-bottom: 4rem; }
+  display: flex;
+  align-items: center;
 }
 
 /* ---------------------------------------------------------------------------
-   Startseite
-
-   Die Startseite stellt das Projekt vor und zeigt trotzdem sofort eine Zahl.
-   Der Aufbau ist von der schmalsten Breite her gedacht wie der Rest der Seite:
-   alles liegt untereinander, die Medienabfrage weiter unten stellt erst ab
-   Tabletbreite etwas nebeneinander.
+   Diagramme
    --------------------------------------------------------------------------- */
 
-.lead { font-size: 1.05rem; max-width: 42rem; margin: 0.75rem 0 0; }
+.diagramm { width: 100%; height: 11rem; display: block; margin: var(--r4) 0; }
+.profil { width: 100%; height: auto; display: block; margin: var(--r4) 0; }
+
+.gitter { stroke: var(--linie); stroke-width: 1; }
+.grundlinie { stroke: var(--linie-stark); stroke-width: 1; }
+.achse {
+  fill: var(--gedaempft);
+  font-family: var(--schrift-grotesk);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+/* Ausrichtung gilt fuer jede SVG-Beschriftung — Achsenziffern wie
+   Haltestellennamen. */
+text.mitte { text-anchor: middle; }
+text.rechts { text-anchor: end; }
+.saeule { fill: var(--akzent); }
+/* "Nicht gemessen" ist etwas anderes als "nichts war puenktlich". Vorher war
+   an dieser Stelle schlicht nichts zu sehen, und das war von einem sehr
+   kleinen Wert nicht zu unterscheiden. Jetzt steht dort ein eigenes Zeichen. */
+.luecke { stroke: var(--linie-stark); stroke-width: 1; stroke-dasharray: 2 2; }
+.nulllinie { stroke: var(--linie-stark); stroke-width: 1; }
+.streckenlinie { stroke: var(--linie-stark); stroke-width: 1; }
+.haltpunkt { fill: var(--papier); stroke: var(--linie-stark); stroke-width: 1; }
+.balken.plus { fill: var(--plus); }
+.balken.minus { fill: var(--minus); }
+.haltname {
+  fill: var(--tinte);
+  font-family: var(--schrift-grotesk);
+  font-size: 11px;
+}
+
+/* ---------------------------------------------------------------------------
+   Regler und Formularelemente
+   --------------------------------------------------------------------------- */
+
+.regler {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--r3) var(--r4);
+  align-items: end;
+  margin: var(--r5) 0;
+  padding-block: var(--r4);
+  border-block: 1px solid var(--linie);
+}
+/* min-width: 0 laesst die Beschriftung schrumpfen; ohne sie macht die
+   laengste Option im Auswahlfeld die Zeile breiter als den Bildschirm. */
+.regler label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--r1);
+  font-size: var(--t-mikro);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--gedaempft);
+  flex: 1 1 12rem;
+  min-width: 0;
+  max-width: 22rem;
+}
+
+select, input[type="search"], button {
+  font-family: var(--schrift-grotesk);
+  /* Unter 16 px zoomt iOS beim Antippen in das Feld hinein und kommt von
+     alleine nicht wieder heraus — deshalb nicht die Groesse der Beschriftung. */
+  font-size: 1rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  padding: var(--r2) var(--r3);
+  min-height: var(--tippziel);
+  max-width: 100%;
+  background: var(--papier);
+  color: var(--tinte);
+  border: 1px solid var(--linie-stark);
+  border-radius: 2px;
+}
+select, input[type="search"] { width: 100%; }
+button { cursor: pointer; padding: var(--r2) var(--r4); font-weight: 500; }
+button:hover, select:hover, input[type="search"]:hover { border-color: var(--akzent); }
+
+/* ---------------------------------------------------------------------------
+   Liniennummer und Linienliste
+
+   Das Schild traegt nur die Nummer. "RNV 20" ist der Feldwert aus
+   route_short_name; auf ein Schild gehoert "20", und dass es eine RNV-Linie
+   ist, steht auf jeder Seite dieses Projekts ohnehin daneben.
+   --------------------------------------------------------------------------- */
+
+.nummer {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.6rem;
+  padding: 0.1rem 0.4rem;
+  background: var(--tinte);
+  color: var(--papier);
+  border-radius: 2px;
+  font-family: var(--schrift-grotesk);
+  font-weight: 700;
+  font-size: 0.95rem;
+  font-variant-numeric: tabular-nums lining-nums;
+  letter-spacing: 0.01em;
+  text-align: center;
+  flex: none;
+}
+/* Die Markertoene sind im hellen Schema dunkel und im dunklen Schema hell.
+   Die Schriftfarbe des Schilds muss deshalb mitwechseln — sie ist immer die
+   jeweilige Grundfarbe der Seite. */
+.nummer[data-art="tram"] { background: var(--tram); color: var(--papier); }
+.nummer[data-art="bus"] { background: var(--bus); color: var(--papier); }
+
+h1 .nummer { font-size: 1.35rem; min-width: 3.2rem; padding: 0.15rem 0.5rem; }
+
+.linienliste { list-style: none; padding: 0; margin: 0; }
+.linienliste li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--r1) var(--r5);
+  align-items: baseline;
+  flex-wrap: wrap;
+  padding: var(--r2) 0;
+  border-bottom: 1px solid var(--linie);
+}
+.linienliste a {
+  color: var(--tinte);
+  text-decoration: none;
+  display: flex;
+  gap: var(--r3);
+  /* Mittig statt an der Grundlinie: der Eintrag muss die volle Fingerbreite
+     hoch sein (an der Grundlinie kam er auf 36 px, gemessen 2026-08-29), und
+     in einem 44 px hohen Kasten saessen Schild und Text sonst oben. */
+  align-items: center;
+  min-height: var(--tippziel);
+  flex: 1 1 16rem;
+  min-width: 0;
+}
+.linienliste a:hover .verlauf { color: var(--akzent); }
+.verlauf { color: var(--gedaempft); font-size: var(--t-klein); min-width: 0; }
+.werte {
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+.werte strong { font-weight: 600; }
+
+/* Der Kopf der Linienseite: Schild links, Ueberschrift und Verlauf daneben.
+   Das Schild ist `aria-hidden` — die Ueberschrift sagt Verkehrsart und Nummer
+   ohnehin in Worten, und zweimal dieselbe Zahl vorgelesen zu bekommen hilft
+   niemandem. Die Flexbasis von 10rem haelt beide auch auf 320 px in einer
+   Zeile; erst darunter bricht das Schild auf eine eigene. */
+.linienkopf { display: flex; gap: var(--r4); align-items: baseline; flex-wrap: wrap; }
+.linienkopf-text { flex: 1 1 10rem; min-width: 0; }
+.linienkopf h1 { margin: 0; }
+.linienkopf .verlauf { margin: var(--r2) 0 0; display: block; }
+
+/* Die Richtungszeile im Kopf der Linienseite. */
+.richtung { margin: var(--r2) 0 0; font-size: var(--t-klein); color: var(--gedaempft); }
+.richtung strong { color: var(--tinte); font-weight: 600; }
+
+/* ---------------------------------------------------------------------------
+   Startseite
+   --------------------------------------------------------------------------- */
 
 /* Der Vorbehalt gehoert neben die Zahl, nicht in die Fusszeile: eine grosse
    Prozentzahl ohne Fallzahl und ohne "der Tag laeuft noch" ist genau die
-   Aussage, die dieses Projekt nicht machen will. */
-.vorbehalt { font-size: 0.85rem; color: var(--gedaempft); margin: 0.75rem 0 0; }
+   Aussage, die dieses Projekt nicht machen will. Er bleibt deshalb auf jeder
+   Breite im Hauptfluss und wandert nie in die Randspalte. */
+.vorbehalt {
+  font-size: var(--t-klein);
+  color: var(--gedaempft);
+  margin: var(--r5) 0 0;
+  max-width: 38rem;
+}
 
-.wege { display: flex; flex-wrap: wrap; gap: 0.75rem; margin: 1.5rem 0 0; }
+.wege { display: flex; flex-wrap: wrap; gap: var(--r3); margin: var(--r6) 0 0; }
 .knopf {
-  display: inline-flex; align-items: center; justify-content: center;
-  min-height: var(--tippziel); padding: 0.4rem 1.25rem;
-  border: 1px solid var(--rand); border-radius: 4px;
-  background: var(--grund); color: var(--text);
-  font-size: 1rem; text-decoration: none; text-align: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--tippziel);
+  padding: var(--r2) var(--r5);
+  border: 1px solid var(--linie-stark);
+  border-radius: 2px;
+  background: var(--papier);
+  color: var(--tinte);
+  font-size: 1rem;
+  font-weight: 500;
+  text-decoration: none;
+  text-align: center;
 }
 .knopf:hover { border-color: var(--akzent); color: var(--akzent); }
-.knopf.haupt { background: var(--akzent); border-color: var(--akzent); color: #fff; }
-.knopf.haupt:hover { color: #fff; opacity: 0.9; }
+.knopf.haupt { background: var(--tinte); border-color: var(--tinte); color: var(--papier); }
+.knopf.haupt:hover { background: var(--akzent); border-color: var(--akzent); color: var(--papier); }
 
 /* Drei Schritte, jeder eine Zeile lang. Die Ziffer steht in einer eigenen
    Spalte, damit der Text bei Umbruch nicht unter sie rutscht. */
-.schritte { list-style: none; counter-reset: schritt; padding: 0; margin: 0.5rem 0 0; display: grid; gap: 0.9rem; }
+.schritte {
+  list-style: none;
+  counter-reset: schritt;
+  padding: 0;
+  margin: var(--r4) 0 0;
+  display: grid;
+  gap: var(--r4);
+  max-width: 38rem;
+}
+/* Die Ziffer haengt links im Innenabstand, statt in einer eigenen
+   Rasterspalte zu stehen.
+
+   Das ist kein Stilwechsel, sondern eine Reparatur: mit `display: grid` auf
+   dem `li` wird *jedes* Inline-Element darin zu einem eigenen Rasterelement.
+   Der Begriffsknopf "Betriebstag" in Schritt 2 landete dadurch in der
+   1,75-rem-Spalte und brach dort in vier Zeilen um (gesehen 2026-08-29).
+   Absolute Positionierung stellt die Ziffer, ohne den Textfluss anzufassen. */
 .schritte li {
   counter-increment: schritt;
-  display: grid; grid-template-columns: 1.75rem 1fr; gap: 0.75rem; align-items: start;
+  position: relative;
+  padding-left: 2.5rem;
 }
 .schritte li::before {
   content: counter(schritt);
-  display: flex; align-items: center; justify-content: center;
-  width: 1.75rem; height: 1.75rem; border-radius: 50%;
-  background: var(--flaeche); border: 1px solid var(--rand);
-  color: var(--gedaempft); font-size: 0.85rem; font-weight: 700;
-  font-variant-numeric: tabular-nums;
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1.75rem;
+  text-align: right;
+  font-family: var(--schrift-serif);
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--akzent);
+  line-height: 1.6;
+  font-variant-numeric: lining-nums;
 }
 
-.fragen { list-style: none; padding: 0; margin: 0.5rem 0 0; }
-.fragen li { border-bottom: 1px solid var(--rand); }
+.fragen { list-style: none; padding: 0; margin: var(--r4) 0 0; max-width: 38rem; }
+.fragen li { border-bottom: 1px solid var(--linie); }
+.fragen li:first-child { border-top: 1px solid var(--linie); }
 .fragen a {
-  display: flex; flex-direction: column; justify-content: center; gap: 0.1rem;
-  min-height: var(--tippziel); padding: 0.6rem 0;
-  color: var(--text); text-decoration: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--r1);
+  min-height: var(--tippziel);
+  padding: var(--r3) 0;
+  color: var(--tinte);
+  text-decoration: none;
 }
 .fragen a:hover { color: var(--akzent); }
 .fragen .klein { margin: 0; }
 
-.abgrenzung {
-  background: var(--flaeche); border: 1px solid var(--rand);
-  border-radius: 6px; padding: 1rem 1.15rem; margin-top: 0.5rem;
+.abgrenzung { margin-top: var(--r4); max-width: 38rem; }
+.abgrenzung ul { margin: 0; padding: 0; list-style: none; }
+.abgrenzung li {
+  padding: var(--r3) 0 var(--r3) var(--r4);
+  border-left: 2px solid var(--linie);
+  margin: 0;
 }
-.abgrenzung ul { margin: 0; padding-left: 1.1rem; }
-.abgrenzung li { margin: 0.4rem 0; }
-.abgrenzung li:first-child { margin-top: 0; }
-.abgrenzung li:last-child { margin-bottom: 0; }
+.abgrenzung strong { font-weight: 600; }
 
 /* ---------------------------------------------------------------------------
    Fachwort mit Erklaerung
 
-   Der Knopf sieht aus wie Text und ist trotzdem ein Knopf — nur so ist das Wort
-   mit der Tastatur erreichbar und auf dem Telefon antippbar. Die Erklaerung
-   liegt als `popover` im Top-Layer: dort kann sie die Seite nicht waagerecht
-   aufziehen, egal an welcher Stelle im Satz das Wort steht.
+   Der Knopf sieht aus wie Text und ist trotzdem ein Knopf — nur so ist das
+   Wort mit der Tastatur erreichbar und auf dem Telefon antippbar. Die
+   Erklaerung liegt als `popover` im Top-Layer: dort kann sie die Seite nicht
+   waagerecht aufziehen, egal an welcher Stelle im Satz das Wort steht.
    --------------------------------------------------------------------------- */
 
 .begriff {
-  font: inherit; color: inherit; background: none; border: 0; border-radius: 0;
-  display: inline-block; vertical-align: baseline;
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  display: inline-block;
+  vertical-align: baseline;
   /* Der Tippbereich ist groesser als das Wort; die negativen Aussenabstaende
      nehmen die Vergroesserung aus dem Zeilenfluss wieder heraus, damit die
      Zeilenhoehe im Fliesstext nicht springt. */
-  padding: 0.6rem 0.25rem; margin: -0.6rem -0.25rem;
+  padding: 0.6rem 0.25rem;
+  margin: -0.6rem -0.25rem;
   min-height: 0;
-  text-decoration: underline dotted; text-underline-offset: 0.2em;
+  text-decoration: underline dotted;
+  text-underline-offset: 0.2em;
   cursor: help;
 }
 .begriff:hover, .begriff:focus-visible { color: var(--akzent); border-color: transparent; }
@@ -314,25 +838,17 @@ footer.fuss a { color: var(--akzent); }
 [popover].erklaerung {
   max-width: min(24rem, calc(100vw - 2rem));
   margin: auto;
-  padding: 0.85rem 1rem;
-  border: 1px solid var(--rand); border-radius: 8px;
-  background: var(--flaeche); color: var(--text);
-  font-size: 0.9rem; line-height: 1.45;
-  box-shadow: 0 8px 24px var(--schleier);
+  padding: var(--r4);
+  border: 1px solid var(--linie-stark);
+  border-radius: 3px;
+  background: var(--flaeche);
+  color: var(--tinte);
+  font-family: var(--schrift-grotesk);
+  font-size: var(--t-klein);
+  line-height: 1.5;
+  box-shadow: 0 12px 32px var(--schleier);
 }
 [popover].erklaerung::backdrop { background: transparent; }
-
-@media (max-width: 34rem) {
-  /* Auf dem Telefon steht die Erklaerung unten am Rand statt in der Mitte:
-     dort ist sie mit dem Daumen erreichbar und verdeckt nicht die Stelle,
-     an der das erklaerte Wort steht. */
-  [popover].erklaerung {
-    margin: auto auto 1rem; width: calc(100vw - 1.5rem); max-width: none;
-  }
-
-  /* Ein Knopf neben dem anderen wird auf 320 px zu schmal zum Lesen. */
-  .wege .knopf { flex: 1 1 100%; }
-}
 
 /* ---------------------------------------------------------------------------
    Begriffstabelle auf /methodik
@@ -342,18 +858,99 @@ footer.fuss a { color: var(--akzent); }
    fuer eine Erklaerung die falsche Form.
    --------------------------------------------------------------------------- */
 
-.glossar { width: 100%; border-collapse: collapse; font-size: 0.9rem; margin-top: 0.5rem; }
+.glossar { width: 100%; border-collapse: collapse; font-size: var(--t-klein); margin-top: var(--r3); }
 .glossar th, .glossar td {
-  text-align: left; white-space: normal; vertical-align: top;
-  padding: 0.5rem 0.75rem 0.5rem 0; border-bottom: 1px solid var(--rand);
+  text-align: left;
+  white-space: normal;
+  vertical-align: top;
+  padding: var(--r2) var(--r3) var(--r2) 0;
+  border-bottom: 1px solid var(--linie);
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: var(--t-klein);
 }
-.glossar th[scope="row"] { width: 13rem; font-weight: 600; color: var(--text); }
+.glossar th[scope="row"] { width: 13rem; font-weight: 600; color: var(--tinte); }
 
+/* ---------------------------------------------------------------------------
+   Breiten
+
+   Aufsteigend, damit die spaetere Regel die fruehere ergaenzt statt sie
+   zurueckzunehmen.
+   --------------------------------------------------------------------------- */
+
+/* Telefon, einschliesslich Frontdisplay eines Fold: was nebeneinander stand,
+   steht untereinander. */
 @media (max-width: 34rem) {
+  .regler label { flex-basis: 100%; max-width: none; }
+  button[data-merken] { width: 100%; }
+
+  /* Wortmarke oben, Navigation in der zweiten Zeile. Auf 344 px passen
+     Wortmarke und fuenf Eintraege zusammen nicht in eine Zeile; getrennt
+     passen sie beide. */
+  header.kopfleiste nav { margin-inline-start: 0; flex-basis: 100%; gap: 0 var(--r3); }
+
+  .linienliste li { flex-direction: column; align-items: stretch; gap: var(--r2); }
+  /* In der Spalte ist die Flexbasis die Hoehe — 16rem waeren hier Luft. Und
+     der Streckenverlauf bricht hier auf zwei bis drei Zeilen um: das Schild
+     gehoert dann an die erste, nicht in die Mitte. */
+  .linienliste a { flex: 0 0 auto; align-items: flex-start; }
+  .werte {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0 var(--r3);
+    text-align: left;
+  }
+
+  /* Die stehende erste Spalte darf nicht die ganze Breite fuellen: sonst sieht
+     man auf dem Telefon nur Haltestellennamen und keine einzige Zahl. */
+  .tabellenhuelle th[scope="row"] {
+    max-width: 9rem;
+    white-space: normal;
+    /* Umbrechen ja, aber an Wortgrenzen: "Handschuhshei/m Nord" liest niemand. */
+    overflow-wrap: normal;
+  }
+
+  .huelle { padding: var(--r4) var(--r4) var(--r7); }
+
+  /* Auf dem Telefon steht die Erklaerung unten am Rand statt in der Mitte:
+     dort ist sie mit dem Daumen erreichbar und verdeckt nicht die Stelle,
+     an der das erklaerte Wort steht. */
+  [popover].erklaerung {
+    margin: auto auto var(--r4);
+    width: calc(100vw - 1.5rem);
+    max-width: none;
+  }
+
+  /* Ein Knopf neben dem anderen wird auf 320 px zu schmal zum Lesen. */
+  .wege .knopf { flex: 1 1 100%; }
+
   /* Zwei Spalten mit je einem Satz ergeben auf 320 px zwei unlesbar schmale
      Saeulen. Untereinander gelesen bleibt der Zusammenhang erhalten. */
   .glossar, .glossar tbody, .glossar tr, .glossar th, .glossar td { display: block; }
-  .glossar tr { border-bottom: 1px solid var(--rand); padding: 0.5rem 0; }
-  .glossar th[scope="row"] { width: auto; border-bottom: 0; padding: 0 0 0.15rem; }
+  .glossar tr { border-bottom: 1px solid var(--linie); padding: var(--r2) 0; }
+  .glossar th[scope="row"] { width: auto; border-bottom: 0; padding: 0 0 var(--r1); }
   .glossar td { border-bottom: 0; padding: 0; color: var(--gedaempft); }
+}
+
+@media (min-width: 34.0625rem) {
+  .huelle { padding: var(--r6) var(--r5) var(--r8); }
+}
+
+/* Ab Laptopbreite: Randspalte. Der Hauptteil behaelt sein Lesemass, die
+   Nebensachen — Legende, lange Erlaeuterung, "Zahlen dazu" — ruecken daneben
+   und beginnen oben. Darunter faellt alles in die Flussreihenfolge zurueck,
+   damit die Tabellenentsprechung direkt beim Diagramm bleibt. */
+@media (min-width: 62rem) {
+  .block {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) var(--breite-rand);
+    column-gap: var(--r7);
+    align-items: start;
+  }
+  .block-rand {
+    margin-top: 0;
+    padding-top: var(--r2);
+    border-top: 2px solid var(--linie);
+  }
 }

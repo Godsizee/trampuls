@@ -2,7 +2,7 @@
 // und die Begriffserklaerungen im Fliesstext.
 
 import type { IndexDatei } from "./daten";
-import { datum } from "./format";
+import { datum, prozentTeile, quote } from "./format";
 
 /**
  * Der Attributionstext kommt aus den Daten, nicht aus dem Quelltext der Seite.
@@ -151,4 +151,20 @@ export function tabelle(kopf: string[], zeilen: string[][]): HTMLDivElement {
   huelle.className = "tabellenhuelle";
   huelle.appendChild(t);
   return huelle;
+}
+
+/**
+ * Die grosse Kennzahl als Auszeichnung. Zahl und Prozentzeichen sind
+ * getrennt, damit das Zeichen kleiner und gedaempft danebenstehen kann: es
+ * begleitet die Zahl, es ist nicht Teil von ihr.
+ *
+ * Ohne Nenner steht hier ein Gedankenstrich und keine Null — eine Quote aus
+ * null Faellen ist keine 0 Prozent, sondern keine Aussage (siehe `quote`).
+ */
+export function grosseZahl(zaehler: number, nenner: number): string {
+  const q = quote(zaehler, nenner);
+  if (q === null) return '<span class="wert">—</span>';
+  const { wert, einheit } = prozentTeile(q);
+  return `<span class="wert">${escape(wert)}</span>` +
+    (einheit ? `<span class="einheit">${escape(einheit)}</span>` : "");
 }

@@ -5,14 +5,23 @@
 // die Frage, die jemand tatsaechlich hat: "Ueber den Tag verteilt" statt
 // "Tagesgang", "Wo die Verspaetung entsteht" statt "Haltestellenprofil". Die
 // Zuordnung zu T2/T3/T4 steht in den Kommentaren, nicht auf der Seite.
+//
+// Jeder Abschnitt ist ein `.block` mit genau zwei Kindern: dem Hauptteil und
+// einer Randspalte. Auf dem Telefon steht der Rand unter dem Hauptteil, ab
+// Laptopbreite daneben. In den Rand kommt, was die Aussage belegt oder
+// einordnet — Legende, lange Erlaeuterung, aufklappbare Zahlentabelle —, nie
+// die Aussage selbst und nie ein Vorbehalt, der neben seiner Zahl stehen muss.
 
 import { ladeIndex, ladeLinie, ladeLinieHalte } from "./daten";
 import type { HalteDatei, IndexDatei, LinieDatei } from "./daten";
-import { datum, prozent, quote, quoteText, sekunden, stunde, vonHundert, zahl } from "./format";
 import {
-  BETRIEBSTAG_ERKLAERUNG, begriff, escape, fussnote, tabelle, zeigeFehler,
+  datum, liniennummer, prozent, quote, quoteText, sekunden, stunde, vonHundert, zahl,
+  LINIENART_NAME,
+} from "./format";
+import {
+  BETRIEBSTAG_ERKLAERUNG, begriff, escape, fussnote, grosseZahl, tabelle, zeigeFehler,
 } from "./seite";
-import { balkenProfil, saeulenIn } from "./diagramm";
+import { balkenProfilIn, saeulenIn } from "./diagramm";
 import { SCHWELLEN, gemerkteLinie, leseAuswahl, merkeLinie, schreibeAuswahl } from "./zustand";
 
 async function start(): Promise<void> {
@@ -40,6 +49,28 @@ async function start(): Promise<void> {
 function aktuelleAuswahl(): { richtung: number; schwelle: number } {
   const a = leseAuswahl();
   return { richtung: a.richtung, schwelle: a.schwelle };
+}
+
+/**
+ * Ein Abschnitt mit Randspalte. Die zwei Kinder sind keine ueberfluessige
+ * Verschachtelung: nur so liegen Haupt- und Randteil ab Laptopbreite in
+ * derselben Rasterzeile, statt dass der Rand an Zeile 1 gebunden ist und in
+ * der Hauptspalte eine Luecke aufreisst (siehe stil.css, "Geruest").
+ */
+function block(ziel: Element, haupt: string, rand: string): { haupt: HTMLElement; rand: HTMLElement } {
+  ziel.className = "block";
+  ziel.innerHTML = "";
+
+  const h = document.createElement("div");
+  h.className = "block-haupt";
+  h.innerHTML = haupt;
+
+  const r = document.createElement("aside");
+  r.className = "block-rand";
+  r.innerHTML = rand;
+
+  ziel.append(h, r);
+  return { haupt: h, rand: r };
 }
 
 function baueRegler(index: IndexDatei, datei: string, linie: LinieDatei): void {
@@ -119,10 +150,22 @@ function kopf(linie: LinieDatei, richtung: number): void {
   if (!ziel) return;
   const name =
     linie.richtungen.find((r) => r.richtung === richtung)?.name ?? `Richtung ${richtung}`;
-  document.title = `${linie.linie} — TramPuls`;
+  const art = LINIENART_NAME[linie.verkehrsart] ?? "Linie";
+  const nummer = liniennummer(linie.linie);
+  document.title = `${art} ${nummer} — TramPuls`;
+
+  // Das Schild ist `aria-hidden`: die Ueberschrift daneben sagt dasselbe in
+  // Worten und dazu die Verkehrsart. Zweimal dieselbe Nummer vorgelesen zu
+  // bekommen hilft niemandem.
   ziel.innerHTML = `
-    <h1><span class="nummer">${escape(linie.linie)}</span></h1>
-    <p class="verlauf">${escape(linie.verlauf)}</p>
+    <div class="linienkopf">
+      <span class="nummer" data-art="${escape(linie.verkehrsart)}"
+            aria-hidden="true">${escape(nummer)}</span>
+      <div class="linienkopf-text">
+        <h1>${escape(art)} ${escape(nummer)}</h1>
+        <p class="verlauf">${escape(linie.verlauf)}</p>
+      </div>
+    </div>
     <p class="richtung">Richtung <strong>${escape(name)}</strong></p>`;
 }
 
@@ -159,30 +202,31 @@ function kennzahl(linie: LinieDatei, richtung: number, schwelle: number): void {
   const s = summe(linie, richtung, schwelle);
 
   if (s.bewertbar === 0) {
+    ziel.className = "";
     ziel.innerHTML =
       '<p class="hinweis">Für diese Richtung wurde noch kein Halt gemessen. ' +
       'Vielleicht führt die andere Richtung oder ein späterer Tag weiter.</p>';
     return;
   }
 
-  ziel.innerHTML = `
-    <p class="gross">${quoteText(s.puenktlich, s.bewertbar)}</p>
-    <p class="klein">${vonHundert(quote(s.puenktlich, s.bewertbar))} Halten waren
-      weniger als ${schwelle} Minuten zu spät</p>
-    <dl>
-      <dt>Gemessene Halte <span class="klein">Grundlage der Prozentzahl</span></dt>
-      <dd>${zahl(s.bewertbar)}</dd>
-      <dt>Geplante Halte <span class="klein">auch die ausgefallenen</span></dt>
-      <dd>${zahl(s.soll)}</dd>
-      <dt>Fahrten</dt><dd>${zahl(s.fahrten)}</dd>
-      <dt>Verspätung im Schnitt</dt><dd>${sekunden(s.delaySchnitt)}</dd>
-    </dl>
-    <p class="klein">
-      Ausgefallene und übersprungene Halte zählen hier <strong>nicht</strong> mit.
-      Eine Fahrt, die gar nicht kam, war nicht pünktlich — sie stünde sonst als
-      Verspätung von null in der Rechnung und würde sie schöner machen. Beides steht
-      weiter unten unter „Ausfälle".
-    </p>`;
+  block(
+    ziel,
+    `<p class="gross">${grosseZahl(s.puenktlich, s.bewertbar)}</p>
+     <p class="klein">${vonHundert(quote(s.puenktlich, s.bewertbar))} Halten waren
+       weniger als ${schwelle} Minuten zu spät</p>
+     <dl>
+       <dt>Gemessene Halte <span class="klein">Grundlage der Prozentzahl</span></dt>
+       <dd>${zahl(s.bewertbar)}</dd>
+       <dt>Geplante Halte <span class="klein">auch die ausgefallenen</span></dt>
+       <dd>${zahl(s.soll)}</dd>
+       <dt>Fahrten</dt><dd>${zahl(s.fahrten)}</dd>
+       <dt>Verspätung im Schnitt</dt><dd>${sekunden(s.delaySchnitt)}</dd>
+     </dl>`,
+    `<p>Ausgefallene und übersprungene Halte zählen hier <strong>nicht</strong> mit.
+       Eine Fahrt, die gar nicht kam, war nicht pünktlich — sie stünde sonst als
+       Verspätung von null in der Rechnung und würde sie schöner machen. Beides steht
+       weiter unten unter „Ausfälle".</p>`,
+  );
 }
 
 function tagesgang(linie: LinieDatei, richtung: number, schwelle: number): void {
@@ -202,6 +246,7 @@ function tagesgang(linie: LinieDatei, richtung: number, schwelle: number): void 
 
   const stunden = [...je.keys()].sort((a, b) => a - b);
   if (stunden.length === 0) {
+    ziel.className = "";
     ziel.innerHTML =
       '<h2>Über den Tag verteilt</h2>' +
       '<p class="hinweis">Für diese Richtung wurde noch keine einzelne Stunde gemessen.</p>';
@@ -217,12 +262,18 @@ function tagesgang(linie: LinieDatei, richtung: number, schwelle: number): void 
     };
   });
 
-  ziel.innerHTML = `<h2>Über den Tag verteilt</h2>
-    <p class="klein">Je Säule eine Stunde: der Anteil der gemessenen Halte, die weniger
-    als ${schwelle} Minuten zu spät waren. Die Stunden ab 24 sind die Nachtfahrten vom
-    Vorabend — die Bahn um 1:30 Uhr steht bei 25 und nicht bei 1, weil sie noch zum
-    ${begriff("Betriebstag", BETRIEBSTAG_ERKLAERUNG)} davor gehört.</p>`;
-  saeulenIn(ziel, punkte);
+  const { haupt, rand } = block(
+    ziel,
+    "<h2>Über den Tag verteilt</h2>",
+    `<p>Je Säule eine Stunde: der Anteil der gemessenen Halte, die weniger
+     als ${schwelle} Minuten zu spät waren. Wo ein gestrichelter Strich auf der
+     Grundlinie steht, wurde in dieser Stunde nichts gemessen.</p>
+     <p>Die Stunden ab 24 sind die Nachtfahrten vom Vorabend — die Bahn um 1:30 Uhr
+     steht bei 25 und nicht bei 1, weil sie noch zum
+     ${begriff("Betriebstag", BETRIEBSTAG_ERKLAERUNG)} davor gehört.</p>`,
+  );
+
+  saeulenIn(haupt, punkte);
 
   const details = document.createElement("details");
   details.innerHTML = "<summary>Zahlen dazu</summary>";
@@ -236,7 +287,7 @@ function tagesgang(linie: LinieDatei, richtung: number, schwelle: number): void 
       }),
     ),
   );
-  ziel.appendChild(details);
+  rand.appendChild(details);
 }
 
 /**
@@ -270,28 +321,34 @@ function profil(halte: HalteDatei, richtung: number): void {
 
   const reihe = [...je.values()].sort((a, b) => a.pos - b.pos);
   if (reihe.length === 0) {
+    ziel.className = "";
     ziel.innerHTML =
       '<h2>Wo die Verspätung entsteht</h2>' +
       '<p class="hinweis">Für diese Richtung wurde noch kein einzelner Halt gemessen.</p>';
     return;
   }
 
-  ziel.innerHTML = `<h2>Wo die Verspätung entsteht</h2>
-    <p class="klein">Hier steht nicht, wo die Bahn spät <em>ist</em>, sondern wo sie spät
-    <em>wird</em> — die Halte stehen von oben nach unten in der Reihenfolge der Strecke.
-    Ein Balken nach rechts heißt: auf diesem Abschnitt kommt Verspätung dazu. Nach links:
-    hier wird wieder aufgeholt.</p>`;
-
-  ziel.appendChild(
-    balkenProfil(
-      reihe.map((r) => ({
-        beschriftung: r.name,
-        wert: r.gewicht > 0 ? r.zuwachs / r.gewicht : 0,
-      })),
-    ),
+  const { haupt } = block(
+    ziel,
+    "<h2>Wo die Verspätung entsteht</h2>",
+    `<p>Hier steht nicht, wo die Bahn spät <em>ist</em>, sondern wo sie spät
+     <em>wird</em> — die Halte stehen von oben nach unten in der Reihenfolge der
+     Strecke.</p>
+     <p>Ein Balken nach rechts heißt: auf diesem Abschnitt kommt Verspätung dazu.
+     Nach links: hier wird wieder aufgeholt. Wo ein gestrichelter Strich auf der
+     Mittellinie steht, wurde für diesen Halt kein einziger Abschnitt gemessen.</p>`,
   );
 
-  ziel.appendChild(
+  balkenProfilIn(
+    haupt,
+    reihe.map((r) => ({
+      beschriftung: r.name,
+      // null, nicht 0: fuer diesen Halt gab es keinen gemessenen Abschnitt.
+      wert: r.gewicht > 0 ? r.zuwachs / r.gewicht : null,
+    })),
+  );
+
+  haupt.appendChild(
     tabelle(
       ["Halt", "Dazugekommen", "Verspätung im Schnitt", "Weniger als 3 Min zu spät",
        "Gemessene Halte"],
@@ -336,27 +393,29 @@ function ausfaelle(linie: LinieDatei, richtung: number): void {
   }
 
   if (fahrten === 0) {
+    ziel.className = "";
     ziel.innerHTML =
       '<h2>Ausfälle</h2>' +
       '<p class="hinweis">Für diese Richtung wurde noch keine Fahrt erfasst.</p>';
     return;
   }
 
-  ziel.innerHTML = `<h2>Ausfälle</h2>
-    <dl>
-      <dt>Fahrten</dt><dd>${zahl(fahrten)}</dd>
-      <dt>davon ausgefallen</dt><dd>${zahl(ausgefallen)} (${quoteText(ausgefallen, fahrten)})</dd>
-      <dt>Übersprungene Halte <span class="klein">Fahrt kam, hielt hier aber nicht</span></dt>
-      <dd>${zahl(ausgelassen)} von ${zahl(soll)}</dd>
-      <dt>Fahrten ohne jede Rückmeldung</dt><dd>${zahl(unbedient)}</dd>
-    </dl>
-    <p class="klein">
-      „Ohne jede Rückmeldung" heißt: die Fahrt steht im Fahrplan, aber zu keinem ihrer
-      Halte wurde je etwas gemeldet — und als ausgefallen war sie auch nicht
-      gekennzeichnet. Ob sie wirklich ausgefallen ist oder ob TramPuls in dieser Zeit
-      nichts aufzeichnen konnte, lässt sich nicht sagen. Deshalb steht die Zahl getrennt
-      und zählt nicht als Ausfall.
-    </p>`;
+  const { rand } = block(
+    ziel,
+    `<h2>Ausfälle</h2>
+     <dl>
+       <dt>Fahrten</dt><dd>${zahl(fahrten)}</dd>
+       <dt>davon ausgefallen</dt><dd>${zahl(ausgefallen)} (${quoteText(ausgefallen, fahrten)})</dd>
+       <dt>Übersprungene Halte <span class="klein">Fahrt kam, hielt hier aber nicht</span></dt>
+       <dd>${zahl(ausgelassen)} von ${zahl(soll)}</dd>
+       <dt>Fahrten ohne jede Rückmeldung</dt><dd>${zahl(unbedient)}</dd>
+     </dl>`,
+    `<p>„Ohne jede Rückmeldung" heißt: die Fahrt steht im Fahrplan, aber zu keinem ihrer
+       Halte wurde je etwas gemeldet — und als ausgefallen war sie auch nicht
+       gekennzeichnet. Ob sie wirklich ausgefallen ist oder ob TramPuls in dieser Zeit
+       nichts aufzeichnen konnte, lässt sich nicht sagen. Deshalb steht die Zahl getrennt
+       und zählt nicht als Ausfall.</p>`,
+  );
 
   const details = document.createElement("details");
   details.innerHTML = "<summary>Je Betriebstag</summary>";
@@ -367,7 +426,7 @@ function ausfaelle(linie: LinieDatei, richtung: number): void {
       zeilen,
     ),
   );
-  ziel.appendChild(details);
+  rand.appendChild(details);
 }
 
 start().catch(zeigeFehler);

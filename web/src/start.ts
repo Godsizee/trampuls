@@ -8,8 +8,8 @@
 
 import { ladeIndex } from "./daten";
 import type { IndexDatei } from "./daten";
-import { datum, prozent, quote, vonHundert, zahl, VERKEHRSART_NAME } from "./format";
-import { BETRIEBSTAG_ERKLAERUNG, begriff, fussnote, zeigeFehler } from "./seite";
+import { datum, quote, vonHundert, zahl, VERKEHRSART_NAME } from "./format";
+import { BETRIEBSTAG_ERKLAERUNG, begriff, fussnote, grosseZahl, zeigeFehler } from "./seite";
 
 // Die Startseite zeigt genau eine Schwelle. Wer eine andere braucht, waehlt sie
 // auf der Linienseite; hier waere ein Regler die eine Einstellung zu viel.
@@ -44,9 +44,12 @@ function zeigeKacheln(index: IndexDatei): void {
     const q = quote(n.puenktlich_3min, n.bewertbare_halte);
     const karte = document.createElement("article");
     karte.className = "kennzahl";
+    // Die Verkehrsart traegt den Markerton des Blocks — als Flaeche, nie als
+    // Textfarbe, und nie aus route_color (TramPuls_Recht_und_Lizenz).
+    karte.dataset.art = n.verkehrsart;
     karte.innerHTML = `
       <h2>${VERKEHRSART_NAME[n.verkehrsart] ?? n.verkehrsart}</h2>
-      <p class="gross">${q === null ? "—" : prozent(q)}</p>
+      <p class="gross">${grosseZahl(n.puenktlich_3min, n.bewertbare_halte)}</p>
       <p class="klein">${
         q === null
           ? "Noch keine gemessenen Halte."

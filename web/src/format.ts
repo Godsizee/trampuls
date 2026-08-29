@@ -64,6 +64,18 @@ export const VERKEHRSART_NAME: Record<string, string> = {
 };
 
 /**
+ * Die Verkehrsart als Bestandteil der Ueberschrift einer Linienseite. Sie
+ * steht dort als Wort und nicht nur als Farbton am Schild: sieben RNV-Linien
+ * tragen ihre Nummer doppelt, einmal Straßenbahn und einmal Bus (Regel 12).
+ * Eine "5" allein waere auf dieser Seite also nicht eindeutig.
+ */
+export const LINIENART_NAME: Record<string, string> = {
+  tram: "Straßenbahnlinie",
+  bus: "Buslinie",
+  sonstige: "Linie",
+};
+
+/**
  * Prozent als Alltagssatz. "82,9 %" sagt vielen Leserinnen und Lesern weniger
  * als "rund 83 von 100" — deshalb steht die Uebersetzung ueberall neben der
  * Quote, nie an ihrer Stelle.
@@ -86,4 +98,29 @@ export function vonHundert(anteil: number | null): string {
  */
 export function schwelleText(minuten: number): string {
   return `weniger als ${zahl(minuten)} ${minuten === 1 ? "Minute" : "Minuten"} zu spät`;
+}
+
+/**
+ * Die Liniennummer fuer das Schild. `route_short_name` kommt als "RNV 20" aus
+ * dem Feed; auf ein Schild gehoert "20". Der Betreiber steht auf jeder Seite
+ * dieses Projekts ohnehin daneben, und alle 59 Linien tragen denselben Praefix
+ * (gemessen 2026-08-29). Reine Anzeige — `route_id` bleibt der Schluessel und
+ * `route_short_name` der ungekuerzte Wert im Datenmodell (Regel 12).
+ */
+export function liniennummer(kurzname: string): string {
+  const ohne = kurzname.replace(/^RNV\s+/, "").trim();
+  return ohne === "" ? kurzname : ohne;
+}
+
+/**
+ * Prozentwert in Zahl und Zeichen zerlegt, damit die grosse Kennzahl das "%"
+ * kleiner und gedaempft setzen kann. `Intl` trennt mit einem geschuetzten
+ * Leerzeichen; JavaScripts \s fasst das mit. Hier faellt es weg, weil die
+ * beiden Teile im Layout ohnehin nebeneinander stehen und ihren eigenen
+ * Abstand mitbringen.
+ */
+export function prozentTeile(anteil: number): { wert: string; einheit: string } {
+  const text = PROZENT.format(anteil);
+  const treffer = text.match(/^(.*?)\s*(%)$/);
+  return treffer ? { wert: treffer[1] ?? text, einheit: treffer[2] ?? "" } : { wert: text, einheit: "" };
 }

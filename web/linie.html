@@ -3,20 +3,26 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#f4f5f7" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#1d2026" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#faf9f6" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#121317" media="(prefers-color-scheme: dark)">
 <title>Linie — TramPuls</title>
 <meta name="description" content="Eine Linie im Detail: wie pünktlich sie war, wann am Tag sie kippt, wo unterwegs die Verspätung entsteht und was ausfiel.">
+<!-- Nur die Groteske wird vorgeladen: sie traegt die erste Zahl. Die Serif
+     traegt Ueberschriften und darf per font-display:swap nachkommen.
+     crossorigin ist auch bei gleicher Herkunft Pflicht — Schriften werden
+     im CORS-Modus geholt, und ohne das Attribut laedt der Browser die
+     Datei ein zweites Mal. -->
+<link rel="preload" href="/schrift/archivo-var-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/src/stil.css">
 </head>
 <body>
 <header class="kopfleiste">
   <div class="huelle">
-    <a href="/">TramPuls</a>
-    <nav>
+    <a class="marke" href="/">TramPuls</a>
+    <nav aria-label="Hauptnavigation">
       <a href="/">Start</a>
       <a href="/netz.html">Netz</a>
-      <a href="/linien.html">Linien</a>
+      <a href="/linien.html" aria-current="page">Linien</a>
       <a href="/methodik.html">Methodik</a>
       <a href="/lizenz.html">Lizenz</a>
     </nav>
@@ -24,7 +30,7 @@
 </header>
 <main class="huelle" data-inhalt>
   <div data-kopf></div>
-  <div class="regler" data-regler></div>
+  <div class="regler breit" data-regler></div>
   <section data-kennzahl></section>
   <section data-tagesgang></section>
   <section data-profil></section>

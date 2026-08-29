@@ -9,3 +9,8 @@ deploy/Dockerfile.collector text eol=lf
 *.parquet binary
 *.zip binary
 *.pb binary
+
+# Schriftdateien liegen im Repo (selbst gehostet, kein CDN — Regel 13). Ohne
+# diese Zeile schickt Git sie unter Windows durch die CRLF-Konvertierung und
+# der Browser bekommt eine kaputte woff2 ausgeliefert.
+*.woff2 binary

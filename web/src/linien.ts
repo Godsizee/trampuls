@@ -2,7 +2,7 @@
 
 import { ladeIndex } from "./daten";
 import type { LinieKopf } from "./daten";
-import { quoteText, zahl, VERKEHRSART_NAME } from "./format";
+import { liniennummer, quoteText, zahl, VERKEHRSART_NAME } from "./format";
 import { escape, fussnote, zeigeFehler } from "./seite";
 
 async function start(): Promise<void> {
@@ -52,9 +52,14 @@ async function start(): Promise<void> {
 function eintrag(l: LinieKopf): HTMLLIElement {
   const li = document.createElement("li");
   const richtungen = l.richtungen.map((r) => escape(r.name)).join(" · ");
+  // Das Schild traegt nur die Nummer. Welche Verkehrsart dazugehoert, sagt die
+  // Ueberschrift des Blocks, in dem der Eintrag steht — der Farbton am Schild
+  // wiederholt das nur und traegt es nicht allein. Sieben RNV-Linien tragen
+  // ihre Nummer doppelt, einmal Tram und einmal Bus (Regel 12); ohne die
+  // Ueberschrift waere die Nummer allein deshalb nicht eindeutig.
   li.innerHTML = `
     <a href="linie.html?linie=${encodeURIComponent(l.datei)}">
-      <span class="nummer">${escape(l.linie)}</span>
+      <span class="nummer" data-art="${escape(l.verkehrsart)}">${escape(liniennummer(l.linie))}</span>
       <span class="verlauf">${escape(l.verlauf)}</span>
     </a>
     <span class="werte">

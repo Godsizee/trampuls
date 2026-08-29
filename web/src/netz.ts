@@ -8,7 +8,9 @@
 import { ladeIndex, ladeNetz } from "./daten";
 import type { IndexDatei, NetzDatei } from "./daten";
 import { datum, prozent, quote, sekunden, vonHundert, zahl, VERKEHRSART_NAME } from "./format";
-import { BETRIEBSTAG_ERKLAERUNG, begriff, fussnote, tabelle, zeigeFehler } from "./seite";
+import {
+  BETRIEBSTAG_ERKLAERUNG, begriff, fussnote, grosseZahl, tabelle, zeigeFehler,
+} from "./seite";
 import { saeulenIn } from "./diagramm";
 
 const SCHWELLE = 3;
@@ -41,9 +43,11 @@ function zeigeNetz(index: IndexDatei): void {
     const q = quote(n.puenktlich_3min, n.bewertbare_halte);
     const karte = document.createElement("article");
     karte.className = "kennzahl";
+    // Siehe start.ts: die Verkehrsart faerbt eine Flaeche, keinen Text.
+    karte.dataset.art = n.verkehrsart;
     karte.innerHTML = `
       <h2>${VERKEHRSART_NAME[n.verkehrsart] ?? n.verkehrsart}</h2>
-      <p class="gross">${q === null ? "—" : prozent(q)}</p>
+      <p class="gross">${grosseZahl(n.puenktlich_3min, n.bewertbare_halte)}</p>
       <p class="klein">${
         q === null
           ? "Noch keine gemessenen Halte."
@@ -89,9 +93,10 @@ async function zeigeVerlauf(): Promise<void> {
 
   ziel.innerHTML =
     `<h2>Die letzten 30 Tage</h2>
-     <p class="klein">Je Säule ein Tag: der Anteil der gemessenen Halte, die weniger als
-     ${SCHWELLE} Minuten zu spät waren. Fehlt eine Säule, wurde an diesem Tag nichts
-     gemessen — das ist etwas anderes als „nichts war pünktlich".</p>`;
+     <p class="klein legende">Je Säule ein Tag: der Anteil der gemessenen Halte, die
+     weniger als ${SCHWELLE} Minuten zu spät waren. Wo ein gestrichelter Strich auf der
+     Grundlinie steht, wurde an diesem Tag nichts gemessen — das ist etwas anderes als
+     „nichts war pünktlich".</p>`;
 
   for (const art of ["tram", "bus"] as const) {
     const punkte = tage.map((tag) => {
@@ -112,10 +117,20 @@ async function zeigeVerlauf(): Promise<void> {
 
     if (punkte.every((p) => p.wert === null)) continue;
 
+    // Abschnitt mit Randspalte: das Diagramm traegt die Aussage, die
+    // Zahlentabelle dazu ist die Belegstelle und rueckt ab Laptopbreite
+    // daneben. Genau zwei Kinder — sonst liegen Haupt- und Randteil nicht in
+    // derselben Rasterzeile (siehe stil.css, "Geruest").
     const block = document.createElement("section");
-    block.innerHTML = `<h3>${VERKEHRSART_NAME[art]}</h3>`;
-    saeulenIn(block, punkte);
+    block.className = "block";
 
+    const haupt = document.createElement("div");
+    haupt.className = "block-haupt";
+    haupt.innerHTML = `<h3>${VERKEHRSART_NAME[art]}</h3>`;
+    saeulenIn(haupt, punkte);
+
+    const rand = document.createElement("aside");
+    rand.className = "block-rand";
     const details = document.createElement("details");
     details.innerHTML = "<summary>Zahlen dazu</summary>";
     details.appendChild(
@@ -131,7 +146,9 @@ async function zeigeVerlauf(): Promise<void> {
         }),
       ),
     );
-    block.appendChild(details);
+    rand.appendChild(details);
+
+    block.append(haupt, rand);
     ziel.appendChild(block);
   }
 }

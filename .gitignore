@@ -19,6 +19,8 @@ __pycache__/
 /web/node_modules/
 /web/dist/
 /web/public/daten/
+# web/public/schrift/ ist bewusst NICHT ignoriert: die Schriftdateien sind
+# Teil der Auslieferung (selbst gehostet statt CDN) und muessen ins Repo.
 /export/
 
 # Go

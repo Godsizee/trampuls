@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#f4f5f7" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#1d2026" media="(prefers-color-scheme: dark)">
-<title>Linie — TramPuls</title>
-<meta name="description" content="Eine Linie im Detail: wie pünktlich sie war, wann am Tag sie kippt, wo unterwegs die Verspätung entsteht und was ausfiel.">
+<title>Straßenbahn und Bus im Überblick — TramPuls</title>
+<meta name="description" content="Wie pünktlich Straßenbahn und Bus der Rhein-Neckar-Verkehr zuletzt waren, mit dem Verlauf der letzten 30 Tage.">
 <link rel="stylesheet" href="/src/stil.css">
 </head>
 <body>
@@ -23,12 +23,16 @@
   </div>
 </header>
 <main class="huelle" data-inhalt>
-  <div data-kopf></div>
-  <div class="regler" data-regler></div>
-  <section data-kennzahl></section>
-  <section data-tagesgang></section>
-  <section data-profil></section>
-  <section data-ausfaelle></section>
+  <h1>Straßenbahn und Bus im Überblick</h1>
+  <p class="lead">Alle Linien der Rhein-Neckar-Verkehr zusammengerechnet — Straßenbahn
+     und Bus nebeneinander. Einzelne Linien stehen unter
+     <a href="/linien.html">Linien</a>.</p>
+  <section class="kennzahlen" data-netz>
+    <p class="hinweis">Zahlen werden geladen…</p>
+  </section>
+  <p class="vorbehalt" data-vorbehalt></p>
+  <section data-verlauf></section>
+  <p style="margin-top:2rem"><a href="/linien.html">Alle Linien ansehen →</a></p>
 </main>
 <footer class="fuss huelle">
   <p data-stand></p>
@@ -36,5 +40,5 @@
   <p>Ein privates Projekt. Keine Verbindung zum Verkehrsverbund Rhein-Neckar oder zur
      Rhein-Neckar-Verkehr GmbH. <a href="/lizenz.html">Lizenz und Attribution</a>.</p>
 </footer>
-<script type="module" src="/src/linie.ts"></script>
+<script type="module" src="/src/netz.ts"></script>
 </body></html>

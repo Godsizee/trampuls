@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#f4f5f7" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#1d2026" media="(prefers-color-scheme: dark)">
-<title>TramPuls — Pünktlichkeit der RNV</title>
-<meta name="description" content="Pünktlichkeit von Straßenbahn und Bus der Rhein-Neckar-Verkehr, aus offenen Fahrplandaten.">
+<title>TramPuls — Wie pünktlich fahren Straßenbahn und Bus der RNV?</title>
+<meta name="description" content="TramPuls schreibt die Echtzeitdaten von Straßenbahn und Bus der Rhein-Neckar-Verkehr mit und rechnet nach, wie pünktlich jede Linie tatsächlich war.">
 <link rel="stylesheet" href="/src/stil.css">
 </head>
 <body>
@@ -14,23 +14,96 @@
   <div class="huelle">
     <a href="/">TramPuls</a>
     <nav>
-      <a href="/">Netz</a>
+      <a href="/">Start</a>
+      <a href="/netz.html">Netz</a>
       <a href="/linien.html">Linien</a>
-      <a href="/linie.html">Linienseite</a>
       <a href="/methodik.html">Methodik</a>
       <a href="/lizenz.html">Lizenz</a>
     </nav>
   </div>
 </header>
 <main class="huelle" data-inhalt>
-  <h1>Wie pünktlich fährt die RNV?</h1>
-  <p class="klein">Straßenbahn und Bus im Netz der Rhein-Neckar-Verkehr GmbH,
-     gemessen am Echtzeitfeed des VRN gegen den Sollfahrplan.</p>
+
+  <h1>Wie pünktlich fahren Straßenbahn und Bus im Rhein-Neckar-Raum?</h1>
+  <p class="lead">Straßenbahnen und Busse der Rhein-Neckar-Verkehr fahren jeden Tag
+     mehrere tausend Fahrten durch Mannheim, Ludwigshafen und Heidelberg. Wie pünktlich
+     sie dabei sind, lässt sich bisher nirgends nachschlagen: Die Echtzeitdaten sind
+     zwar öffentlich, beschreiben aber immer nur den Moment und sind am nächsten Tag
+     verschwunden. TramPuls schreibt sie mit und rechnet nach.</p>
+
   <section class="kennzahlen" data-netz>
     <p class="hinweis">Zahlen werden geladen…</p>
   </section>
-  <section data-verlauf></section>
-  <p style="margin-top:2rem"><a href="/linien.html">Alle Linien ansehen →</a></p>
+  <p class="vorbehalt" data-vorbehalt></p>
+
+  <div class="wege">
+    <a class="knopf haupt" href="/netz.html">Alle Zahlen ansehen</a>
+    <a class="knopf" href="/linien.html">Eine Linie suchen</a>
+  </div>
+
+  <h2>Wie das gemessen wird</h2>
+  <ol class="schritte">
+    <li>Alle 30 Sekunden fragt TramPuls den offenen Datenstrom des Verkehrsverbunds
+        Rhein-Neckar ab und schreibt mit, wann Straßenbahnen und Busse tatsächlich an
+        den Haltestellen waren.</li>
+    <li>Diese Ist-Zeiten werden mit dem Fahrplan verglichen, der an genau diesem
+        <button type="button" class="begriff" popovertarget="erkl-betriebstag"
+                aria-label="Betriebstag — Erklärung anzeigen">Betriebstag</button>
+        <span popover id="erkl-betriebstag" class="erklaerung">Ein Betriebstag beginnt
+          morgens und endet erst, wenn die letzte Nachtfahrt durch ist — meist gegen
+          3 Uhr früh. Die Bahn um 1:30 Uhr zählt deshalb noch zum Tag davor und nicht
+          zum neuen.</span>
+        galt — nicht mit dem von heute.</li>
+    <li>Daraus entsteht für jede Linie und jede Richtung eine Prozentzahl: wie viele
+        Halte pünktlich waren, aus wie vielen gemessenen Halten. Die Anzahl steht
+        immer dabei.</li>
+  </ol>
+
+  <h2>Was sich hier beantworten lässt</h2>
+  <ul class="fragen">
+    <li>
+      <a href="/linien.html">Ist meine Linie morgens zuverlässiger als abends?
+        <span class="klein">Linie auswählen, dann „Über den Tag verteilt"</span></a>
+    </li>
+    <li>
+      <a href="/linien.html">Wo auf der Strecke entsteht die Verspätung?
+        <span class="klein">Linie auswählen, dann „Wo die Verspätung entsteht"</span></a>
+    </li>
+    <li>
+      <a href="/linien.html">Wie oft fällt eine Fahrt ganz aus?
+        <span class="klein">Linie auswählen, dann „Ausfälle"</span></a>
+    </li>
+    <li>
+      <a href="/netz.html">Straßenbahn oder Bus — was läuft runder?
+        <span class="klein">Beide Zahlen nebeneinander, über die letzten 30 Tage</span></a>
+    </li>
+  </ul>
+
+  <h2>Was TramPuls nicht ist</h2>
+  <div class="abgrenzung">
+    <ul>
+      <li><strong>Keine Fahrplanauskunft.</strong> Hier steht nie, wann die nächste Bahn
+          kommt. Dafür gibt es gute Apps — TramPuls schaut zurück, nicht nach vorn.</li>
+      <li><strong>Keine Beschwerdestelle.</strong> Es gibt nichts zu bewerten, zu melden
+          oder zu kommentieren.</li>
+      <li><strong>Kein Vorwurf.</strong> Verspätung im Straßenbahn- und Busverkehr
+          entsteht überwiegend aus Bedingungen, die ein Verkehrsunternehmen nicht allein
+          bestimmt: Baustellen, Straßenverkehr, Wetter, Andrang. Hier stehen Zahlen mit
+          Anzahl und Zeitraum, sonst nichts.</li>
+      <li><strong>Kein Angebot der RNV oder des VRN.</strong> TramPuls ist ein privates
+          Projekt ohne Verbindung zu einem der beiden Häuser.</li>
+    </ul>
+  </div>
+
+  <h2>Woher die Daten kommen</h2>
+  <p>Aus den offenen Fahrplan- und Echtzeitdaten des Verkehrsverbunds Rhein-Neckar.
+     TramPuls filtert daraus die Fahrten der Rhein-Neckar-Verkehr GmbH heraus, hebt sie
+     Tag für Tag auf und rechnet sie zusammen. Wie genau, steht auf der
+     <a href="/methodik.html">Methodikseite</a> — dort ist auch nachzulesen, wie
+     vollständig jeder einzelne Tag aufgezeichnet wurde. Personenbezogene Daten sind
+     dabei nicht im Spiel: Näheres unter <a href="/lizenz.html">Lizenz und
+     Datenschutz</a>.</p>
+
 </main>
 <footer class="fuss huelle">
   <p data-stand></p>
@@ -38,5 +111,5 @@
   <p>Ein privates Projekt. Keine Verbindung zum Verkehrsverbund Rhein-Neckar oder zur
      Rhein-Neckar-Verkehr GmbH. <a href="/lizenz.html">Lizenz und Attribution</a>.</p>
 </footer>
-<script type="module" src="/src/netz.ts"></script>
+<script type="module" src="/src/start.ts"></script>
 </body></html>

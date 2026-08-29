@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#f4f5f7" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#1d2026" media="(prefers-color-scheme: dark)">
-<title>Methodik — TramPuls</title>
-<meta name="description" content="Wie die Kennzahlen entstehen, und wie vollständig die Erhebung je Betriebstag war.">
+<title>Wie diese Zahlen entstehen — TramPuls</title>
+<meta name="description" content="Wie TramPuls Pünktlichkeit misst, was dabei nicht mitzählt und wie vollständig jeder einzelne Tag aufgezeichnet wurde.">
 <link rel="stylesheet" href="/src/stil.css">
 </head>
 <body>
@@ -14,56 +14,158 @@
   <div class="huelle">
     <a href="/">TramPuls</a>
     <nav>
-      <a href="/">Netz</a>
+      <a href="/">Start</a>
+      <a href="/netz.html">Netz</a>
       <a href="/linien.html">Linien</a>
-      <a href="/linie.html">Linienseite</a>
       <a href="/methodik.html">Methodik</a>
       <a href="/lizenz.html">Lizenz</a>
     </nav>
   </div>
 </header>
 <main class="huelle" data-inhalt>
-  <h1>Methodik</h1>
+  <h1>Wie diese Zahlen entstehen</h1>
+  <p class="lead">Jede Zahl auf dieser Seite soll nachvollziehbar sein — auch die, die
+     nicht schmeichelt. Hier steht, was gemessen wird, was bewusst nicht mitzählt und
+     wo die Messung selbst Lücken hat.</p>
 
   <h2>Was gemessen wird</h2>
-  <p>Der Collector ruft alle 30 Sekunden den GTFS-Realtime-Feed des VRN ab, filtert ihn
-     auf die Agency <code>vrn-05</code> (Rhein-Neckar-Verkehr GmbH) und schreibt jede
-     Zustandsänderung eines Halts mit. Diese Beobachtungen werden gegen den Sollfahrplan
-     gejoint — und zwar gegen die Version, die am jeweiligen Betriebstag gültig war,
-     nicht gegen die aktuelle.</p>
+  <ol class="schritte">
+    <li>Alle 30 Sekunden ruft TramPuls den offenen Echtzeit-Datenstrom des
+        Verkehrsverbunds Rhein-Neckar ab und behält daraus nur die Fahrten der
+        Rhein-Neckar-Verkehr GmbH. Jede Änderung an einem Halt wird mitgeschrieben.</li>
+    <li>Diese Ist-Zeiten werden mit dem Fahrplan verglichen, der an genau diesem Tag
+        galt — nicht mit dem aktuellen. Ein Fahrplanwechsel verändert deshalb keine
+        Zahl von gestern.</li>
+    <li>Daraus wird je Linie, Richtung und Stunde gezählt, wie viele Halte pünktlich
+        waren und wie viele überhaupt gemessen werden konnten.</li>
+  </ol>
 
-  <h2>Pünktlichkeit</h2>
-  <p>Anteil der <strong>bewertbaren Halte</strong> mit einer Ankunftsverspätung unterhalb
-     der gewählten Schwelle. Bewertbar ist ein Halt, zu dem eine Verspätung gemeldet
-     wurde. Die Schwellen 1, 3, 6, 15 und 60 Minuten stehen nebeneinander: bei einem
-     5-Minuten-Takt ist „unter 6 Minuten" beinahe bedeutungslos, weil eine ausgefallene
-     Bahn rechnerisch als „die nächste kam pünktlich" durchgehen kann.</p>
+  <h2>Was „pünktlich" hier heißt</h2>
+  <p>Pünktlich ist ein Halt, an dem die Bahn oder der Bus weniger als die eingestellte
+     Zahl an Minuten zu spät ankam. Die Prozentzahl ist der Anteil solcher Halte an
+     allen <strong>gemessenen</strong> Halten — also an denen, zu denen überhaupt eine
+     Ist-Zeit gemeldet wurde. Diese Anzahl steht auf jeder Seite neben der Prozentzahl,
+     weil 90 % aus 40 Halten etwas anderes sind als 90 % aus 4.000.</p>
 
-  <h2>Zwei Nenner</h2>
-  <p>Jede Quote wird mit ihrer Fallzahl gezeigt, und daneben steht immer die Zahl aller
-     Soll-Halte. Der Unterschied zwischen beiden ist genau das, was nicht gemessen werden
-     konnte — Ausfälle, ausgelassene Halte und Halte ohne Meldung.</p>
+  <h2>Warum es fünf Schwellen gibt und nicht eine</h2>
+  <p>Auf der Linienseite lässt sich einstellen, ab wann eine Fahrt als zu spät gilt:
+     ab 1, 3, 6, 15 oder 60 Minuten. Eine einzige, amtlich wirkende Zahl wäre bequemer,
+     aber irreführend. Bei einem 5-Minuten-Takt sagt „unter 6 Minuten" fast nichts —
+     dort kann eine ausgefallene Bahn rechnerisch als „die nächste kam ja pünktlich"
+     durchgehen. Wer wissen will, wie verlässlich eine Linie wirklich ist, schaltet
+     die Schwellen einmal durch.</p>
 
-  <h2>Ausfall ist keine Verspätung von null</h2>
-  <p>Fahrten mit <code>CANCELED</code> und Halte mit <code>SKIPPED</code> gehen
-     <strong>nicht</strong> in die Pünktlichkeit ein. Sie würden den Durchschnitt sonst
-     verbessern, obwohl gar nichts gefahren ist. Sie stehen stattdessen getrennt auf jeder
-     Linienseite.</p>
+  <h2>Warum ein Ausfall nicht als pünktlich zählt</h2>
+  <p>Fahrten, die abgesagt wurden, und Halte, an denen ein Fahrzeug vorbeifuhr, gehen
+     <strong>nicht</strong> in die Pünktlichkeit ein. Sie als „null Minuten Verspätung"
+     zu zählen, würde jede Quote schöner machen, obwohl gar nichts gefahren ist. Sie
+     stehen stattdessen auf jeder Linienseite in einem eigenen Abschnitt „Ausfälle" —
+     sichtbar, aber getrennt.</p>
 
-  <h2>Betriebstag, nicht Kalendertag</h2>
-  <p>Ein Betriebstag reicht über Mitternacht hinaus. Eine Fahrt um 1:30 Uhr gehört zum
-     Betriebstag davor und erscheint als Betriebsstunde 25, nicht als Stunde 1 des
-     Folgetags.</p>
+  <h2>Warum nicht jeder geplante Halt gemessen werden konnte</h2>
+  <p>Auf jeder Seite stehen zwei Zahlen nebeneinander: <strong>geplante Halte</strong>
+     (alle, die im Fahrplan standen) und <strong>gemessene Halte</strong> (die, zu denen
+     eine Ist-Zeit ankam). Der Unterschied hat drei Gründe, und alle drei sind hier
+     ausgewiesen statt weggerechnet:</p>
+  <ul>
+    <li>Die Fahrt fiel aus oder der Halt wurde übersprungen.</li>
+    <li>Die Fahrt fuhr, aber es kam nie eine Rückmeldung zu diesem Halt.</li>
+    <li>TramPuls selbst konnte in dieser Stunde nichts aufzeichnen — etwa weil der
+        Server neu gestartet wurde. Solche Lücken stehen unten in der Tabelle.</li>
+  </ul>
 
-  <h2>Was diese Seite nicht ist</h2>
-  <p>Keine Live-Auskunft. TramPuls zeigt Historie, nicht die nächste Bahn. Der jüngste
-     gezeigte Betriebstag ist der jüngste vollständig erhobene; der laufende Tag ist
-     per Definition unvollständig.</p>
+  <h2>Warum der Tag bis nach Mitternacht reicht</h2>
+  <p>Ein
+     <button type="button" class="begriff" popovertarget="erkl-betriebstag"
+             aria-label="Betriebstag — Erklärung anzeigen">Betriebstag</button>
+     <span popover id="erkl-betriebstag" class="erklaerung">Ein Betriebstag beginnt
+       morgens und endet erst, wenn die letzte Nachtfahrt durch ist — meist gegen
+       3 Uhr früh. Die Bahn um 1:30 Uhr zählt deshalb noch zum Tag davor und nicht
+       zum neuen.</span>
+     ist nicht dasselbe wie ein Kalendertag. Er endet nicht um Mitternacht, sondern
+     wenn die letzte Nachtfahrt durch ist. Die Bahn um 1:30 Uhr gehört deshalb noch zum
+     Abend davor und erscheint im Tagesverlauf als Stunde 25, nicht als Stunde 1 des
+     Folgetags. Wer sie auf 1 Uhr zurückrechnet, verliert genau die Nachtfahrten aus
+     der Auswertung.</p>
 
-  <h2>Datenqualität je Betriebstag</h2>
-  <p class="klein">Deckung ist der Anteil der Soll-Halte, zu denen etwas beobachtet wurde.
-     Ein Tag gilt als vollständig erhoben, wenn mindestens 24 Betriebsstunden belegt sind.</p>
+  <h2>Was diese Seite nicht kann</h2>
+  <p>Sie sagt nicht, wann die nächste Bahn kommt — TramPuls schaut zurück, nicht nach
+     vorn. Und sie zeigt keinen laufenden Tag als fertiges Ergebnis: welcher Tag zuletzt
+     vollständig ausgewertet wurde, steht in der Fußzeile jeder Seite. Ist der heutige
+     Tag dabei, ist er naturgemäß noch nicht zu Ende — die Zahlen sind dann ein
+     Zwischenstand, und das steht auch dort, wo die Zahl steht.</p>
+
+  <h2>Wie vollständig jeder Tag aufgezeichnet wurde</h2>
+  <p class="klein">„Anteil gemessen" ist der Anteil der geplanten Halte, zu denen etwas
+     ankam. Ein Tag gilt als durchgehend aufgezeichnet, wenn mindestens 24 Stunden
+     belegt sind. Diese Tabelle ist die unbequemste auf der ganzen Seite: sie zeigt, wo
+     die Messung selbst schwach war.</p>
   <div data-qualitaet></div>
+
+  <details>
+    <summary>Technische Einzelheiten und Begriffe</summary>
+
+    <p class="klein">Auf der Seite steht Alltagssprache. Wer die Zahlen gegen die
+       Rohdaten prüfen will, findet hier die genaue Entsprechung.</p>
+
+    <table class="glossar">
+      <tbody>
+        <tr>
+          <th scope="row">Gemessene Halte</th>
+          <td>Halte, zu denen eine Ankunftsverspätung gemeldet wurde — der Nenner jeder
+              Pünktlichkeitsquote. Im Datenmodell: <code>bewertbare_halte</code>.</td>
+        </tr>
+        <tr>
+          <th scope="row">Geplante Halte</th>
+          <td>Alle Halte laut Sollfahrplan, einschließlich der ausgefallenen. Im
+              Datenmodell: <code>soll_halte</code>.</td>
+        </tr>
+        <tr>
+          <th scope="row">Übersprungene Halte</th>
+          <td>Halte, die der Echtzeitstrom als <code>SKIPPED</code> meldet: die Fahrt
+              fuhr, hielt hier aber nicht.</td>
+        </tr>
+        <tr>
+          <th scope="row">Ausgefallene Fahrten</th>
+          <td>Fahrten mit <code>CANCELED</code> im Echtzeitstrom.</td>
+        </tr>
+        <tr>
+          <th scope="row">Fahrten ohne jede Rückmeldung</th>
+          <td>Fahrten aus dem Sollfahrplan, zu denen an keinem Halt je etwas gemeldet
+              wurde, ohne dass sie als ausgefallen gekennzeichnet waren. Ursache offen:
+              echter Ausfall oder Aufzeichnungslücke. Zählt deshalb nicht als
+              Ausfall.</td>
+        </tr>
+        <tr>
+          <th scope="row">Anteil gemessen</th>
+          <td>Gemessene Halte geteilt durch geplante Halte, je Betriebstag.</td>
+        </tr>
+        <tr>
+          <th scope="row">Stunden ohne Aufzeichnung</th>
+          <td>Betriebsstunden eines Tages, für die keine einzige Beobachtung vorliegt —
+              Lücken der Erhebung selbst, nicht des Verkehrs.</td>
+        </tr>
+        <tr>
+          <th scope="row">Betriebstag</th>
+          <td>Der Verkehrstag von der ersten bis zur letzten Fahrt, über Mitternacht
+              hinaus. Fahrplanzeiten wie <code>25:30:00</code> sind Sekunden seit
+              Betriebstagsbeginn, keine Uhrzeiten.</td>
+        </tr>
+        <tr>
+          <th scope="row">Dazugekommen</th>
+          <td>Auf der Linienseite: wie viel Verspätung ein Streckenabschnitt im Schnitt
+              hinzufügt (positiv) oder abbaut (negativ). Trennt neu entstehende von
+              mitgeschleppter Verspätung.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p class="klein">Datengrundlage ist der GTFS-Realtime-Strom des VRN, abgerufen alle
+       30 Sekunden und gefiltert auf die Agency <code>vrn-05</code> (Rhein-Neckar-Verkehr
+       GmbH). Der Sollfahrplan wird versioniert aufbewahrt; Ist-Daten werden immer gegen
+       die Version verknüpft, die am jeweiligen Betriebstag gültig war. Aggregiert wird
+       über die Station, nicht über den einzelnen Bahnsteig.</p>
+  </details>
 </main>
 <footer class="fuss huelle">
   <p data-stand></p>

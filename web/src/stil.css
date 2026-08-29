@@ -225,3 +225,135 @@ footer.fuss a { color: var(--akzent); }
 @media (min-width: 34.0625rem) {
   .huelle { padding-top: 1.5rem; padding-bottom: 4rem; }
 }
+
+/* ---------------------------------------------------------------------------
+   Startseite
+
+   Die Startseite stellt das Projekt vor und zeigt trotzdem sofort eine Zahl.
+   Der Aufbau ist von der schmalsten Breite her gedacht wie der Rest der Seite:
+   alles liegt untereinander, die Medienabfrage weiter unten stellt erst ab
+   Tabletbreite etwas nebeneinander.
+   --------------------------------------------------------------------------- */
+
+.lead { font-size: 1.05rem; max-width: 42rem; margin: 0.75rem 0 0; }
+
+/* Der Vorbehalt gehoert neben die Zahl, nicht in die Fusszeile: eine grosse
+   Prozentzahl ohne Fallzahl und ohne "der Tag laeuft noch" ist genau die
+   Aussage, die dieses Projekt nicht machen will. */
+.vorbehalt { font-size: 0.85rem; color: var(--gedaempft); margin: 0.75rem 0 0; }
+
+.wege { display: flex; flex-wrap: wrap; gap: 0.75rem; margin: 1.5rem 0 0; }
+.knopf {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: var(--tippziel); padding: 0.4rem 1.25rem;
+  border: 1px solid var(--rand); border-radius: 4px;
+  background: var(--grund); color: var(--text);
+  font-size: 1rem; text-decoration: none; text-align: center;
+}
+.knopf:hover { border-color: var(--akzent); color: var(--akzent); }
+.knopf.haupt { background: var(--akzent); border-color: var(--akzent); color: #fff; }
+.knopf.haupt:hover { color: #fff; opacity: 0.9; }
+
+/* Drei Schritte, jeder eine Zeile lang. Die Ziffer steht in einer eigenen
+   Spalte, damit der Text bei Umbruch nicht unter sie rutscht. */
+.schritte { list-style: none; counter-reset: schritt; padding: 0; margin: 0.5rem 0 0; display: grid; gap: 0.9rem; }
+.schritte li {
+  counter-increment: schritt;
+  display: grid; grid-template-columns: 1.75rem 1fr; gap: 0.75rem; align-items: start;
+}
+.schritte li::before {
+  content: counter(schritt);
+  display: flex; align-items: center; justify-content: center;
+  width: 1.75rem; height: 1.75rem; border-radius: 50%;
+  background: var(--flaeche); border: 1px solid var(--rand);
+  color: var(--gedaempft); font-size: 0.85rem; font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.fragen { list-style: none; padding: 0; margin: 0.5rem 0 0; }
+.fragen li { border-bottom: 1px solid var(--rand); }
+.fragen a {
+  display: flex; flex-direction: column; justify-content: center; gap: 0.1rem;
+  min-height: var(--tippziel); padding: 0.6rem 0;
+  color: var(--text); text-decoration: none;
+}
+.fragen a:hover { color: var(--akzent); }
+.fragen .klein { margin: 0; }
+
+.abgrenzung {
+  background: var(--flaeche); border: 1px solid var(--rand);
+  border-radius: 6px; padding: 1rem 1.15rem; margin-top: 0.5rem;
+}
+.abgrenzung ul { margin: 0; padding-left: 1.1rem; }
+.abgrenzung li { margin: 0.4rem 0; }
+.abgrenzung li:first-child { margin-top: 0; }
+.abgrenzung li:last-child { margin-bottom: 0; }
+
+/* ---------------------------------------------------------------------------
+   Fachwort mit Erklaerung
+
+   Der Knopf sieht aus wie Text und ist trotzdem ein Knopf — nur so ist das Wort
+   mit der Tastatur erreichbar und auf dem Telefon antippbar. Die Erklaerung
+   liegt als `popover` im Top-Layer: dort kann sie die Seite nicht waagerecht
+   aufziehen, egal an welcher Stelle im Satz das Wort steht.
+   --------------------------------------------------------------------------- */
+
+.begriff {
+  font: inherit; color: inherit; background: none; border: 0; border-radius: 0;
+  display: inline-block; vertical-align: baseline;
+  /* Der Tippbereich ist groesser als das Wort; die negativen Aussenabstaende
+     nehmen die Vergroesserung aus dem Zeilenfluss wieder heraus, damit die
+     Zeilenhoehe im Fliesstext nicht springt. */
+  padding: 0.6rem 0.25rem; margin: -0.6rem -0.25rem;
+  min-height: 0;
+  text-decoration: underline dotted; text-underline-offset: 0.2em;
+  cursor: help;
+}
+.begriff:hover, .begriff:focus-visible { color: var(--akzent); border-color: transparent; }
+
+[popover].erklaerung {
+  max-width: min(24rem, calc(100vw - 2rem));
+  margin: auto;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--rand); border-radius: 8px;
+  background: var(--flaeche); color: var(--text);
+  font-size: 0.9rem; line-height: 1.45;
+  box-shadow: 0 8px 24px var(--schleier);
+}
+[popover].erklaerung::backdrop { background: transparent; }
+
+@media (max-width: 34rem) {
+  /* Auf dem Telefon steht die Erklaerung unten am Rand statt in der Mitte:
+     dort ist sie mit dem Daumen erreichbar und verdeckt nicht die Stelle,
+     an der das erklaerte Wort steht. */
+  [popover].erklaerung {
+    margin: auto auto 1rem; width: calc(100vw - 1.5rem); max-width: none;
+  }
+
+  /* Ein Knopf neben dem anderen wird auf 320 px zu schmal zum Lesen. */
+  .wege .knopf { flex: 1 1 100%; }
+}
+
+/* ---------------------------------------------------------------------------
+   Begriffstabelle auf /methodik
+
+   Anders als die Zahlentabellen: hier stehen Saetze, keine Ziffern. Sie
+   duerfen umbrechen und nicht scrollen — ein waagerechter Scrollkasten waere
+   fuer eine Erklaerung die falsche Form.
+   --------------------------------------------------------------------------- */
+
+.glossar { width: 100%; border-collapse: collapse; font-size: 0.9rem; margin-top: 0.5rem; }
+.glossar th, .glossar td {
+  text-align: left; white-space: normal; vertical-align: top;
+  padding: 0.5rem 0.75rem 0.5rem 0; border-bottom: 1px solid var(--rand);
+}
+.glossar th[scope="row"] { width: 13rem; font-weight: 600; color: var(--text); }
+
+@media (max-width: 34rem) {
+  /* Zwei Spalten mit je einem Satz ergeben auf 320 px zwei unlesbar schmale
+     Saeulen. Untereinander gelesen bleibt der Zusammenhang erhalten. */
+  .glossar, .glossar tbody, .glossar tr, .glossar th, .glossar td { display: block; }
+  .glossar tr { border-bottom: 1px solid var(--rand); padding: 0.5rem 0; }
+  .glossar th[scope="row"] { width: auto; border-bottom: 0; padding: 0 0 0.15rem; }
+  .glossar td { border-bottom: 0; padding: 0; color: var(--gedaempft); }
+}

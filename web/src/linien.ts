@@ -37,7 +37,9 @@ async function start(): Promise<void> {
     }
 
     if (ziel.children.length === 0) {
-      ziel.innerHTML = `<p class="hinweis">Keine Linie passt zu „${escape(filter)}".</p>`;
+      ziel.innerHTML =
+        `<p class="hinweis">Keine Linie passt zu „${escape(filter)}". ` +
+        `Gesucht wird in der Liniennummer und im Streckenverlauf.</p>`;
     }
   };
 
@@ -57,7 +59,8 @@ function eintrag(l: LinieKopf): HTMLLIElement {
     </a>
     <span class="werte">
       <strong>${quoteText(l.puenktlich_3min, l.bewertbare_halte)}</strong>
-      <span class="klein">unter 3 min · ${zahl(l.bewertbare_halte)} Halte</span>
+      <span class="klein">weniger als 3 Min zu spät</span>
+      <span class="klein">${zahl(l.bewertbare_halte)} gemessene Halte</span>
       ${richtungen ? `<span class="klein">${richtungen}</span>` : ""}
     </span>`;
   return li;

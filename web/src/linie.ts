@@ -1,10 +1,17 @@
 // Die Linienseite. Kopf, Kennzahl, Tagesgang (T2), Haltestellenprofil (T3),
 // Ausfaelle (T4) — in dieser Reihenfolge (TramPuls_Frontend).
+//
+// Die Ueberschriften heissen hier nicht wie die Analysen im Vault, sondern wie
+// die Frage, die jemand tatsaechlich hat: "Ueber den Tag verteilt" statt
+// "Tagesgang", "Wo die Verspaetung entsteht" statt "Haltestellenprofil". Die
+// Zuordnung zu T2/T3/T4 steht in den Kommentaren, nicht auf der Seite.
 
 import { ladeIndex, ladeLinie, ladeLinieHalte } from "./daten";
 import type { HalteDatei, IndexDatei, LinieDatei } from "./daten";
-import { datum, prozent, quote, quoteText, sekunden, stunde, zahl } from "./format";
-import { escape, fussnote, tabelle, zeigeFehler } from "./seite";
+import { datum, prozent, quote, quoteText, sekunden, stunde, vonHundert, zahl } from "./format";
+import {
+  BETRIEBSTAG_ERKLAERUNG, begriff, escape, fussnote, tabelle, zeigeFehler,
+} from "./seite";
 import { balkenProfil, saeulenIn } from "./diagramm";
 import { SCHWELLEN, gemerkteLinie, leseAuswahl, merkeLinie, schreibeAuswahl } from "./zustand";
 
@@ -60,8 +67,13 @@ function baueRegler(index: IndexDatei, datei: string, linie: LinieDatei): void {
     )
     .join("");
 
+  // Die Schwelle ist als Frage beschriftet, nicht als Kennzahlname: "unter
+  // 3 min" ist die Sprache des Datenmodells, gewaehlt wird aber, ab wann eine
+  // Bahn als zu spaet gelten soll.
   const schwelleOptionen = SCHWELLEN.map(
-    (s) => `<option value="${s}"${s === a.schwelle ? " selected" : ""}>unter ${s} min</option>`,
+    (s) =>
+      `<option value="${s}"${s === a.schwelle ? " selected" : ""}>` +
+      `ab ${s} ${s === 1 ? "Minute" : "Minuten"}</option>`,
   ).join("");
 
   ziel.innerHTML = `
@@ -71,10 +83,10 @@ function baueRegler(index: IndexDatei, datei: string, linie: LinieDatei): void {
     <label>Richtung
       <select data-feld="richtung">${richtungOptionen}</select>
     </label>
-    <label>Schwelle
+    <label>Ab wann gilt „zu spät"?
       <select data-feld="schwelle">${schwelleOptionen}</select>
     </label>
-    <button type="button" data-merken>Linie merken</button>`;
+    <button type="button" data-merken>Diese Linie merken</button>`;
 
   ziel.querySelector('[data-feld="linie"]')?.addEventListener("change", (e) => {
     const wert = (e.target as HTMLSelectElement).value;
@@ -89,7 +101,7 @@ function baueRegler(index: IndexDatei, datei: string, linie: LinieDatei): void {
   });
   ziel.querySelector("[data-merken]")?.addEventListener("click", (e) => {
     merkeLinie(datei);
-    (e.target as HTMLButtonElement).textContent = "gemerkt";
+    (e.target as HTMLButtonElement).textContent = "Ist gemerkt";
   });
 }
 
@@ -148,24 +160,28 @@ function kennzahl(linie: LinieDatei, richtung: number, schwelle: number): void {
 
   if (s.bewertbar === 0) {
     ziel.innerHTML =
-      '<p class="hinweis">Für diese Richtung liegen noch keine bewertbaren Halte vor.</p>';
+      '<p class="hinweis">Für diese Richtung wurde noch kein Halt gemessen. ' +
+      'Vielleicht führt die andere Richtung oder ein späterer Tag weiter.</p>';
     return;
   }
 
   ziel.innerHTML = `
     <p class="gross">${quoteText(s.puenktlich, s.bewertbar)}</p>
-    <p class="klein">pünktlich unter ${schwelle} Minuten</p>
+    <p class="klein">${vonHundert(quote(s.puenktlich, s.bewertbar))} Halten waren
+      weniger als ${schwelle} Minuten zu spät</p>
     <dl>
-      <dt>Bewertbare Halte <span class="klein">Nenner der Quote</span></dt>
+      <dt>Gemessene Halte <span class="klein">Grundlage der Prozentzahl</span></dt>
       <dd>${zahl(s.bewertbar)}</dd>
-      <dt>Soll-Halte <span class="klein">inkl. Ausfällen</span></dt>
+      <dt>Geplante Halte <span class="klein">auch die ausgefallenen</span></dt>
       <dd>${zahl(s.soll)}</dd>
       <dt>Fahrten</dt><dd>${zahl(s.fahrten)}</dd>
-      <dt>Ø Verspätung</dt><dd>${sekunden(s.delaySchnitt)}</dd>
+      <dt>Verspätung im Schnitt</dt><dd>${sekunden(s.delaySchnitt)}</dd>
     </dl>
     <p class="klein">
-      Ausfälle und ausgelassene Halte sind in der Quote <strong>nicht</strong> enthalten —
-      ein Ausfall ist keine Verspätung von null. Sie stehen weiter unten.
+      Ausgefallene und übersprungene Halte zählen hier <strong>nicht</strong> mit.
+      Eine Fahrt, die gar nicht kam, war nicht pünktlich — sie stünde sonst als
+      Verspätung von null in der Rechnung und würde sie schöner machen. Beides steht
+      weiter unten unter „Ausfälle".
     </p>`;
 }
 
@@ -186,7 +202,9 @@ function tagesgang(linie: LinieDatei, richtung: number, schwelle: number): void 
 
   const stunden = [...je.keys()].sort((a, b) => a - b);
   if (stunden.length === 0) {
-    ziel.innerHTML = '<h2>Tagesgang</h2><p class="hinweis">Noch keine Stundenwerte.</p>';
+    ziel.innerHTML =
+      '<h2>Über den Tag verteilt</h2>' +
+      '<p class="hinweis">Für diese Richtung wurde noch keine einzelne Stunde gemessen.</p>';
     return;
   }
 
@@ -199,16 +217,18 @@ function tagesgang(linie: LinieDatei, richtung: number, schwelle: number): void 
     };
   });
 
-  ziel.innerHTML = `<h2>Tagesgang</h2>
-    <p class="klein">Pünktlichkeit unter ${schwelle} Minuten je Betriebsstunde.
-    Stunde 24 und höher sind Nachtläufe desselben Betriebstags.</p>`;
+  ziel.innerHTML = `<h2>Über den Tag verteilt</h2>
+    <p class="klein">Je Säule eine Stunde: der Anteil der gemessenen Halte, die weniger
+    als ${schwelle} Minuten zu spät waren. Die Stunden ab 24 sind die Nachtfahrten vom
+    Vorabend — die Bahn um 1:30 Uhr steht bei 25 und nicht bei 1, weil sie noch zum
+    ${begriff("Betriebstag", BETRIEBSTAG_ERKLAERUNG)} davor gehört.</p>`;
   saeulenIn(ziel, punkte);
 
   const details = document.createElement("details");
   details.innerHTML = "<summary>Zahlen dazu</summary>";
   details.appendChild(
     tabelle(
-      ["Betriebsstunde", `Pünktlich unter ${schwelle} min`, "Bewertbare Halte"],
+      ["Uhrzeit", `Weniger als ${schwelle} Min zu spät`, "Gemessene Halte"],
       stunden.map((h, i) => {
         const p = punkte[i];
         const q = p?.wert;
@@ -251,13 +271,16 @@ function profil(halte: HalteDatei, richtung: number): void {
   const reihe = [...je.values()].sort((a, b) => a.pos - b.pos);
   if (reihe.length === 0) {
     ziel.innerHTML =
-      '<h2>Haltestellenprofil</h2><p class="hinweis">Noch keine Haltewerte für diese Richtung.</p>';
+      '<h2>Wo die Verspätung entsteht</h2>' +
+      '<p class="hinweis">Für diese Richtung wurde noch kein einzelner Halt gemessen.</p>';
     return;
   }
 
-  ziel.innerHTML = `<h2>Haltestellenprofil</h2>
-    <p class="klein">Verspätungszuwachs je Abschnitt, entlang des Laufwegs.
-    Ein Balken nach rechts heißt: hier entsteht Verspätung. Nach links: hier wird aufgeholt.</p>`;
+  ziel.innerHTML = `<h2>Wo die Verspätung entsteht</h2>
+    <p class="klein">Hier steht nicht, wo die Bahn spät <em>ist</em>, sondern wo sie spät
+    <em>wird</em> — die Halte stehen von oben nach unten in der Reihenfolge der Strecke.
+    Ein Balken nach rechts heißt: auf diesem Abschnitt kommt Verspätung dazu. Nach links:
+    hier wird wieder aufgeholt.</p>`;
 
   ziel.appendChild(
     balkenProfil(
@@ -270,7 +293,8 @@ function profil(halte: HalteDatei, richtung: number): void {
 
   ziel.appendChild(
     tabelle(
-      ["Halt", "Ø Zuwachs", "Ø Verspätung", "Pünktlich unter 3 min", "Bewertbare Halte"],
+      ["Halt", "Dazugekommen", "Verspätung im Schnitt", "Weniger als 3 Min zu spät",
+       "Gemessene Halte"],
       reihe.map((r) => [
         r.name,
         r.gewicht > 0 ? sekunden(r.zuwachs / r.gewicht) : "—",
@@ -312,7 +336,9 @@ function ausfaelle(linie: LinieDatei, richtung: number): void {
   }
 
   if (fahrten === 0) {
-    ziel.innerHTML = '<h2>Ausfälle</h2><p class="hinweis">Noch keine Fahrten erfasst.</p>';
+    ziel.innerHTML =
+      '<h2>Ausfälle</h2>' +
+      '<p class="hinweis">Für diese Richtung wurde noch keine Fahrt erfasst.</p>';
     return;
   }
 
@@ -320,21 +346,24 @@ function ausfaelle(linie: LinieDatei, richtung: number): void {
     <dl>
       <dt>Fahrten</dt><dd>${zahl(fahrten)}</dd>
       <dt>davon ausgefallen</dt><dd>${zahl(ausgefallen)} (${quoteText(ausgefallen, fahrten)})</dd>
-      <dt>Ausgelassene Halte</dt><dd>${zahl(ausgelassen)} von ${zahl(soll)}</dd>
-      <dt>Unbedient beobachtet</dt><dd>${zahl(unbedient)}</dd>
+      <dt>Übersprungene Halte <span class="klein">Fahrt kam, hielt hier aber nicht</span></dt>
+      <dd>${zahl(ausgelassen)} von ${zahl(soll)}</dd>
+      <dt>Fahrten ohne jede Rückmeldung</dt><dd>${zahl(unbedient)}</dd>
     </dl>
     <p class="klein">
-      „Unbedient beobachtet" heißt: die Fahrt steht im Sollfahrplan, aber es wurde zu
-      keinem ihrer Halte je etwas gemeldet — ohne dass der Feed sie als ausgefallen
-      kennzeichnet. Die Ursache ist offen: echter Ausfall oder Sammellücke. Deshalb
-      steht die Zahl getrennt und wird nicht zu den Ausfällen gezählt.
+      „Ohne jede Rückmeldung" heißt: die Fahrt steht im Fahrplan, aber zu keinem ihrer
+      Halte wurde je etwas gemeldet — und als ausgefallen war sie auch nicht
+      gekennzeichnet. Ob sie wirklich ausgefallen ist oder ob TramPuls in dieser Zeit
+      nichts aufzeichnen konnte, lässt sich nicht sagen. Deshalb steht die Zahl getrennt
+      und zählt nicht als Ausfall.
     </p>`;
 
   const details = document.createElement("details");
   details.innerHTML = "<summary>Je Betriebstag</summary>";
   details.appendChild(
     tabelle(
-      ["Betriebstag", "Fahrten", "Ausgefallen", "Anteil", "Ausgelassene Halte", "Unbedient"],
+      ["Betriebstag", "Fahrten", "Ausgefallen", "Anteil", "Übersprungene Halte",
+       "Ohne Rückmeldung"],
       zeilen,
     ),
   );

@@ -15,7 +15,11 @@ export default defineConfig({
     chunkSizeWarningLimit: 150,
     rollupOptions: {
       input: {
-        netz: resolve(__dirname, "index.html"),
+        // "/" ist die Vorstellung des Projekts, die Netzzahlen liegen eine
+        // Seite weiter (ADR-016). Wer die Zahlen sucht, kommt ueber zwei
+        // Knoepfe und die Kopfleiste dorthin.
+        start: resolve(__dirname, "index.html"),
+        netz: resolve(__dirname, "netz.html"),
         linien: resolve(__dirname, "linien.html"),
         linie: resolve(__dirname, "linie.html"),
         methodik: resolve(__dirname, "methodik.html"),

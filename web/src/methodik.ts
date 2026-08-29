@@ -3,7 +3,9 @@
 //
 // Diese Seite wird bei jeder Kennzahlaenderung zeitgleich mitgezogen. Das ist
 // eine Projektregel, keine Absicht: eine Quote, die hier nicht steht, ist auf
-// der Seite nicht belegbar.
+// der Seite nicht belegbar. Seit der Textueberarbeitung gilt das auch fuer
+// Umbenennungen — eine Bezeichnung, die in der Oberflaeche steht, gehoert in
+// die Begriffstabelle im aufklappbaren Block dieser Seite.
 
 import { ladeIndex, ladeMethodik } from "./daten";
 import { datum, prozent, zahl } from "./format";
@@ -17,7 +19,9 @@ async function start(): Promise<void> {
   if (!ziel) return;
 
   if (m.betriebstag.length === 0) {
-    ziel.innerHTML = '<p class="hinweis">Noch kein ausgewerteter Betriebstag.</p>';
+    ziel.innerHTML =
+      '<p class="hinweis">Noch ist kein Tag fertig ausgewertet. Sobald der erste ' +
+      'durchgelaufen ist, steht er hier.</p>';
     return;
   }
 
@@ -27,9 +31,9 @@ async function start(): Promise<void> {
 
   ziel.appendChild(
     tabelle(
-      ["Betriebstag", "Vollständig", "Deckung", "Soll-Halte", "Bewertbar",
-       "Ohne Meldung", "Nicht erhoben", "Fahrten", "Linien", "Belegte Stunden",
-       "Lücken-Stunden"],
+      ["Betriebstag", "Durchgehend", "Anteil gemessen", "Geplante Halte", "Gemessen",
+       "Ohne Rückmeldung", "Nicht aufgezeichnet", "Fahrten", "Linien",
+       "Aufgezeichnete Stunden", "Stunden ohne Aufzeichnung"],
       reihenfolge.map((i) => [
         datum(m.betriebstag[i] ?? ""),
         m.erhebung_vollstaendig[i] ? "ja" : "nein",

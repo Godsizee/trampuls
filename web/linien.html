@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#f4f5f7" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#1d2026" media="(prefers-color-scheme: dark)">
-<title>Linien — TramPuls</title>
-<meta name="description" content="Alle Linien der RNV mit Pünktlichkeit und Fallzahl.">
+<title>Alle Linien — TramPuls</title>
+<meta name="description" content="Alle Straßenbahn- und Buslinien der Rhein-Neckar-Verkehr, jede mit ihrer Pünktlichkeit und der Anzahl gemessener Halte.">
 <link rel="stylesheet" href="/src/stil.css">
 </head>
 <body>
@@ -14,19 +14,22 @@
   <div class="huelle">
     <a href="/">TramPuls</a>
     <nav>
-      <a href="/">Netz</a>
+      <a href="/">Start</a>
+      <a href="/netz.html">Netz</a>
       <a href="/linien.html">Linien</a>
-      <a href="/linie.html">Linienseite</a>
       <a href="/methodik.html">Methodik</a>
       <a href="/lizenz.html">Lizenz</a>
     </nav>
   </div>
 </header>
 <main class="huelle" data-inhalt>
-  <h1>Linien</h1>
+  <h1>Alle Linien</h1>
+  <p class="lead">Straßenbahn und Bus getrennt. Die Prozentzahl neben einer Linie sagt,
+     wie viele ihrer gemessenen Halte weniger als 3 Minuten zu spät waren. Ein Klick
+     führt zur Linie mit Tagesverlauf, Strecke und Ausfällen.</p>
   <div class="regler">
-    <label>Suche
-      <input type="search" data-suche placeholder="Nummer oder Verlauf" value="">
+    <label>Linie suchen
+      <input type="search" data-suche placeholder="Liniennummer oder Haltestelle" value="">
     </label>
   </div>
   <div data-linien><p class="hinweis">Linien werden geladen…</p></div>

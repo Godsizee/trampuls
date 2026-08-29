@@ -62,3 +62,28 @@ export const VERKEHRSART_NAME: Record<string, string> = {
   bus: "Bus",
   sonstige: "Sonstige",
 };
+
+/**
+ * Prozent als Alltagssatz. "82,9 %" sagt vielen Leserinnen und Lesern weniger
+ * als "rund 83 von 100" — deshalb steht die Uebersetzung ueberall neben der
+ * Quote, nie an ihrer Stelle.
+ *
+ * Das ist Darstellung, keine Kennzahl: gerechnet wird nichts, was nicht schon
+ * in `quote()` stand. Die beiden Randfaelle sind ausgeschrieben, weil "100 von
+ * 100" bei 99,7 % schlicht falsch waere.
+ */
+export function vonHundert(anteil: number | null): string {
+  if (anteil === null) return "";
+  const n = Math.round(anteil * 100);
+  if (n >= 100 && anteil < 1) return "fast alle";
+  if (n <= 0 && anteil > 0) return "fast keine";
+  return `rund ${zahl(n)} von 100`;
+}
+
+/**
+ * Die Schwelle als Satzteil. "unter 3 min" ist die Sprache des Datenmodells;
+ * gelesen wird "weniger als 3 Minuten zu spaet".
+ */
+export function schwelleText(minuten: number): string {
+  return `weniger als ${zahl(minuten)} ${minuten === 1 ? "Minute" : "Minuten"} zu spät`;
+}

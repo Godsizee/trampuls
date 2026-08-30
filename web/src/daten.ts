@@ -10,6 +10,10 @@ export type Verkehrsart = "tram" | "bus" | "sonstige";
 export interface RichtungKopf {
   richtung: number;
   name: string;
+  /** Nur gesetzt, wenn der Name den Umlaufsinn benennt statt des Ziels
+   *  (ADR-006) — dann heisst er "über <Zwischenhalt>" und braucht eine
+   *  andere Formulierung davor. Fehlt im Regelfall. */
+  namensregel?: "zwischenhalt";
 }
 
 export interface LinieKopf {

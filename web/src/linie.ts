@@ -148,8 +148,12 @@ function zeichne(linie: LinieDatei, halte: HalteDatei): void {
 function kopf(linie: LinieDatei, richtung: number): void {
   const ziel = document.querySelector("[data-kopf]");
   if (!ziel) return;
-  const name =
-    linie.richtungen.find((r) => r.richtung === richtung)?.name ?? `Richtung ${richtung}`;
+  const gewaehlt = linie.richtungen.find((r) => r.richtung === richtung);
+  const name = gewaehlt?.name ?? `Richtung ${richtung}`;
+  // Bei einer Linie, die im Kreis faehrt, tragen beide Richtungen denselben
+  // Endhalt — der Name benennt dann den Weg statt des Ziels ("über X",
+  // ADR-006). "Richtung über X" waere kein Deutsch, "Umlauf über X" ist eins.
+  const einleitung = gewaehlt?.namensregel === "zwischenhalt" ? "Umlauf" : "Richtung";
   const art = LINIENART_NAME[linie.verkehrsart] ?? "Linie";
   const nummer = liniennummer(linie.linie);
   document.title = `${art} ${nummer} — TramPuls`;
@@ -166,7 +170,7 @@ function kopf(linie: LinieDatei, richtung: number): void {
         <p class="verlauf">${escape(linie.verlauf)}</p>
       </div>
     </div>
-    <p class="richtung">Richtung <strong>${escape(name)}</strong></p>`;
+    <p class="richtung">${einleitung} <strong>${escape(name)}</strong></p>`;
 }
 
 /** Summiert die fertigen Zaehler des Marts ueber alle Betriebstage der Richtung. */

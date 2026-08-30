@@ -34,6 +34,10 @@ select
     l.verlauf,
     l.verkehrsart,
     r.richtung_name,
+    -- Sagt der Name, wohin die Fahrt geht ('endhalt'), oder herum welchen Weg
+    -- sie nimmt ('zwischenhalt', ADR-006)? Das Frontend formuliert danach --
+    -- "Richtung X" gegen "Umlauf ueber X".
+    r.namensregel,
     -- Kennzeichen, keine Kennzahl: das Frontend fuehrt Ruftaxi als eigenen Block
     -- mit eigener Erklaerung (ADR-011). Die Zahlen der Linie werden trotzdem
     -- gerechnet -- nur eben nicht in die Netzsumme (mart_netz).
@@ -67,4 +71,4 @@ left join {{ ref('int_richtung') }} r
  and r.richtung  = b.richtung
 left join {{ ref('bedarfsverkehr') }} bv
   on bv.route_id = b.route_id
-group by 1, 2, 3, 4, 5, 6, 7, 8
+group by 1, 2, 3, 4, 5, 6, 7, 8, 9

@@ -163,6 +163,10 @@ type Richtung struct {
 	RouteID      string `parquet:"route_id"`
 	Richtung     *int32 `parquet:"richtung"`
 	RichtungName string `parquet:"richtung_name"`
+	// "endhalt" (der Regelfall) oder "zwischenhalt": bei Linien, deren beide
+	// Richtungen denselben Endhalt tragen, benennt der Name den Umlaufsinn
+	// statt des Ziels (ADR-006). Das Frontend formuliert danach.
+	Namensregel string `parquet:"namensregel"`
 }
 
 // Lies liest eine Mart-Parquet-Datei vollstaendig ein. Die Marts sind nach

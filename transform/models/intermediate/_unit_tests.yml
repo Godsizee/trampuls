@@ -119,3 +119,63 @@ unit_tests:
                date '2026-08-28' as aelteste_version,
                0.0               as aufloesbar_anteil,
                true              as version_gemessen
+
+  # Der gemessene Defekt vom 2026-08-30 als Fixture: beide Richtungen enden an
+  # derselben Station, der Endhalt unterscheidet also nichts. Erwartet wird der
+  # Zwischenhalt nach einem Viertel des Laufwegs -- und der ist je Umlaufsinn ein
+  # anderer.
+  - name: int_richtung_unterscheidet_gleiche_endhalte
+    model: int_richtung
+    given:
+      - input: ref('stg_static_fahrt')
+        rows:
+          - {route_id: R, richtung: 0, trip_id: t0, static_version: "2026-08-27"}
+          - {route_id: R, richtung: 1, trip_id: t1, static_version: "2026-08-27"}
+      - input: ref('stg_static_sollhalt')
+        rows:
+          - {trip_id: t0, static_version: "2026-08-27", stop_id: a, stop_sequence: 1}
+          - {trip_id: t0, static_version: "2026-08-27", stop_id: b, stop_sequence: 2}
+          - {trip_id: t0, static_version: "2026-08-27", stop_id: c, stop_sequence: 3}
+          - {trip_id: t0, static_version: "2026-08-27", stop_id: a, stop_sequence: 4}
+          - {trip_id: t1, static_version: "2026-08-27", stop_id: a, stop_sequence: 1}
+          - {trip_id: t1, static_version: "2026-08-27", stop_id: d, stop_sequence: 2}
+          - {trip_id: t1, static_version: "2026-08-27", stop_id: c, stop_sequence: 3}
+          - {trip_id: t1, static_version: "2026-08-27", stop_id: a, stop_sequence: 4}
+      - input: ref('stg_static_halt')
+        rows:
+          - {stop_id: a, static_version: "2026-08-27", station_id: A, station_name: Ringende, halt_name: Ringende}
+          - {stop_id: b, static_version: "2026-08-27", station_id: B, station_name: Westweg, halt_name: Westweg}
+          - {stop_id: c, static_version: "2026-08-27", station_id: C, station_name: Gegenueber, halt_name: Gegenueber}
+          - {stop_id: d, static_version: "2026-08-27", station_id: D, station_name: Ostweg, halt_name: Ostweg}
+    expect:
+      rows:
+        - {route_id: R, richtung: 0, richtung_name: "über Westweg", namensregel: zwischenhalt,
+           fahrten_mit_diesem_endhalt: 1, fahrten_gesamt: 1, kurzlauf_anteil: 0.0, ringfahrten_anteil: 1.0}
+        - {route_id: R, richtung: 1, richtung_name: "über Ostweg", namensregel: zwischenhalt,
+           fahrten_mit_diesem_endhalt: 1, fahrten_gesamt: 1, kurzlauf_anteil: 0.0, ringfahrten_anteil: 1.0}
+
+  # Gegenprobe: unterscheiden sich die Endhalte, bleibt es beim Endhalt. Eine
+  # Linie soll keinen laengeren Namen bekommen, den niemand braucht.
+  - name: int_richtung_laesst_klare_endhalte_in_ruhe
+    model: int_richtung
+    given:
+      - input: ref('stg_static_fahrt')
+        rows:
+          - {route_id: R, richtung: 0, trip_id: t0, static_version: "2026-08-27"}
+          - {route_id: R, richtung: 1, trip_id: t1, static_version: "2026-08-27"}
+      - input: ref('stg_static_sollhalt')
+        rows:
+          - {trip_id: t0, static_version: "2026-08-27", stop_id: a, stop_sequence: 1}
+          - {trip_id: t0, static_version: "2026-08-27", stop_id: b, stop_sequence: 2}
+          - {trip_id: t1, static_version: "2026-08-27", stop_id: b, stop_sequence: 1}
+          - {trip_id: t1, static_version: "2026-08-27", stop_id: a, stop_sequence: 2}
+      - input: ref('stg_static_halt')
+        rows:
+          - {stop_id: a, static_version: "2026-08-27", station_id: A, station_name: Nord, halt_name: Nord}
+          - {stop_id: b, static_version: "2026-08-27", station_id: B, station_name: Sued, halt_name: Sued}
+    expect:
+      rows:
+        - {route_id: R, richtung: 0, richtung_name: Sued, namensregel: endhalt,
+           fahrten_mit_diesem_endhalt: 1, fahrten_gesamt: 1, kurzlauf_anteil: 0.0, ringfahrten_anteil: 0.0}
+        - {route_id: R, richtung: 1, richtung_name: Nord, namensregel: endhalt,
+           fahrten_mit_diesem_endhalt: 1, fahrten_gesamt: 1, kurzlauf_anteil: 0.0, ringfahrten_anteil: 0.0}

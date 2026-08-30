@@ -289,6 +289,9 @@ type netzEintrag struct {
 type richtungKopf struct {
 	Richtung int32  `json:"richtung"`
 	Name     string `json:"name"`
+	// Fehlt, wenn der Name der Endhalt ist — der Regelfall. Nur die Ausnahme
+	// wandert mit (vier von 209 Richtungen, gemessen 2026-08-30).
+	Namensregel string `json:"namensregel,omitempty"`
 }
 
 type linieKopf struct {
@@ -368,7 +371,7 @@ func schreibeIndex(zielDir string, d *daten, slugs map[string]string) error {
 			continue
 		}
 		richtungen[r.RouteID] = append(richtungen[r.RouteID], richtungKopf{
-			Richtung: *r.Richtung, Name: r.RichtungName,
+			Richtung: *r.Richtung, Name: r.RichtungName, Namensregel: regel(r.Namensregel),
 		})
 	}
 	for k := range richtungen {
@@ -411,6 +414,15 @@ func schreibeIndex(zielDir string, d *daten, slugs map[string]string) error {
 	}
 
 	return schreibeJSON(filepath.Join(zielDir, "index.json"), out)
+}
+
+// regel gibt nur die Ausnahme weiter. "endhalt" ist der Regelfall und wuerde
+// 205 von 209 Richtungen ein Feld kosten, das nichts sagt.
+func regel(s string) string {
+	if s == "zwischenhalt" {
+		return s
+	}
+	return ""
 }
 
 func wert(p *float64) float64 {
@@ -606,7 +618,9 @@ func schreibeLinie(zielDir, slug string, l marts.Linie, d *daten) error {
 
 	for _, r := range d.richtungen {
 		if r.RouteID == l.RouteID && r.Richtung != nil {
-			out.Richtungen = append(out.Richtungen, richtungKopf{Richtung: *r.Richtung, Name: r.RichtungName})
+			out.Richtungen = append(out.Richtungen, richtungKopf{
+				Richtung: *r.Richtung, Name: r.RichtungName, Namensregel: regel(r.Namensregel),
+			})
 		}
 	}
 	sort.Slice(out.Richtungen, func(i, j int) bool {

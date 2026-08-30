@@ -39,14 +39,42 @@ models:
   - name: int_richtung
     description: >
       Richtungsname je (route_id, richtung), abgeleitet aus dem haeufigsten Endhalt
-      (ADR-006). Der Uniqueness-Test unten erfuellt bereits die Pflichtliste
-      "assert_richtung_eindeutig" (Referenz/TramPuls_Datenmodell.md) -- die
-      qualify row_number()-Auswahl im Modell garantiert strukturell genau eine
-      Zeile je (route_id, richtung), ein zusaetzlicher Singular-Test waere
-      redundant.
+      (ADR-006). Tragen beide Richtungen denselben Endhalt, benennt der Name
+      stattdessen den Umlaufsinn ueber den Halt nach einem Viertel des Laufwegs
+      ("über X") -- gemessen am 2026-08-30 betraf das RNV 5 (Tram) und
+      Moonliner 3, vier von 209 Richtungen.
+
+      Der Uniqueness-Test unten erfuellt die Pflichtliste
+      "assert_richtung_eindeutig" (Referenz/TramPuls_Datenmodell.md). Er reicht
+      aber nicht: ein je Richtung eindeutiger Name kann in beiden Richtungen
+      derselbe sein, und dann ist der Richtungsumschalter im Frontend wirkungslos,
+      ohne dass eine Zahl auffaellt. Das haelt assert_richtung_unterscheidbar
+      fest.
     data_tests:
       - dbt_utils.unique_combination_of_columns:
           combination_of_columns: [route_id, richtung]
+    columns:
+      - name: namensregel
+        description: "'endhalt' (Regelfall) oder 'zwischenhalt' (beide Richtungen enden gleich)."
+        data_tests:
+          - not_null
+          - accepted_values: {values: ['endhalt', 'zwischenhalt']}
+      - name: kurzlauf_anteil
+        description: >
+          Anteil der Fahrten dieser Richtung, die *nicht* am haeufigsten Endhalt
+          enden -- Kurzlaeufe. ADR-006 verlangt, sie auszuweisen statt sie
+          stillschweigend einzurechnen. Gemessen 2026-08-30: RNV 21 Richtung 0
+          liegt bei 0,68.
+        data_tests:
+          - dbt_utils.accepted_range: {min_value: 0, max_value: 1}
+      - name: ringfahrten_anteil
+        description: >
+          Anteil der Fahrten, die an ihrer Startstation wieder enden. Als Zahl und
+          nicht als Schwelle: RNV 5 faehrt 18-22 % ihrer Fahrten im vollen Ring,
+          der Rest sind Kurzlaeufe mit zwei Enden -- eine Ja/Nein-Einteilung
+          "Ringlinie" waere hier eine Behauptung.
+        data_tests:
+          - dbt_utils.accepted_range: {min_value: 0, max_value: 1}
 
   - name: int_static_version
     description: >

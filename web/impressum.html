@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#faf9f6" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#121317" media="(prefers-color-scheme: dark)">
+<title>Impressum — TramPuls</title>
+<meta name="description" content="Wer TramPuls betreibt und wie man ihn erreicht.">
+<!-- Nur die Groteske wird vorgeladen: sie traegt die erste Zahl. Die Serif
+     traegt Ueberschriften und darf per font-display:swap nachkommen.
+     crossorigin ist auch bei gleicher Herkunft Pflicht — Schriften werden
+     im CORS-Modus geholt, und ohne das Attribut laedt der Browser die
+     Datei ein zweites Mal. -->
+<link rel="preload" href="/schrift/archivo-var-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/src/stil.css">
+</head>
+<body>
+<header class="kopfleiste">
+  <div class="huelle">
+    <a class="marke" href="/">TramPuls</a>
+    <nav aria-label="Hauptnavigation">
+      <a href="/">Start</a>
+      <a href="/netz.html">Netz</a>
+      <a href="/linien.html">Linien</a>
+      <a href="/methodik.html">Methodik</a>
+      <a href="/lizenz.html">Lizenz</a>
+    </nav>
+  </div>
+</header>
+<main class="huelle">
+  <h1>Impressum</h1>
+
+  <h2>Wer diese Seite betreibt</h2>
+  <address>
+    Sebastian Bade<br>
+    Friedrich-Dürr-Str. 12<br>
+    68307 Mannheim<br>
+    E-Mail: <a href="mailto:badesebastian@outlook.com">badesebastian@outlook.com</a>
+  </address>
+  <p>Dieselbe Person ist nach § 18 Absatz 2 des Medienstaatsvertrags für den Inhalt
+     verantwortlich.</p>
+
+  <h2>Was TramPuls ist</h2>
+  <p>Ein privates Projekt einer einzelnen Person, nicht kommerziell. TramPuls ist weder
+     ein Angebot des Verkehrsverbunds Rhein-Neckar noch der Rhein-Neckar-Verkehr GmbH und
+     steht in keiner Verbindung zu beiden Häusern. Die zugrunde liegenden Daten sind
+     offen veröffentlicht; woher sie kommen und unter welcher Lizenz sie stehen, steht
+     auf <a href="/lizenz.html">Lizenz und Attribution</a>.</p>
+
+  <h2>Gewähr</h2>
+  <p>Der Verkehrsverbund gibt für Aktualität, Richtigkeit und Vollständigkeit der Daten
+     keine Gewähr. TramPuls übernimmt sie erst recht nicht. Was gemessen wurde und was
+     nicht, steht auf <a href="/methodik.html">Methodik</a> — Aufzeichnungslücken,
+     nicht zuzuordnende Fahrten und Halte ohne Rückmeldung stehen dort neben jeder Zahl.
+     Eine Quote ohne diese Angabe wäre eine Behauptung.</p>
+
+  <h2>Wenn etwas falsch ist</h2>
+  <p>Hinweise auf Fehler in der Auswertung sind willkommen, an die Adresse oben. Belegte
+     Fehler werden korrigiert und auf <a href="/methodik.html">Methodik</a> vermerkt —
+     die Korrektur wird sichtbar gemacht, nicht stillschweigend eingesetzt.</p>
+
+  <h2>Verweise auf fremde Seiten</h2>
+  <p>Für die Inhalte verlinkter Seiten sind deren Betreiber verantwortlich. Zum
+     Zeitpunkt der Verlinkung war auf ihnen nichts rechtswidrig erkennbar.</p>
+</main>
+<footer class="fuss huelle">
+  <p data-stand></p>
+  <p data-attribution></p>
+  <p>Ein privates Projekt. Keine Verbindung zum Verkehrsverbund Rhein-Neckar oder zur
+     Rhein-Neckar-Verkehr GmbH. <a href="/lizenz.html">Lizenz und Attribution</a>.</p>
+</footer>
+<script type="module" src="/src/impressum.ts"></script>
+</body></html>

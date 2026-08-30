@@ -1,7 +1,7 @@
 // Gemeinsames Seitengeruest: Fussnote mit Attribution, Fehleranzeige, Stand,
 // und die Begriffserklaerungen im Fliesstext.
 
-import type { IndexDatei } from "./daten";
+import { ladeIndex, type IndexDatei } from "./daten";
 import { datum, prozentTeile, quote } from "./format";
 
 /**
@@ -22,6 +22,23 @@ export function fussnote(index: IndexDatei): void {
       : `TramPuls zeichnet seit ${datum(index.zeitraum.von)} auf. ` +
         `Noch kein Tag ist von Anfang bis Ende aufgezeichnet — die Zahlen sind ein Zwischenstand.`;
   }
+}
+
+/**
+ * Fussleiste der reinen Textseiten (/lizenz, /impressum) nachtragen.
+ *
+ * Ein Ladefehler bleibt hier bewusst folgenlos und laeuft NICHT in
+ * `zeigeFehler`: der ersetzt `[data-inhalt]` und wuerde damit genau die
+ * Angaben loeschen, die staendig verfuegbar sein muessen — Lizenz,
+ * Distanzierung, Anschrift. Klemmt der stuendliche Export, fehlt in der
+ * Fussleiste die Datumszeile; der Text der Seite steht.
+ */
+export function nurFussleiste(): void {
+  void ladeIndex()
+    .then(fussnote)
+    .catch(() => {
+      /* bewusst folgenlos, siehe oben */
+    });
 }
 
 export function zeigeFehler(fehler: unknown): void {

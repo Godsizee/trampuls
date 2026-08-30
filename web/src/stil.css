@@ -299,6 +299,15 @@ blockquote {
 }
 blockquote p { margin: 0; }
 
+/* Die Anschrift auf /impressum. Der Vorgabewert von <address> ist kursiv —
+   das liest sich hier wie ein Nebensatz, obwohl es die einzige Angabe der
+   Seite ist, auf die es rechtlich ankommt. */
+address {
+  font-style: normal;
+  margin: var(--r4) 0;
+  line-height: 1.7;
+}
+
 /* Spaltennamen des Datenmodells in der Begriffstabelle. Sie stehen absichtlich
    in derselben Groteske wie die Zahlen und nicht in einer eigenen
    Monospace-Schrift — das waere eine dritte Schriftdatei fuer ein Dutzend

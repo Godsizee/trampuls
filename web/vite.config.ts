@@ -24,6 +24,7 @@ export default defineConfig({
         linie: resolve(__dirname, "linie.html"),
         methodik: resolve(__dirname, "methodik.html"),
         lizenz: resolve(__dirname, "lizenz.html"),
+        impressum: resolve(__dirname, "impressum.html"),
       },
     },
   },

@@ -91,8 +91,15 @@ async function zeigeVerlauf(): Promise<void> {
   const tage = [...new Set(netz.betriebstag)].sort().slice(-30);
   if (tage.length === 0) return;
 
+  // Die Ueberschrift nennt die Zahl der Tage, die tatsaechlich dastehen, nicht
+  // die Zahl, die abgeschnitten wird. "Die letzten 30 Tage" ueber drei Saeulen
+  // waere eine Behauptung ohne Deckung (Regel 14) -- und sie stand hier, bis es
+  // am 2026-08-30 im Methodik-Abgleich auffiel.
+  const spanne =
+    tage.length === 1 ? "Der bisher einzige Tag" : `Die letzten ${zahl(tage.length)} Tage`;
+
   ziel.innerHTML =
-    `<h2>Die letzten 30 Tage</h2>
+    `<h2>${spanne}</h2>
      <p class="klein legende">Je Säule ein Tag: der Anteil der gemessenen Halte, die
      weniger als ${SCHWELLE} Minuten zu spät waren. Wo ein gestrichelter Strich auf der
      Grundlinie steht, wurde an diesem Tag nichts gemessen — das ist etwas anderes als

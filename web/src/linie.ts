@@ -538,8 +538,12 @@ function ausfaelle(
   details.innerHTML = "<summary>Je Betriebstag</summary>";
   details.appendChild(
     tabelle(
+      // Hier sind es Fahrten, auf /methodik Halte. Beides hiess "Ohne
+      // Rueckmeldung", bis es der Methodik-Abgleich am 2026-08-30 zeigte: zwei
+      // Einheiten unter einem Namen, auf zwei Seiten, die nebeneinander gelesen
+      // werden.
       ["Betriebstag", "Fahrten", "Ausgefallen", "Anteil", "Übersprungene Halte",
-       "Ohne Rückmeldung"],
+       "Fahrten ohne jede Rückmeldung"],
       zeilen,
     ),
   );

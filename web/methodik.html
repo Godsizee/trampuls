@@ -169,11 +169,54 @@
           <td>Fahrten mit <code>CANCELED</code> im Echtzeitstrom.</td>
         </tr>
         <tr>
+          <th scope="row">Halte ohne Rückmeldung</th>
+          <td>Geplante Halte, zu denen in einer <strong>aufgezeichneten</strong> Stunde
+              nichts gemeldet wurde. Nicht dasselbe wie „Fahrten ohne jede Rückmeldung"
+              darunter: dort geht es um ganze Fahrten, hier um einzelne Halte. Im
+              Datenmodell: <code>halte_ohne_meldung</code>.</td>
+        </tr>
+        <tr>
           <th scope="row">Fahrten ohne jede Rückmeldung</th>
           <td>Fahrten aus dem Sollfahrplan, zu denen an keinem Halt je etwas gemeldet
               wurde, ohne dass sie als ausgefallen gekennzeichnet waren. Ursache offen:
               echter Ausfall oder Aufzeichnungslücke. Zählt deshalb nicht als
               Ausfall.</td>
+        </tr>
+        <tr>
+          <th scope="row">Verspätung im Schnitt</th>
+          <td>Mittelwert der <strong>Ankunfts</strong>verspätung über alle gemessenen
+              Halte der Auswahl. Ausgefallene und übersprungene Halte sind nicht darin.
+              Über mehrere Tage wird nach Anzahl der gemessenen Halte gewichtet — sonst
+              zählte ein ruhiger Sonntag mit wenigen Fahrten so viel wie ein Werktag. Im
+              Datenmodell: <code>delay_schnitt_sek</code>.</td>
+        </tr>
+        <tr>
+          <th scope="row">Halte ausgefallener Fahrten</th>
+          <td>Nicht Fahrten, sondern <strong>Halte</strong>: jeder geplante Halt einer
+              Fahrt, die als ausgefallen gemeldet wurde. Eine ausgefallene Fahrt mit
+              20 Halten zählt hier zwanzigfach. Im Datenmodell:
+              <code>halte_fahrt_ausgefallen</code>.</td>
+        </tr>
+        <tr>
+          <th scope="row">Linien</th>
+          <td>Zahl der Linien mit mindestens einem geplanten Halt an diesem Tag.
+              Ruftaxi ist <strong>nicht</strong> darin (siehe oben), Straßenbahn und Bus
+              werden getrennt gezählt — sieben Nummern gibt es zweimal, einmal je
+              Verkehrsart.</td>
+        </tr>
+        <tr>
+          <th scope="row">Nicht aufgezeichnet</th>
+          <td>Geplante Halte in einer Stunde, in der TramPuls gar nichts empfangen hat.
+              Sie sind etwas anderes als Halte ohne Rückmeldung: hier fehlt die
+              Aufzeichnung, nicht die Meldung. Im Datenmodell:
+              <code>halte_nicht_erhoben</code>.</td>
+        </tr>
+        <tr>
+          <th scope="row">Durchgehend</th>
+          <td>„ja", wenn für jede Betriebsstunde dieses Tages mindestens eine Beobachtung
+              vorliegt. Ein „nein" heißt nicht, dass der Tag unbrauchbar ist — nur, dass
+              eine Lücke darin steckt. Im Datenmodell:
+              <code>erhebung_vollstaendig</code>.</td>
         </tr>
         <tr>
           <th scope="row">Kurzlauf</th>

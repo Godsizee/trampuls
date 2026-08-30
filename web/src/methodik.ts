@@ -31,8 +31,12 @@ async function start(): Promise<void> {
 
   ziel.appendChild(
     tabelle(
-      ["Betriebstag", "Durchgehend", "Anteil gemessen", "Geplante Halte", "Gemessen",
-       "Ohne Rückmeldung", "Nicht aufgezeichnet", "Fahrten", "Linien",
+      // Die Spaltennamen sind die Begriffe aus der Tabelle darunter, wortgleich.
+      // "Gemessen" stand hier und "Gemessene Halte" im Glossar -- zwei Namen fuer
+      // dieselbe Zahl auf derselben Seite (gefunden im Abgleich 2026-08-30).
+      ["Betriebstag", "Durchgehend", "Anteil gemessen", "Geplante Halte",
+       "Gemessene Halte", "Halte ohne Rückmeldung", "Nicht aufgezeichnet", "Fahrten",
+       "Linien",
        "Aufgezeichnete Stunden", "Stunden ohne Aufzeichnung"],
       reihenfolge.map((i) => [
         datum(m.betriebstag[i] ?? ""),

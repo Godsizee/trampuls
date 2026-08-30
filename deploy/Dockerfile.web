@@ -57,8 +57,11 @@ COPY deploy/nginx.conf              /etc/nginx/conf.d/default.conf
 COPY deploy/rebuild.sh              /usr/local/bin/rebuild.sh
 COPY deploy/entrypoint-web.sh       /usr/local/bin/entrypoint-web.sh
 COPY deploy/pruefung-stuendlich.sh  /usr/local/bin/pruefung-stuendlich.sh
+# vollaufbau.sh liegt im Image, gehoert aber in keinen Scheduled Task (ADR-012):
+# ausgeloest und protokolliert, nicht gewohnheitsmaessig.
+COPY deploy/vollaufbau.sh           /usr/local/bin/vollaufbau.sh
 RUN chmod +x /usr/local/bin/rebuild.sh /usr/local/bin/entrypoint-web.sh \
-             /usr/local/bin/pruefung-stuendlich.sh
+             /usr/local/bin/pruefung-stuendlich.sh /usr/local/bin/vollaufbau.sh
 
 # dbt deps braucht Netz; einmal beim Bauen statt bei jedem stuendlichen Lauf.
 RUN cd /app/transform && dbt deps --project-dir . --profiles-dir .

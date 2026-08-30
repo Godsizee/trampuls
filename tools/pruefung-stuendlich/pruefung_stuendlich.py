@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Stuendliche fachliche Pruefung (TPULS-022). Prueft nicht, ob der Prozess laeuft,
-sondern ob das Ergebnis stimmt -- die acht Kennzahlen aus
+sondern ob das Ergebnis stimmt -- die neun Kennzahlen aus
 TramPuls_Betrieb_und_Deployment.md, Abschnitt "Monitoring".
 
 Ein roter Task, den niemand sieht, ist kein Monitoring: bei jedem Rot geht eine
@@ -131,6 +131,50 @@ def prg_letzter_rebuild(daten, jetzt, befunde):
         befunde.append(f"letzter erfolgreicher rebuild {alter_h:.1f} h her (Grenze 3 h)")
 
 
+def prg_seed_nach_vollaufbau(daten, befunde):
+    """Ist ein Seed juenger als der letzte Vollaufbau? (ADR-012)
+
+    Seeds wirken rueckwirkend: eine neue Zeile in bedarfsverkehr.csv aendert die
+    Netzsumme *aller* vergangenen Betriebstage, nicht nur der kommenden. Die
+    inkrementellen Marts bauen aber nur den juengsten Betriebstag neu -- die
+    Aenderung kaeme also nie an, und niemand wuerde es merken.
+
+    Genau dafuer protokolliert vollaufbau.sh seine Laeufe. Ohne Protokoll gab es
+    diese Pruefung nicht; sie stand seit ADR-012 als Zusage im Dokument und war
+    bis 2026-08-30 nicht gebaut.
+    """
+    protokoll = Path(daten) / "warehouse" / "vollaufbau.log"
+    seeds = sorted((HIER.parent.parent / "transform" / "seeds").glob("*.csv"))
+    if not seeds:
+        return
+    juengster_seed = max(s.stat().st_mtime for s in seeds)
+
+    if not protokoll.exists():
+        befunde.append(
+            "kein Vollaufbau protokolliert, aber Seeds vorhanden -- "
+            f"{protokoll} fehlt (vollaufbau.sh nie gelaufen)"
+        )
+        return
+
+    letzter = 0.0
+    for zeile in protokoll.read_text(encoding="utf-8").splitlines():
+        teile = zeile.split("	")
+        if len(teile) >= 2 and teile[1] == "fertig":
+            try:
+                letzter = max(letzter, datetime.datetime.fromisoformat(
+                    teile[0].replace("Z", "+00:00")).timestamp())
+            except ValueError:
+                continue
+
+    if juengster_seed > letzter:
+        neuer = [s.name for s in seeds if s.stat().st_mtime > letzter]
+        befunde.append(
+            "Seed juenger als der letzte Vollaufbau (%s) -- die Aenderung wirkt "
+            "rueckwirkend und ist in den alten Betriebstagen noch nicht drin"
+            % ", ".join(neuer)
+        )
+
+
 def melden(ntfy_url, befunde):
     text = "TramPuls-Pruefung rot:\n" + "\n".join(f"- {b}" for b in befunde)
     print(text)
@@ -162,6 +206,7 @@ def main():
         prg_stundenpartitionen_vortag(daten, jetzt, befunde)
         prg_plattenplatz(daten, befunde)
         prg_letzter_rebuild(daten, jetzt, befunde)
+        prg_seed_nach_vollaufbau(daten, befunde)
     except Exception as exc:  # noqa: BLE001 -- die Pruefung selbst darf nie stumm sterben
         befunde.append(f"Pruefung selbst abgestuerzt: {exc!r}")
 
@@ -169,7 +214,7 @@ def main():
         melden(ntfy_url, befunde)
         return 1
 
-    print("[pruefung] alle acht Kennzahlen gruen")
+    print("[pruefung] alle neun Kennzahlen gruen")
     return 0
 
 

@@ -97,6 +97,27 @@ einen Hinweis statt Zahlen, statt gar nicht zu antworten.
   `curl` oder `wget` fällt er mit „curl: not found" durch, und das Deployment wird
   zurückgerollt, obwohl der Build fehlerfrei war.
 
+## Vollaufbau (ADR-012)
+
+`rebuild.sh` baut stuendlich inkrementell. Fuer rueckwirkende Aenderungen reicht das
+nicht — sie kommen in alten Betriebstagen nie an:
+
+```
+/usr/local/bin/vollaufbau.sh "mart_linie.bedarfsverkehr dazugekommen (TPULS-062)"
+```
+
+Drei Faelle, alle rueckwirkend: eine neue oder geaenderte Mart-Spalte, eine geaenderte
+Seed-Zeile (eine neue Ruftaxi-Linie aendert die Netzsumme *aller* vergangenen Tage), eine
+korrigierte Zustandslogik. **Nicht** noetig fuer neue Rohdaten.
+
+Der Lauf schreibt nach `warehouse/vollaufbau.log`. Das ist kein Beiwerk: die stuendliche
+Pruefung meldet seit dem 2026-08-30 rot, wenn ein Seed juenger ist als der letzte
+protokollierte Vollaufbau — die Zusage aus ADR-012, die bis dahin nicht gebaut war.
+
+**Gehoert in keinen Scheduled Task.** Genau das ist der Fehler, den Bahnpuls macht: dort
+laeuft `--full-refresh` stuendlich, damit ist die Inkrementalitaet wirkungslos und die
+Laufzeit waechst linear mit der Historie.
+
 ## Deployment-Ablauf
 
 Ein Redeploy des Collectors stoppt ihn für bis zu 60 s. **Nicht zur vollen Stunde

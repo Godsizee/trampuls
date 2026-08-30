@@ -1,4 +1,9 @@
-{{ config(materialized='incremental', unique_key='betriebstag', incremental_strategy='delete+insert') }}
+{{ config(
+    materialized='incremental',
+    unique_key='betriebstag',
+    incremental_strategy='delete+insert',
+    on_schema_change='sync_all_columns'
+) }}
 -- T1 — Linienprofil. Korn: Betriebstag x route_id x Richtung.
 --
 -- Die Puenktlichkeit steht fuer fuenf Schwellen nebeneinander (1/3/6/15/60 min),
@@ -29,6 +34,10 @@ select
     l.verlauf,
     l.verkehrsart,
     r.richtung_name,
+    -- Kennzeichen, keine Kennzahl: das Frontend fuehrt Ruftaxi als eigenen Block
+    -- mit eigener Erklaerung (ADR-011). Die Zahlen der Linie werden trotzdem
+    -- gerechnet -- nur eben nicht in die Netzsumme (mart_netz).
+    bv.route_id is not null                                           as bedarfsverkehr,
 
     count(*)                                                          as soll_halte,
     count(*) filter (where {{ ist_bewertbar('b.zustand') }})           as bewertbare_halte,
@@ -56,4 +65,6 @@ join {{ ref('stg_static_linie') }} l
 left join {{ ref('int_richtung') }} r
   on  r.route_id = b.route_id
  and r.richtung  = b.richtung
-group by 1, 2, 3, 4, 5, 6, 7
+left join {{ ref('bedarfsverkehr') }} bv
+  on bv.route_id = b.route_id
+group by 1, 2, 3, 4, 5, 6, 7, 8

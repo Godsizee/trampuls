@@ -13,8 +13,15 @@ with basis as (
     join {{ ref('stg_static_linie') }} l
       on  l.route_id       = b.route_id
      and l.static_version  = b.static_version
+    -- Ruftaxi bleibt aus der Netzsumme heraus (ADR-011). Eine nicht angemeldete
+    -- Fahrt, die nicht faehrt, ist kein Ausfall -- eine Puenktlichkeitsquote misst
+    -- dort etwas anderes als bei einer Taktlinie. Die Linien verschwinden nicht,
+    -- sie stehen in mart_linie weiter mit eigenem Kennzeichen.
+    left join {{ ref('bedarfsverkehr') }} bv
+      on bv.route_id = b.route_id
+    where bv.route_id is null
     {% if is_incremental() %}
-    where b.betriebstag >= (select coalesce(max(betriebstag), '1900-01-01'::date) from {{ this }})
+      and b.betriebstag >= (select coalesce(max(betriebstag), '1900-01-01'::date) from {{ this }})
     {% endif %}
 
 )

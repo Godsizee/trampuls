@@ -1,0 +1,30 @@
+version: 2
+
+seeds:
+  - name: bedarfsverkehr
+    description: >
+      Die RNV-Linien, die nur auf Anmeldung fahren (Ruftaxi), gekennzeichnet als
+      Seed und nicht als Namensregel (ADR-011). "Nummer ueber 1000" waere eine
+      Heuristik, die beim naechsten Fahrplanwechsel bricht -- genau deshalb steht
+      hier eine gepflegte Liste. Sie kostet eine Zeile Pflege je
+      Fahrplanveroeffentlichung und macht dafuer sichtbar, wenn eine Linie neu
+      dazukommt, statt dass sie stillschweigend in die Netzsumme rutscht.
+
+      Stand 2026-08-30 gegen Version v=2026-08-30: zwoelf Linien.
+
+      Zwei Abweichungen zur Liste in ADR-011, beide gemessen und beide ein Beleg
+      dafuer, dass eine Nummernregel hier nicht getragen haette:
+
+      - **RNV 85 fehlte in ADR-011.** Die Linie heisst "Ruftaxi: LU Oppau - LU
+        Oppau West", traegt aber eine Nummer unter 1000 und waere jeder Regel der
+        Form "ueber 1000" entgangen. Gefunden am 2026-08-30 durch
+        assert_bedarfsverkehr_vollstaendig, im ersten Lauf dieses Tests.
+      - **RNV 1012 existiert nicht** im aktuellen Sollfahrplan als eigene Route
+        (ADR-011 nannte am 2026-08-27 den Bereich 1007-1013). Taucht sie wieder
+        auf, meldet derselbe Test sie.
+    columns:
+      - name: route_id
+        description: Schluessel (Regel 12). linie ist ausschliesslich Anzeige.
+        tests: [unique, not_null]
+      - name: linie
+        tests: [not_null]

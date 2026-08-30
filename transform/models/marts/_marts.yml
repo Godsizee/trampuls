@@ -28,6 +28,12 @@ models:
       - name: halte_nicht_erhoben
         description: "Halte in einer Erhebungsluecke (TPULS-036) — noch nicht im Frontend angezeigt."
         data_tests: [not_null]
+      - name: bedarfsverkehr
+        description: >
+          Wahr fuer Linien, die nur auf Anmeldung fahren (Ruftaxi, ADR-011). Sie
+          werden gerechnet und angezeigt, zaehlen aber nicht in mart_netz: eine
+          nicht angemeldete Fahrt, die nicht faehrt, ist kein Ausfall.
+        data_tests: [not_null]
 
   - name: mart_linie_stunde
     description: "T2 — Tagesgang. Betriebsstunde, nicht Kalenderstunde: 24/25/26 sind Nachtlaeufe (Regel 6)."

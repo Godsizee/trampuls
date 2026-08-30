@@ -2,6 +2,11 @@
 -- Pflichtliste: "mart_linie summiert auf mart_netz." Beide Marts gruppieren
 -- dieselben fct_halt_events-Zeilen nur unterschiedlich fein (mart_linie fuehrt
 -- verkehrsart bereits als Spalte).
+--
+-- Seit ADR-011 mit einer Ausnahme, die hier stehen muss und nicht im Mart
+-- versteckt gehoert: Ruftaxi zaehlt nicht in die Netzsumme. Der Test vergleicht
+-- deshalb mart_netz gegen mart_linie **ohne Bedarfsverkehr**. Faellt diese
+-- Zeile weg, ist der Test wieder gruen, aber die Netzsumme waere falsch.
 with von_linie as (
 
     select
@@ -13,6 +18,7 @@ with von_linie as (
         sum(halte_fahrt_ausgefallen)  as halte_fahrt_ausgefallen,
         sum(halte_ausgelassen)        as halte_ausgelassen
     from {{ ref('mart_linie') }}
+    where not bedarfsverkehr
     group by 1, 2
 
 ),

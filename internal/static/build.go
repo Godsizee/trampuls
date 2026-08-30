@@ -58,13 +58,22 @@ type VersionResult struct {
 	Trips     int
 	StopTimes int
 	NeuGebaut bool // false = No-op, die Version lag schon vollständig vor
+
+	// Fahrtenliste wird auch im No-op-Fall gesetzt: sie entsteht aus mehreren
+	// Versionen und ist deshalb auch dann nachzuziehen, wenn heute keine neue
+	// dazukam.
+	Fahrtenliste *FahrtenlisteResult
 }
 
 // BuildVersion legt — falls nötig — eine neue Sollfahrplan-Version an: Zip cachen, die
 // benötigten Rohdateien unverändert extrahieren (vorhandene nie überschreiben) und die
-// drei RNV-Ableitungen als Parquet+ZSTD schreiben. Ein Lauf ohne neue Version ist ein
-// No-op (TPULS-005). Am Ende zeigt cacheDir/rnv_trips_aktuell.parquet immer auf die
-// zuletzt gebaute Version — der feste Pfad, den der Collector liest.
+// drei RNV-Ableitungen als Parquet+ZSTD schreiben. Ein Lauf ohne neue Version ist für
+// die Version ein No-op (TPULS-005).
+//
+// cacheDir/rnv_trips_aktuell.parquet — der feste Pfad, den der Collector liest — wird
+// dagegen bei jedem Lauf neu geschrieben, auch im No-op-Fall: die Liste entsteht aus
+// mehreren Versionen (SchreibeAktuelleFahrtenliste) und ist deshalb nicht identisch mit
+// der zuletzt gebauten.
 func BuildVersion(ctx context.Context, cacheDir string) (*VersionResult, error) {
 	version := time.Now().Format("2006-01-02")
 	versionDir := filepath.Join(cacheDir, "v="+version)
@@ -73,6 +82,11 @@ func BuildVersion(ctx context.Context, cacheDir string) (*VersionResult, error) 
 	tripsParquetPath := filepath.Join(versionDir, "rnv_trips.parquet")
 	if info, err := os.Stat(tripsParquetPath); err == nil && info.Size() > 0 {
 		res.NeuGebaut = false
+		liste, err := SchreibeAktuelleFahrtenliste(cacheDir)
+		if err != nil {
+			return nil, err
+		}
+		res.Fahrtenliste = liste
 		return res, nil
 	}
 
@@ -151,15 +165,11 @@ func BuildVersion(ctx context.Context, cacheDir string) (*VersionResult, error) 
 		return nil, fmt.Errorf("static: rnv_stop_times.parquet schreiben: %w", err)
 	}
 
-	latest, err := os.Open(tripsParquetPath)
+	liste, err := SchreibeAktuelleFahrtenliste(cacheDir)
 	if err != nil {
-		return nil, fmt.Errorf("static: rnv_trips.parquet für Aktuell-Kopie öffnen: %w", err)
+		return nil, err
 	}
-	err = copyToFileAtomic(filepath.Join(cacheDir, "rnv_trips_aktuell.parquet"), latest)
-	latest.Close()
-	if err != nil {
-		return nil, fmt.Errorf("static: rnv_trips_aktuell.parquet aktualisieren: %w", err)
-	}
+	res.Fahrtenliste = liste
 
 	res.Routes = len(routeRows)
 	res.Trips = len(tripRows)

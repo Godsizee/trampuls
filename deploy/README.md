@@ -97,6 +97,29 @@ einen Hinweis statt Zahlen, statt gar nicht zu antworten.
   `curl` oder `wget` fällt er mit „curl: not found" durch, und das Deployment wird
   zurückgerollt, obwohl der Build fehlerfrei war.
 
+## Ad-hoc-Abfrage gegen das Warehouse
+
+Zwei Fallen, beide am 2026-08-30 einmal hineingetappt:
+
+- **`TRAMPULS_WAREHOUSE` muss gesetzt sein.** dbt loest relative Pfade gegen das
+  Projektverzeichnis auf, nicht gegen die Datenwurzel — ohne die Variable sucht es die
+  Datenbank unter `/app/warehouse/` und bricht mit „No such file or directory" ab.
+  `rebuild.sh` und `vollaufbau.sh` setzen sie, eine nackte `dbt`-Zeile nicht.
+- **`--vars datenwurzel` fehlt sonst ebenfalls**, sobald ein Staging-Modell neu
+  kompiliert wird.
+
+Fuer eine reine Leseabfrage ist der kuerzere Weg, dbt zu umgehen:
+
+```
+python3 -c "
+import duckdb
+c = duckdb.connect('/data/warehouse/trampuls.duckdb', read_only=True)
+for r in c.execute('select * from main_marts.mart_netz order by 1').fetchall(): print(r)
+"
+```
+
+`read_only=True` ist nicht Zierde: der stuendliche Task koennte gleichzeitig schreiben.
+
 ## Vollaufbau (ADR-012)
 
 `rebuild.sh` baut stuendlich inkrementell. Fuer rueckwirkende Aenderungen reicht das

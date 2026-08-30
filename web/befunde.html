@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#faf9f6" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#121317" media="(prefers-color-scheme: dark)">
-<title>Alle Linien — TramPuls</title>
-<meta name="description" content="Alle Straßenbahn- und Buslinien der Rhein-Neckar-Verkehr, jede mit ihrer Pünktlichkeit und der Anzahl gemessener Halte.">
+<title>Was sich bisher sagen lässt — TramPuls</title>
+<meta name="description" content="Belegte Aussagen über das Netz der Rhein-Neckar-Verkehr — jede aus einer Abfrage, jede mit Fallzahl und Zeitraum.">
 <!-- Nur die Groteske wird vorgeladen: sie traegt die erste Zahl. Die Serif
      traegt Ueberschriften und darf per font-display:swap nachkommen.
      crossorigin ist auch bei gleicher Herkunft Pflicht — Schriften werden
@@ -22,25 +22,26 @@
     <nav aria-label="Hauptnavigation">
       <a href="/">Start</a>
       <a href="/netz.html">Netz</a>
-      <a href="/linien.html" aria-current="page">Linien</a>
-      <a href="/befunde.html">Befunde</a>
+      <a href="/linien.html">Linien</a>
+      <a href="/befunde.html" aria-current="page">Befunde</a>
       <a href="/methodik.html">Methodik</a>
       <a href="/lizenz.html">Lizenz</a>
     </nav>
   </div>
 </header>
 <main class="huelle" data-inhalt>
-  <h1>Alle Linien</h1>
-  <p class="lead">Straßenbahn und Bus getrennt. Die Prozentzahl neben einer Linie sagt,
-     wie viele ihrer gemessenen Halte weniger als 3 Minuten zu spät waren. Ein Klick
-     führt zur Linie mit Tagesverlauf, Strecke und Ausfällen.</p>
-  <div class="regler">
-    <label>Linie suchen
-      <input type="search" data-suche placeholder="Liniennummer oder Haltestelle" value="">
-    </label>
+  <h1>Was sich bisher sagen lässt</h1>
+  <p class="lead">Hier stehen nur Aussagen, die die Aufzeichnung trägt. Jede Zahl kommt
+     aus einer Abfrage, keine ist von Hand eingetragen — und was die Daten noch nicht
+     hergeben, steht als offene Stelle da statt als vorsichtig formulierte Vermutung.</p>
+
+  <div data-einleitung></div>
+
+  <div data-befunde>
+    <p class="hinweis">Zahlen werden geladen…</p>
   </div>
-  <div data-linien><p class="hinweis">Linien werden geladen…</p></div>
-  <p class="weiter"><a href="/vergleich.html">Zwei Zeiträume vergleichen →</a></p>
+
+  <p class="weiter"><a href="/methodik.html">Wie diese Zahlen entstehen →</a></p>
 </main>
 <footer class="fuss huelle">
   <p data-stand></p>
@@ -49,5 +50,5 @@
      Rhein-Neckar-Verkehr GmbH. <a href="/lizenz.html">Lizenz und Attribution</a> ·
      <a href="/impressum.html">Impressum</a>.</p>
 </footer>
-<script type="module" src="/src/linien.ts"></script>
+<script type="module" src="/src/befunde.ts"></script>
 </body></html>

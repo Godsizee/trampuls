@@ -427,6 +427,19 @@ footer.fuss a { color: var(--akzent); }
   margin-top: var(--r6);
 }
 .vergleichsspalte { border-top: 2px solid var(--linie); padding-top: var(--r3); }
+
+/* /befunde: jede Aussage ein eigener Abschnitt mit Haarlinie darueber. Die
+   Aussage selbst steht gross und in der Serif -- sie ist der Satz, den jemand
+   zitiert; Fallzahl und Vorbehalt darunter tragen ihn, drangen sich aber nicht
+   davor. */
+.befund { border-top: 1px solid var(--linie); padding-top: var(--r4); margin-top: var(--r6); }
+.befund > h2 { margin-top: 0; }
+.aussage {
+  font-family: var(--schrift-serif);
+  font-size: var(--t-lead);
+  line-height: 1.5;
+  max-width: 38rem;
+}
 .vergleichsspalte > h2 { margin-top: 0; }
 .unterschied {
   grid-column: 1 / -1;

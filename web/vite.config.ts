@@ -22,6 +22,7 @@ export default defineConfig({
         netz: resolve(__dirname, "netz.html"),
         linien: resolve(__dirname, "linien.html"),
         vergleich: resolve(__dirname, "vergleich.html"),
+        befunde: resolve(__dirname, "befunde.html"),
         linie: resolve(__dirname, "linie.html"),
         methodik: resolve(__dirname, "methodik.html"),
         lizenz: resolve(__dirname, "lizenz.html"),

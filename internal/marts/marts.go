@@ -25,6 +25,10 @@ type LinieTag struct {
 
 	RichtungName *string `parquet:"richtung_name"`
 
+	// Kennzeichen, keine Kennzahl: Ruftaxi wird eigens ausgewiesen und zaehlt
+	// nicht in die Netzsumme (ADR-011).
+	Bedarfsverkehr bool `parquet:"bedarfsverkehr"`
+
 	SollHalte       int64 `parquet:"soll_halte"`
 	BewertbareHalte int64 `parquet:"bewertbare_halte"`
 	Fahrten         int64 `parquet:"fahrten"`

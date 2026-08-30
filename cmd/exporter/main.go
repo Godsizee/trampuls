@@ -299,6 +299,11 @@ type linieKopf struct {
 	Verkehrsart string         `json:"verkehrsart"`
 	Richtungen  []richtungKopf `json:"richtungen"`
 
+	// omitempty mit Absicht: nur zwoelf von gut hundert Linien sind
+	// Bedarfsverkehr, und index.json liegt auf dem kritischen Pfad jeder Seite.
+	// Fehlt das Feld, ist die Linie Linienverkehr.
+	Bedarfsverkehr bool `json:"bedarfsverkehr,omitempty"`
+
 	SollHalte       int64 `json:"soll_halte"`
 	BewertbareHalte int64 `json:"bewertbare_halte"`
 	Puenktlich3Min  int64 `json:"puenktlich_3min"`
@@ -383,6 +388,7 @@ func schreibeIndex(zielDir string, d *daten, slugs map[string]string) error {
 		k.BewertbareHalte += r.BewertbareHalte
 		k.Puenktlich3Min += r.Puenktlich3Min
 		k.Fahrten += r.Fahrten
+		k.Bedarfsverkehr = r.Bedarfsverkehr
 	}
 
 	for _, l := range d.linien {
@@ -399,6 +405,7 @@ func schreibeIndex(zielDir string, d *daten, slugs map[string]string) error {
 			k.BewertbareHalte = s.BewertbareHalte
 			k.Puenktlich3Min = s.Puenktlich3Min
 			k.Fahrten = s.Fahrten
+			k.Bedarfsverkehr = s.Bedarfsverkehr
 		}
 		out.Linien = append(out.Linien, k)
 	}

@@ -1,4 +1,8 @@
-// Linienuebersicht: zwei Bloecke, getrennt nach Straßenbahn und Bus, mit Suchfeld.
+// Linienuebersicht: Straßenbahn, Bus und Ruftaxi in eigenen Bloecken, mit Suchfeld.
+//
+// Ruftaxi steht getrennt und nicht als dritte Spalte im Bus-Block: die Zahlen
+// bedeuten dort etwas anderes (ADR-011). Nebeneinander gestellt wuerden sie
+// verglichen, und der Vergleich waere falsch.
 
 import { ladeIndex } from "./daten";
 import type { LinieKopf } from "./daten";
@@ -17,22 +21,31 @@ async function start(): Promise<void> {
     const begriff = filter.trim().toLowerCase();
     ziel.innerHTML = "";
 
+    const passt = (l: LinieKopf): boolean =>
+      begriff === "" ||
+      l.linie.toLowerCase().includes(begriff) ||
+      l.verlauf.toLowerCase().includes(begriff);
+
     for (const art of ["tram", "bus", "sonstige"] as const) {
       const linien = index.linien.filter(
-        (l) =>
-          l.verkehrsart === art &&
-          (begriff === "" ||
-            l.linie.toLowerCase().includes(begriff) ||
-            l.verlauf.toLowerCase().includes(begriff)),
+        (l) => l.verkehrsart === art && !l.bedarfsverkehr && passt(l),
       );
       if (linien.length === 0) continue;
+      ziel.appendChild(
+        blockBauen(`${VERKEHRSART_NAME[art]} <span class="klein">${zahl(linien.length)}</span>`, linien),
+      );
+    }
 
-      const block = document.createElement("section");
-      block.innerHTML = `<h2>${VERKEHRSART_NAME[art]} <span class="klein">${zahl(linien.length)}</span></h2>`;
-      const liste = document.createElement("ul");
-      liste.className = "linienliste";
-      for (const l of linien) liste.appendChild(eintrag(l));
-      block.appendChild(liste);
+    const ruftaxi = index.linien.filter((l) => l.bedarfsverkehr && passt(l));
+    if (ruftaxi.length > 0) {
+      const block = blockBauen(
+        `Ruftaxi <span class="klein">${zahl(ruftaxi.length)}</span>`,
+        ruftaxi,
+        "Diese Linien fahren nur auf Anmeldung. Eine Fahrt, die niemand bestellt hat " +
+          "und deshalb nicht fährt, ist kein Ausfall — eine Pünktlichkeitsquote misst " +
+          "hier also etwas anderes als bei einer Linie im festen Takt. Deshalb stehen " +
+          "sie getrennt und zählen nicht in die Zahlen fürs ganze Netz.",
+      );
       ziel.appendChild(block);
     }
 
@@ -47,6 +60,17 @@ async function start(): Promise<void> {
   // Liste steht sofort — nicht erst nach der ersten Eingabe.
   zeichne(suche?.value ?? "");
   suche?.addEventListener("input", () => zeichne(suche.value));
+}
+
+function blockBauen(ueberschrift: string, linien: LinieKopf[], erklaerung?: string): HTMLElement {
+  const block = document.createElement("section");
+  block.innerHTML = `<h2>${ueberschrift}</h2>` +
+    (erklaerung ? `<p class="hinweis">${escape(erklaerung)}</p>` : "");
+  const liste = document.createElement("ul");
+  liste.className = "linienliste";
+  for (const l of linien) liste.appendChild(eintrag(l));
+  block.appendChild(liste);
+  return block;
 }
 
 function eintrag(l: LinieKopf): HTMLLIElement {

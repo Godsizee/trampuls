@@ -23,6 +23,9 @@ export interface LinieKopf {
   bewertbare_halte: number;
   puenktlich_3min: number;
   fahrten: number;
+  /** Ruftaxi, faehrt nur auf Anmeldung (ADR-011). Fehlt bei Linienverkehr:
+   *  der Exporter laesst das Feld weg, wenn es falsch ist. */
+  bedarfsverkehr?: boolean;
 }
 
 export interface NetzEintrag {

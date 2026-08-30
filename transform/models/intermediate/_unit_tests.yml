@@ -1,0 +1,121 @@
+version: 2
+
+unit_tests:
+  # Der Vorfall vom 2026-08-30 als Fixture (ADR-019): eine neue Sollfahrplan-
+  # Version liegt vor, aber der Echtzeitfeed meldet weiter die Kennungen der
+  # Vorfassung. Auf dem Produktionsstand liegt immer nur eine Handvoll Versionen
+  # nebeneinander -- die Auswahl zwischen zweien laesst sich sonst nirgends
+  # nachweisen, und genau sie ist der Kern der Aenderung.
+  - name: int_static_version_waehlt_was_der_feed_benutzt
+    model: int_static_version
+    description: >
+      Die aeltere Version loest alle beobachteten Fahrten auf, die juengere
+      keine. Gewaehlt werden muss die aeltere -- obwohl die juengere vorliegt und
+      sich selbst als gueltig ausweist.
+    given:
+      - input: ref('int_betriebstag')
+        format: sql
+        rows: |
+          select date '2026-08-30' as betriebstag, 'alt-' || i as trip_id
+          from generate_series(1, 60) t(i)
+      - input: ref('stg_static_fahrt')
+        format: sql
+        rows: |
+          select date '2026-08-29' as static_version, 'alt-' || i as trip_id
+          from generate_series(1, 60) t(i)
+          union all
+          select date '2026-08-30' as static_version, 'neu-' || i as trip_id
+          from generate_series(1, 60) t(i)
+    expect:
+      format: sql
+      rows: |
+        select date '2026-08-30' as betriebstag,
+               date '2026-08-29' as static_version,
+               date '2026-08-29' as aelteste_version,
+               1.0               as aufloesbar_anteil,
+               true              as version_gemessen
+
+  # Gegenprobe: hat der Feed nachgezogen, gewinnt die juengste Version wieder von
+  # selbst. Ohne diesen Fall waere die Aenderung eine Einbahnstrasse, die nach dem
+  # naechsten Fahrplanwechsel auf der alten Version haengen bliebe.
+  - name: int_static_version_zieht_nach
+    model: int_static_version
+    given:
+      - input: ref('int_betriebstag')
+        format: sql
+        rows: |
+          select date '2026-08-30' as betriebstag, 'neu-' || i as trip_id
+          from generate_series(1, 60) t(i)
+      - input: ref('stg_static_fahrt')
+        format: sql
+        rows: |
+          select date '2026-08-29' as static_version, 'alt-' || i as trip_id
+          from generate_series(1, 60) t(i)
+          union all
+          select date '2026-08-30' as static_version, 'neu-' || i as trip_id
+          from generate_series(1, 60) t(i)
+    expect:
+      format: sql
+      rows: |
+        select date '2026-08-30' as betriebstag,
+               date '2026-08-30' as static_version,
+               date '2026-08-29' as aelteste_version,
+               1.0               as aufloesbar_anteil,
+               true              as version_gemessen
+
+  # Zu duenner Tag: die Mehrheit entscheidet nichts Belastbares, also faellt das
+  # Modell auf die juengste Version zurueck und sagt das auch (version_gemessen).
+  # Ohne die Schwelle koennte ein Tag mit drei Zufallstreffern die Version fuer
+  # alle Kennzahlen dieses Tages bestimmen.
+  - name: int_static_version_zu_wenig_beobachtet
+    model: int_static_version
+    given:
+      - input: ref('int_betriebstag')
+        format: sql
+        rows: |
+          select date '2026-08-30' as betriebstag, 'alt-' || i as trip_id
+          from generate_series(1, 5) t(i)
+      - input: ref('stg_static_fahrt')
+        format: sql
+        rows: |
+          select date '2026-08-29' as static_version, 'alt-' || i as trip_id
+          from generate_series(1, 5) t(i)
+          union all
+          select date '2026-08-30' as static_version, 'neu-' || i as trip_id
+          from generate_series(1, 5) t(i)
+    expect:
+      format: sql
+      rows: |
+        select date '2026-08-30' as betriebstag,
+               date '2026-08-30' as static_version,
+               date '2026-08-29' as aelteste_version,
+               cast(null as double) as aufloesbar_anteil,
+               false             as version_gemessen
+
+  # Eine Version, die es am Betriebstag noch nicht gab, darf nie gewinnen -- auch
+  # dann nicht, wenn sie perfekt aufloest. Sonst aendert eine Veroeffentlichung
+  # von morgen rueckwirkend den gestrigen Join, und das verbietet Regel 9.
+  - name: int_static_version_ignoriert_spaetere_versionen
+    model: int_static_version
+    given:
+      - input: ref('int_betriebstag')
+        format: sql
+        rows: |
+          select date '2026-08-29' as betriebstag, 'neu-' || i as trip_id
+          from generate_series(1, 60) t(i)
+      - input: ref('stg_static_fahrt')
+        format: sql
+        rows: |
+          select date '2026-08-28' as static_version, 'alt-' || i as trip_id
+          from generate_series(1, 60) t(i)
+          union all
+          select date '2026-08-30' as static_version, 'neu-' || i as trip_id
+          from generate_series(1, 60) t(i)
+    expect:
+      format: sql
+      rows: |
+        select date '2026-08-29' as betriebstag,
+               date '2026-08-28' as static_version,
+               date '2026-08-28' as aelteste_version,
+               0.0               as aufloesbar_anteil,
+               true              as version_gemessen

@@ -49,10 +49,24 @@ models:
           combination_of_columns: [route_id, richtung]
 
   - name: int_static_version
-    description: "Welche Sollfahrplan-Version galt an welchem Betriebstag (Regel 9)."
+    description: >
+      Welche Sollfahrplan-Version galt an welchem Betriebstag (Regel 9)? Seit
+      ADR-019 gemessen statt geraten: gewaehlt wird die Version, gegen die sich
+      die an diesem Tag beobachteten Fahrten am besten aufloesen, mit Rueckfall
+      auf die juengste vorliegende.
     columns:
       - name: betriebstag
         data_tests: [unique, not_null]
+      - name: aufloesbar_anteil
+        description: >
+          Anteil der beobachteten Fahrten, die sich gegen die gewaehlte Version
+          aufloesen. Null, wenn der Tag zu wenige Beobachtungen hatte -- dann
+          steht die juengste Version da, geraten statt gemessen.
+        data_tests:
+          - dbt_utils.accepted_range: {min_value: 0, max_value: 1}
+      - name: version_gemessen
+        description: "Falsch = Rueckfall auf die juengste Version, nicht an Beobachtungen geprueft."
+        data_tests: [not_null]
 
   - name: int_erhebungsluecke
     description: >

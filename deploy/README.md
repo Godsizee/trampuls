@@ -123,7 +123,17 @@ Datenkontrolle läuft dauerhaft weiter und nicht nur in diesem einen Test.
   geschoben (2026-08-28). Der Collector sammelt seitdem ohne zweite Kopie. Der
   Bind-Mount macht es einfach: `/data/coolify/trampuls` additiv an einen zweiten Ort,
   plus monatliche Rückspielprobe.
-- **TPULS-012 — 24-Stunden-Messung.**
+- **TPULS-012 — Bestandsmessung.** Das Skript steht: `tools/messung-24h/messung_24h.py`,
+  liest ausschliesslich, laeuft im Container `trampuls-web`:
+
+  ```
+  python3 /app/tools/messung-24h/messung_24h.py
+  ```
+
+  Es liefert geschriebene MB und Zeilen je Kalendertag, fehlende Stundenpartitionen,
+  die Laufwegdeckung je Betriebstag (Q2), die Linien ohne jede Meldung und den
+  Vergleich der Sollfahrplan-Versionen (Q3). Offen ist nur noch der Ausfuehrungslauf
+  und das Eintragen der Zahlen in `TramPuls_Datenquellen`.
 - **TPULS-022 — Code steht** (`tools/pruefung-stuendlich/`, `deploy/pruefung-stuendlich.sh`,
   Kanal ntfy.sh/Webhook), **Coolify-Seite offen:** Scheduled Task `pruefung-stuendlich`
   auf `trampuls-web` anlegen (`15 * * * *`) und `TRAMPULS_NTFY_URL` setzen — beides von

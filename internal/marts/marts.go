@@ -167,6 +167,11 @@ type Richtung struct {
 	// Richtungen denselben Endhalt tragen, benennt der Name den Umlaufsinn
 	// statt des Ziels (ADR-006). Das Frontend formuliert danach.
 	Namensregel string `parquet:"namensregel"`
+	// Anteil der Fahrten, die nicht am haeufigsten Endhalt enden (Kurzlaeufe),
+	// und Anteil der Rundfahrten. ADR-006 verlangt beides ausgewiesen statt
+	// stillschweigend eingerechnet.
+	KurzlaufAnteil    *float64 `parquet:"kurzlauf_anteil"`
+	RingfahrtenAnteil *float64 `parquet:"ringfahrten_anteil"`
 }
 
 // Lies liest eine Mart-Parquet-Datei vollstaendig ein. Die Marts sind nach

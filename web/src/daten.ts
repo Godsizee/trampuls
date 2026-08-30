@@ -14,6 +14,11 @@ export interface RichtungKopf {
    *  (ADR-006) — dann heisst er "über <Zwischenhalt>" und braucht eine
    *  andere Formulierung davor. Fehlt im Regelfall. */
   namensregel?: "zwischenhalt";
+  /** Anteil der Fahrten, die vor dem genannten Ziel enden. Fehlt, wenn es
+   *  keine gibt (ADR-006 verlangt sie ausgewiesen, nicht eingerechnet). */
+  kurzlauf?: number;
+  /** Anteil der Fahrten, die dort enden, wo sie beginnen. */
+  ring?: number;
 }
 
 export interface LinieKopf {

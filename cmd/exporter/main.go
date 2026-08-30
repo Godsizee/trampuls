@@ -292,6 +292,10 @@ type richtungKopf struct {
 	// Fehlt, wenn der Name der Endhalt ist — der Regelfall. Nur die Ausnahme
 	// wandert mit (vier von 209 Richtungen, gemessen 2026-08-30).
 	Namensregel string `json:"namensregel,omitempty"`
+	// Beide nur, wenn sie etwas sagen: ein Anteil 0 bedeutet "keine Kurzlaeufe"
+	// bzw. "keine Rundfahrten" und braucht keinen Satz auf der Seite.
+	Kurzlauf float64 `json:"kurzlauf,omitempty"`
+	Ring     float64 `json:"ring,omitempty"`
 }
 
 type linieKopf struct {
@@ -370,9 +374,7 @@ func schreibeIndex(zielDir string, d *daten, slugs map[string]string) error {
 		if r.Richtung == nil {
 			continue
 		}
-		richtungen[r.RouteID] = append(richtungen[r.RouteID], richtungKopf{
-			Richtung: *r.Richtung, Name: r.RichtungName, Namensregel: regel(r.Namensregel),
-		})
+		richtungen[r.RouteID] = append(richtungen[r.RouteID], kopfAus(r))
 	}
 	for k := range richtungen {
 		sort.Slice(richtungen[k], func(i, j int) bool {
@@ -414,6 +416,19 @@ func schreibeIndex(zielDir string, d *daten, slugs map[string]string) error {
 	}
 
 	return schreibeJSON(filepath.Join(zielDir, "index.json"), out)
+}
+
+// kopfAus baut den Richtungskopf fuer die JSON-Ausgabe. Einmal, weil ihn zwei
+// Exportpfade brauchen (Index und Linienseite) und sie nicht auseinanderlaufen
+// duerfen.
+func kopfAus(r marts.Richtung) richtungKopf {
+	return richtungKopf{
+		Richtung:    *r.Richtung,
+		Name:        r.RichtungName,
+		Namensregel: regel(r.Namensregel),
+		Kurzlauf:    wert(r.KurzlaufAnteil),
+		Ring:        wert(r.RingfahrtenAnteil),
+	}
 }
 
 // regel gibt nur die Ausnahme weiter. "endhalt" ist der Regelfall und wuerde
@@ -618,9 +633,7 @@ func schreibeLinie(zielDir, slug string, l marts.Linie, d *daten) error {
 
 	for _, r := range d.richtungen {
 		if r.RouteID == l.RouteID && r.Richtung != nil {
-			out.Richtungen = append(out.Richtungen, richtungKopf{
-				Richtung: *r.Richtung, Name: r.RichtungName, Namensregel: regel(r.Namensregel),
-			})
+			out.Richtungen = append(out.Richtungen, kopfAus(r))
 		}
 	}
 	sort.Slice(out.Richtungen, func(i, j int) bool {

@@ -154,6 +154,28 @@ function kopf(linie: LinieDatei, richtung: number): void {
   // Endhalt — der Name benennt dann den Weg statt des Ziels ("über X",
   // ADR-006). "Richtung über X" waere kein Deutsch, "Umlauf über X" ist eins.
   const einleitung = gewaehlt?.namensregel === "zwischenhalt" ? "Umlauf" : "Richtung";
+
+  // Was die Ueberschrift verschweigt, steht klein darunter: dass beide
+  // Richtungen am selben Ort enden, und wie viele Fahrten das genannte Ziel
+  // gar nicht erreichen. ADR-006 verlangt, Kurzlaeufe auszuweisen statt sie
+  // stillschweigend einzurechnen -- bei RNV 21 sind es zwei von drei Fahrten.
+  const gross = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
+  const zusatz: string[] = [];
+  if (gewaehlt?.namensregel === "zwischenhalt") {
+    zusatz.push(
+      "Diese Linie endet dort, wo sie beginnt — beide Richtungen tragen denselben " +
+        "Endhalt. Der Zwischenhalt sagt, herum welchen Weg die Fahrt nimmt.",
+    );
+    if ((gewaehlt.ring ?? 0) > 0.05) {
+      zusatz.push(`${gross(vonHundert(gewaehlt.ring ?? 0))} Fahrten fahren die volle Runde.`);
+    }
+  }
+  if ((gewaehlt?.kurzlauf ?? 0) > 0.05) {
+    zusatz.push(
+      `${gross(vonHundert(gewaehlt?.kurzlauf ?? 0))} Fahrten enden schon vorher und ` +
+        "erreichen das genannte Ziel nicht.",
+    );
+  }
   const art = LINIENART_NAME[linie.verkehrsart] ?? "Linie";
   const nummer = liniennummer(linie.linie);
   document.title = `${art} ${nummer} — TramPuls`;
@@ -170,7 +192,8 @@ function kopf(linie: LinieDatei, richtung: number): void {
         <p class="verlauf">${escape(linie.verlauf)}</p>
       </div>
     </div>
-    <p class="richtung">${einleitung} <strong>${escape(name)}</strong></p>`;
+    <p class="richtung">${einleitung} <strong>${escape(name)}</strong></p>
+    ${zusatz.length > 0 ? `<p class="klein">${escape(zusatz.join(" "))}</p>` : ""}`;
 }
 
 /** Summiert die fertigen Zaehler des Marts ueber alle Betriebstage der Richtung. */

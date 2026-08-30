@@ -68,6 +68,20 @@
      stehen stattdessen auf jeder Linienseite in einem eigenen Abschnitt „Ausfälle" —
      sichtbar, aber getrennt.</p>
 
+  <h2>Woher die Richtungsangabe kommt</h2>
+  <p>Der Datenstrom liefert für keine einzige RNV-Fahrt ein Fahrtziel — das Feld ist
+     durchgehend leer. Die Richtung wird deshalb abgeleitet: aus dem Halt, an dem die
+     meisten Fahrten dieser Richtung enden.</p>
+  <p>Bei Linien, die dort enden, wo sie beginnen, führt das ins Leere — beide Richtungen
+     bekämen denselben Namen, und die Umschaltung wäre wirkungslos. Dann benennt
+     TramPuls stattdessen den Weg: den Halt nach einem Viertel der Strecke, weil dort
+     entschieden ist, herum welchen Weg die Fahrt nimmt. Auf der Seite steht dann
+     <strong>Umlauf über …</strong> statt <strong>Richtung …</strong>. Betroffen sind
+     zwei Linien.</p>
+  <p>Viele Fahrten enden vor dem genannten Ziel. Das steht klein unter der
+     Richtungsangabe, weil es sonst so aussähe, als führe jede Fahrt die ganze Strecke —
+     bei einzelnen Linien sind es zwei von drei Fahrten.</p>
+
   <h2>Warum das Ruftaxi getrennt steht</h2>
   <p>Zwölf RNV-Linien fahren <strong>nur auf Anmeldung</strong> — sie stehen im Fahrplan,
      fahren aber erst, wenn jemand sie bestellt. Eine Fahrt, die niemand bestellt hat und
@@ -155,6 +169,17 @@
               wurde, ohne dass sie als ausgefallen gekennzeichnet waren. Ursache offen:
               echter Ausfall oder Aufzeichnungslücke. Zählt deshalb nicht als
               Ausfall.</td>
+        </tr>
+        <tr>
+          <th scope="row">Kurzlauf</th>
+          <td>Eine Fahrt, die vor dem Ziel endet, das die Richtung benennt — etwa eine
+              Bahn, die nur bis zur halben Strecke fährt. Im Datenmodell:
+              <code>kurzlauf_anteil</code> je Richtung.</td>
+        </tr>
+        <tr>
+          <th scope="row">Umlauf</th>
+          <td>Eine Fahrt, die dort endet, wo sie beginnt. Im Datenmodell:
+              <code>ringfahrten_anteil</code> je Richtung.</td>
         </tr>
         <tr>
           <th scope="row">Anteil gemessen</th>

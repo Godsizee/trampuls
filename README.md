@@ -68,5 +68,10 @@ Siehe [deploy/README.md](./deploy/README.md).
 > verändert: gefiltert auf die Rhein-Neckar-Verkehr GmbH, über die Zeit archiviert und
 > zu Kennzahlen aggregiert.
 
-Für den Code dieses Repos ist noch keine Lizenz gewählt (offener Punkt aus TPULS-001);
-ohne LICENSE-Datei gilt das gesetzliche Urheberrecht.
+**Der Code** dieses Repos steht unter der [MIT-Lizenz](./LICENSE).
+
+**Die Daten stehen nicht darunter.** Die MIT-Lizenz gilt für das, was hier geschrieben
+wurde — Collector, Transformationen, Exporter, Seite. Für Echtzeitstrom und Sollfahrplan
+gilt weiter DL-DE→BY-2.0 mit ihrer Namensnennungspflicht, und die wandert mit jeder
+abgeleiteten Zahl mit. Wer den Code weiterverwendet, ist davon nicht befreit — die
+MIT-Lizenz erwähnt die Pflicht nur nicht.

@@ -415,6 +415,27 @@ footer.fuss a { color: var(--akzent); }
 }
 
 .kennzahl { border-top: 2px solid var(--linie); padding-top: var(--r3); }
+
+/* /vergleich: zwei Zeitraeume nebeneinander (T6). Auf dem Telefon untereinander
+   -- zwei Spalten zu je 160 px waeren dort keine Gegenueberstellung mehr,
+   sondern zwei unlesbare Saeulen. Der Unterschied darunter laeuft ueber beide
+   Spalten, weil er zu keiner von beiden gehoert. */
+.vergleich {
+  display: grid;
+  gap: var(--r6);
+  grid-template-columns: repeat(auto-fit, minmax(min(18rem, 100%), 1fr));
+  margin-top: var(--r6);
+}
+.vergleichsspalte { border-top: 2px solid var(--linie); padding-top: var(--r3); }
+.vergleichsspalte > h2 { margin-top: 0; }
+.unterschied {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding-top: var(--r3);
+  border-top: 1px solid var(--linie);
+  font-size: var(--t-lead);
+  font-family: var(--schrift-serif);
+}
 .kennzahl[data-art="tram"] { border-top-color: var(--tram); }
 .kennzahl[data-art="bus"] { border-top-color: var(--bus); }
 .kennzahl h2 {

@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#faf9f6" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#121317" media="(prefers-color-scheme: dark)">
-<title>Straßenbahn und Bus im Überblick — TramPuls</title>
-<meta name="description" content="Wie pünktlich Straßenbahn und Bus der Rhein-Neckar-Verkehr zuletzt waren, mit dem Verlauf der letzten 30 Tage.">
+<title>Zwei Zeiträume vergleichen — TramPuls</title>
+<meta name="description" content="Dieselbe Linie in zwei Zeiträumen nebeneinander — mit den Angaben, worauf ein Unterschied beruhen kann.">
 <!-- Nur die Groteske wird vorgeladen: sie traegt die erste Zahl. Die Serif
      traegt Ueberschriften und darf per font-display:swap nachkommen.
      crossorigin ist auch bei gleicher Herkunft Pflicht — Schriften werden
@@ -21,25 +21,27 @@
     <a class="marke" href="/">TramPuls</a>
     <nav aria-label="Hauptnavigation">
       <a href="/">Start</a>
-      <a href="/netz.html" aria-current="page">Netz</a>
+      <a href="/netz.html">Netz</a>
       <a href="/linien.html">Linien</a>
-      <a href="/vergleich.html">Vergleich</a>
+      <a href="/vergleich.html" aria-current="page">Vergleich</a>
       <a href="/methodik.html">Methodik</a>
       <a href="/lizenz.html">Lizenz</a>
     </nav>
   </div>
 </header>
 <main class="huelle" data-inhalt>
-  <h1>Straßenbahn und Bus im Überblick</h1>
-  <p class="lead">Alle Linien der Rhein-Neckar-Verkehr zusammengerechnet — Straßenbahn
-     und Bus nebeneinander. Einzelne Linien stehen unter
-     <a href="/linien.html">Linien</a>.</p>
-  <section class="kennzahlen" data-netz>
+  <h1>Zwei Zeiträume vergleichen</h1>
+  <p class="lead">Dieselbe Linie in zwei Zeiträumen nebeneinander. Ein Unterschied
+     zwischen zwei Zahlen ist noch keine Erklärung — deshalb steht unter dem Vergleich,
+     was ihn außer dem Betrieb selbst noch verursacht haben kann.</p>
+
+  <form class="regler" data-regler aria-label="Auswahl"></form>
+
+  <section data-vergleich>
     <p class="hinweis">Zahlen werden geladen…</p>
   </section>
-  <p class="vorbehalt" data-vorbehalt></p>
-  <section class="breit" data-verlauf></section>
-  <p class="weiter"><a href="/linien.html">Alle Linien ansehen →</a></p>
+
+  <section data-einordnung></section>
 </main>
 <footer class="fuss huelle">
   <p data-stand></p>
@@ -48,5 +50,5 @@
      Rhein-Neckar-Verkehr GmbH. <a href="/lizenz.html">Lizenz und Attribution</a> ·
      <a href="/impressum.html">Impressum</a>.</p>
 </footer>
-<script type="module" src="/src/netz.ts"></script>
+<script type="module" src="/src/vergleich.ts"></script>
 </body></html>

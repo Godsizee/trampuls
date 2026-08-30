@@ -256,7 +256,22 @@ function kopf(linie: LinieDatei, richtung: number): void {
       </div>
     </div>
     <p class="richtung">${einleitung} <strong>${escape(name)}</strong></p>
-    ${zusatz.length > 0 ? `<p class="klein">${escape(zusatz.join(" "))}</p>` : ""}`;
+    ${zusatz.length > 0 ? `<p class="klein">${escape(zusatz.join(" "))}</p>` : ""}
+    <p class="weiter"><a href="${escape(vergleichsLink(richtung))}">Zwei Zeiträume
+      vergleichen →</a></p>`;
+}
+
+/**
+ * Verweis auf die Vergleichsseite fuer dieselbe Linie und Richtung.
+ *
+ * Der Dateiname der Linie steht in der Adresse und nicht im geladenen Datensatz
+ * — dort liegt die route_id, und die ist als Dateiname unbrauchbar (Doppelpunkte).
+ * leseAuswahl() ist an dieser Stelle immer gesetzt: start() schreibt sie, bevor
+ * ueberhaupt gezeichnet wird.
+ */
+function vergleichsLink(richtung: number): string {
+  const datei = leseAuswahl().linie ?? "";
+  return `/vergleich.html?linie=${encodeURIComponent(datei)}&richtung=${richtung}`;
 }
 
 /** Summiert die fertigen Zaehler des Marts ueber alle Betriebstage der Richtung. */

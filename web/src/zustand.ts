@@ -68,6 +68,40 @@ export function schreibeAuswahl(a: Partial<Auswahl>): void {
   history.replaceState(null, "", `${location.pathname}?${p.toString()}`);
 }
 
+/**
+ * Die zwei Zeitraeume der Vergleichsseite (T6). Eigene Felder statt einer
+ * Erweiterung von Auswahl: von/bis dort meinen den *einen* Zeitraum der
+ * Linienseite, und zwei Bedeutungen unter einem Namen waeren genau der Fehler,
+ * den der Methodik-Abgleich am 2026-08-30 an anderer Stelle zutage gefoerdert
+ * hat.
+ */
+export interface Vergleichszeitraum {
+  aVon: string | null;
+  aBis: string | null;
+  bVon: string | null;
+  bBis: string | null;
+}
+
+export function leseVergleich(): Vergleichszeitraum {
+  const p = new URLSearchParams(location.search);
+  return {
+    aVon: p.get("a_von"),
+    aBis: p.get("a_bis"),
+    bVon: p.get("b_von"),
+    bBis: p.get("b_bis"),
+  };
+}
+
+/** Schreibt einzelne Grenzen zurueck; Schluessel sind die Namen aus der Adresse. */
+export function schreibeVergleich(felder: Record<string, string>): void {
+  const p = new URLSearchParams(location.search);
+  for (const [schluessel, wert] of Object.entries(felder)) {
+    if (wert === "") p.delete(schluessel);
+    else p.set(schluessel, wert);
+  }
+  history.replaceState(null, "", `${location.pathname}?${p.toString()}`);
+}
+
 const GEMERKT = "trampuls:linie";
 
 export function gemerkteLinie(): string | null {

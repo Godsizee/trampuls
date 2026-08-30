@@ -16,13 +16,15 @@ import { ladeIndex, ladeLinie, ladeLinieHalte } from "./daten";
 import type { HalteDatei, IndexDatei, LinieDatei } from "./daten";
 import {
   datum, liniennummer, prozent, quote, quoteText, sekunden, stunde, vonHundert, zahl,
-  LINIENART_NAME,
+  LINIENART_NAME, VERKEHRSART_NAME,
 } from "./format";
 import {
   BETRIEBSTAG_ERKLAERUNG, begriff, escape, fussnote, grosseZahl, tabelle, zeigeFehler,
 } from "./seite";
 import { balkenProfilIn, saeulenIn } from "./diagramm";
-import { SCHWELLEN, gemerkteLinie, leseAuswahl, merkeLinie, schreibeAuswahl } from "./zustand";
+import {
+  SCHWELLEN, gemerkteLinie, leseAuswahl, merkeLinie, schreibeAuswahl, zeitraumFilter,
+} from "./zustand";
 
 async function start(): Promise<void> {
   const index = await ladeIndex();
@@ -46,9 +48,13 @@ async function start(): Promise<void> {
   });
 }
 
-function aktuelleAuswahl(): { richtung: number; schwelle: number } {
+function aktuelleAuswahl(): {
+  richtung: number;
+  schwelle: number;
+  imZeitraum: (betriebstag: string) => boolean;
+} {
   const a = leseAuswahl();
-  return { richtung: a.richtung, schwelle: a.schwelle };
+  return { richtung: a.richtung, schwelle: a.schwelle, imZeitraum: zeitraumFilter(a) };
 }
 
 /**
@@ -78,13 +84,46 @@ function baueRegler(index: IndexDatei, datei: string, linie: LinieDatei): void {
   if (!ziel) return;
   const a = leseAuswahl();
 
-  const linienOptionen = index.linien
-    .map(
-      (l) =>
-        `<option value="${escape(l.datei)}"${l.datei === datei ? " selected" : ""}>` +
-        `${escape(l.linie)} — ${escape(l.verlauf)}</option>`,
-    )
-    .join("");
+  // Die Verkehrsart engt die Linienauswahl ein, sie wechselt aber nicht von
+  // selbst die Linie: wer auf "Straßenbahn" stellt, waehrend eine Buslinie offen
+  // ist, will die Liste kuerzer haben und nicht eine andere Seite. Die offene
+  // Linie bleibt deshalb immer in der Liste, auch wenn sie nicht zum Filter passt.
+  const linienOptionen = (art: string | null): string =>
+    index.linien
+      .filter((l) => art === null || l.verkehrsart === art || l.datei === datei)
+      .map(
+        (l) =>
+          `<option value="${escape(l.datei)}"${l.datei === datei ? " selected" : ""}>` +
+          `${escape(l.linie)} — ${escape(l.verlauf)}</option>`,
+      )
+      .join("");
+
+  const arten = [...new Set(index.linien.map((l) => l.verkehrsart))];
+  const artOptionen =
+    `<option value="">alle</option>` +
+    arten
+      .map(
+        (v) =>
+          `<option value="${escape(v)}"${v === a.art ? " selected" : ""}>` +
+          `${escape(VERKEHRSART_NAME[v] ?? v)}</option>`,
+      )
+      .join("");
+
+  // Zeitraum: der ganze vorliegende Bestand oder ein einzelner Betriebstag. Eine
+  // "letzte 30 Tage"-Voreinstellung waere bei dieser Historie eine Fiktion (Q5);
+  // ein einzelner Tag ist dagegen sofort nuetzlich, weil ein duenner Tag sich so
+  // aus der Gesamtzahl herausnehmen laesst.
+  const tage = [...new Set(linie.tage.betriebstag)].sort().reverse();
+  const zeitraumOptionen =
+    `<option value=""${a.von === null && a.bis === null ? " selected" : ""}>` +
+    `ganzer Zeitraum</option>` +
+    tage
+      .map(
+        (t) =>
+          `<option value="${escape(t)}"${a.von === t && a.bis === t ? " selected" : ""}>` +
+          `${escape(datum(t))}</option>`,
+      )
+      .join("");
 
   const richtungen = linie.richtungen.length > 0
     ? linie.richtungen
@@ -108,21 +147,45 @@ function baueRegler(index: IndexDatei, datei: string, linie: LinieDatei): void {
   ).join("");
 
   ziel.innerHTML = `
+    <label>Verkehrsart
+      <select data-feld="art">${artOptionen}</select>
+    </label>
     <label>Linie
-      <select data-feld="linie">${linienOptionen}</select>
+      <select data-feld="linie">${linienOptionen(a.art)}</select>
     </label>
     <label>Richtung
       <select data-feld="richtung">${richtungOptionen}</select>
+    </label>
+    <label>Zeitraum
+      <select data-feld="zeitraum">${zeitraumOptionen}</select>
     </label>
     <label>Ab wann gilt „zu spät"?
       <select data-feld="schwelle">${schwelleOptionen}</select>
     </label>
     <button type="button" data-merken>Diese Linie merken</button>`;
 
-  ziel.querySelector('[data-feld="linie"]')?.addEventListener("change", (e) => {
+  ziel.querySelector('[data-feld="art"]')?.addEventListener("change", (e) => {
+    const wert = (e.target as HTMLSelectElement).value || null;
+    schreibeAuswahl({ art: wert });
+    const auswahlfeld = ziel.querySelector('[data-feld="linie"]');
+    // Nur die Optionen austauschen, nicht das Feld: ein neues Element haette
+    // seinen Ereignishoerer verloren, und die Linienauswahl waere tot.
+    if (auswahlfeld instanceof HTMLSelectElement) auswahlfeld.innerHTML = linienOptionen(wert);
+  });
+  ziel.querySelector('[data-feld="zeitraum"]')?.addEventListener("change", (e) => {
     const wert = (e.target as HTMLSelectElement).value;
-    location.search =
-      `?linie=${encodeURIComponent(wert)}&richtung=${a.richtung}&schwelle=${a.schwelle}`;
+    schreibeAuswahl(wert === "" ? { von: null, bis: null } : { von: wert, bis: wert });
+  });
+
+  ziel.querySelector('[data-feld="linie"]')?.addEventListener("change", (e) => {
+    // Die Linie ist die einzige Auswahl, die neu geladen werden muss — ihre
+    // Daten liegen in einer eigenen Datei. Die uebrigen Felder werden dabei aus
+    // der bestehenden Adresse uebernommen, nicht neu zusammengesetzt: eine von
+    // Hand gebaute Abfragezeichenkette verliert stillschweigend jedes Feld, das
+    // spaeter dazukommt (hier waren es Verkehrsart und Zeitraum).
+    const p = new URLSearchParams(location.search);
+    p.set("linie", (e.target as HTMLSelectElement).value);
+    location.search = p.toString();
   });
   ziel.querySelector('[data-feld="richtung"]')?.addEventListener("change", (e) => {
     schreibeAuswahl({ richtung: Number((e.target as HTMLSelectElement).value) });
@@ -137,12 +200,12 @@ function baueRegler(index: IndexDatei, datei: string, linie: LinieDatei): void {
 }
 
 function zeichne(linie: LinieDatei, halte: HalteDatei): void {
-  const { richtung, schwelle } = aktuelleAuswahl();
+  const { richtung, schwelle, imZeitraum } = aktuelleAuswahl();
   kopf(linie, richtung);
-  kennzahl(linie, richtung, schwelle);
-  tagesgang(linie, richtung, schwelle);
-  profil(halte, richtung);
-  ausfaelle(linie, richtung);
+  kennzahl(linie, richtung, schwelle, imZeitraum);
+  tagesgang(linie, richtung, schwelle, imZeitraum);
+  profil(halte, richtung, imZeitraum);
+  ausfaelle(linie, richtung, imZeitraum);
 }
 
 function kopf(linie: LinieDatei, richtung: number): void {
@@ -197,13 +260,19 @@ function kopf(linie: LinieDatei, richtung: number): void {
 }
 
 /** Summiert die fertigen Zaehler des Marts ueber alle Betriebstage der Richtung. */
-function summe(linie: LinieDatei, richtung: number, schwelle: number) {
+function summe(
+  linie: LinieDatei,
+  richtung: number,
+  schwelle: number,
+  imZeitraum: (betriebstag: string) => boolean,
+) {
   const t = linie.tage;
   let bewertbar = 0, soll = 0, puenktlich = 0, fahrten = 0, ausfall = 0, ausgelassen = 0;
   let delaySumme = 0, delayGewicht = 0;
 
   for (let i = 0; i < t.betriebstag.length; i++) {
     if (t.richtung[i] !== richtung) continue;
+    if (!imZeitraum(t.betriebstag[i] ?? "")) continue;
     const b = t.bewertbare_halte[i] ?? 0;
     bewertbar += b;
     soll += t.soll_halte[i] ?? 0;
@@ -223,16 +292,21 @@ function summe(linie: LinieDatei, richtung: number, schwelle: number) {
   };
 }
 
-function kennzahl(linie: LinieDatei, richtung: number, schwelle: number): void {
+function kennzahl(
+  linie: LinieDatei,
+  richtung: number,
+  schwelle: number,
+  imZeitraum: (betriebstag: string) => boolean,
+): void {
   const ziel = document.querySelector("[data-kennzahl]");
   if (!ziel) return;
-  const s = summe(linie, richtung, schwelle);
+  const s = summe(linie, richtung, schwelle, imZeitraum);
 
   if (s.bewertbar === 0) {
     ziel.className = "";
     ziel.innerHTML =
-      '<p class="hinweis">Für diese Richtung wurde noch kein Halt gemessen. ' +
-      'Vielleicht führt die andere Richtung oder ein späterer Tag weiter.</p>';
+      '<p class="hinweis">Für diese Auswahl wurde kein Halt gemessen. ' +
+      'Vielleicht führt die andere Richtung oder ein anderer Zeitraum weiter.</p>';
     return;
   }
 
@@ -256,7 +330,12 @@ function kennzahl(linie: LinieDatei, richtung: number, schwelle: number): void {
   );
 }
 
-function tagesgang(linie: LinieDatei, richtung: number, schwelle: number): void {
+function tagesgang(
+  linie: LinieDatei,
+  richtung: number,
+  schwelle: number,
+  imZeitraum: (betriebstag: string) => boolean,
+): void {
   const ziel = document.querySelector("[data-tagesgang]");
   if (!ziel) return;
   const st = linie.stunden;
@@ -264,6 +343,7 @@ function tagesgang(linie: LinieDatei, richtung: number, schwelle: number): void 
   const je = new Map<number, { bewertbar: number; puenktlich: number }>();
   for (let i = 0; i < st.betriebstag.length; i++) {
     if (st.richtung[i] !== richtung) continue;
+    if (!imZeitraum(st.betriebstag[i] ?? "")) continue;
     const h = st.stunde[i] ?? 0;
     const e = je.get(h) ?? { bewertbar: 0, puenktlich: 0 };
     e.bewertbar += st.bewertbare_halte[i] ?? 0;
@@ -322,7 +402,11 @@ function tagesgang(linie: LinieDatei, richtung: number, schwelle: number): void 
  * Seite: nicht "wo ist die Bahn spaet", sondern "wo *wird* sie spaet". Der
  * Zuwachs je Abschnitt trennt neu entstehende von mitgeschleppter Verspaetung.
  */
-function profil(halte: HalteDatei, richtung: number): void {
+function profil(
+  halte: HalteDatei,
+  richtung: number,
+  imZeitraum: (betriebstag: string) => boolean,
+): void {
   const ziel = document.querySelector("[data-profil]");
   if (!ziel) return;
 
@@ -331,6 +415,7 @@ function profil(halte: HalteDatei, richtung: number): void {
 
   for (let i = 0; i < halte.station_id.length; i++) {
     if (halte.richtung[i] !== richtung) continue;
+    if (!imZeitraum(halte.betriebstag[i] ?? "")) continue;
     const id = halte.station_id[i] ?? "";
     const e = je.get(id) ?? {
       name: halte.halt_name[i] ?? id, pos: halte.position[i] ?? 0,
@@ -394,7 +479,11 @@ function profil(halte: HalteDatei, richtung: number): void {
  * Ausfaelle (T4). Stehen bewusst als eigener Abschnitt neben der Puenktlichkeit
  * und nicht darin: ein Ausfall ist keine Verspaetung von null (Regel 8).
  */
-function ausfaelle(linie: LinieDatei, richtung: number): void {
+function ausfaelle(
+  linie: LinieDatei,
+  richtung: number,
+  imZeitraum: (betriebstag: string) => boolean,
+): void {
   const ziel = document.querySelector("[data-ausfaelle]");
   if (!ziel) return;
   const a = linie.ausfaelle;
@@ -404,6 +493,7 @@ function ausfaelle(linie: LinieDatei, richtung: number): void {
 
   for (let i = 0; i < a.betriebstag.length; i++) {
     if (a.richtung[i] !== richtung) continue;
+    if (!imZeitraum(a.betriebstag[i] ?? "")) continue;
     fahrten += a.fahrten[i] ?? 0;
     ausgefallen += a.fahrten_ausgefallen[i] ?? 0;
     ausgelassen += a.halte_ausgelassen[i] ?? 0;

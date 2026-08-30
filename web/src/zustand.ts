@@ -9,6 +9,11 @@ export interface Auswahl {
   linie: string | null;
   richtung: number;
   schwelle: number;
+  /** Verkehrsart-Filter der Linienauswahl. Null = alle. */
+  art: string | null;
+  /** Zeitraum als Betriebstags-Grenzen. Beide null = alles, was vorliegt.
+   *  Ein einzelner Tag ist von === bis — dafuer braucht es keinen dritten
+   *  Parameter und keine zweite Schreibweise in der Adresse. */
   von: string | null;
   bis: string | null;
 }
@@ -29,9 +34,25 @@ export function leseAuswahl(): Auswahl {
     linie: p.get("linie"),
     richtung: richtungRoh === 1 ? 1 : 0,
     schwelle: (SCHWELLEN as readonly number[]).includes(schwelleRoh) ? schwelleRoh : 3,
+    art: p.get("art"),
     von: p.get("von"),
     bis: p.get("bis"),
   };
+}
+
+/**
+ * Der Zeitraum als Pruefung je Betriebstag. Voreinstellung ist der ganze
+ * vorliegende Zeitraum: bei wenigen Wochen Historie ist "letzte 30 Tage" eine
+ * Fiktion, und ein leerer Wert ist ehrlicher als eine erfundene Spanne (Q5).
+ *
+ * Die Betriebstage sind ISO-Datumszeichenketten — der Zeichenvergleich ist hier
+ * derselbe wie ein Datumsvergleich und spart das Parsen.
+ */
+export function zeitraumFilter(a: Auswahl): (betriebstag: string) => boolean {
+  const von = a.von;
+  const bis = a.bis;
+  if (von === null && bis === null) return () => true;
+  return (tag) => (von === null || tag >= von) && (bis === null || tag <= bis);
 }
 
 /** Schreibt die Auswahl zurueck, ohne die Seite neu zu laden. */

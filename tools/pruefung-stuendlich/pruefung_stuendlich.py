@@ -16,6 +16,7 @@ statt dieselbe Fetch/Join-Logik zweites Mal zu schreiben).
 """
 
 import datetime
+import hashlib
 import json
 import os
 import shutil
@@ -72,19 +73,33 @@ def prg_scope_treffer(hb, jetzt, befunde):
         befunde.append(f"nur {scope_hits} Fahrten im Scope je Poll (Grenze 100, tagsueber)")
 
 
-def prg_aufloesbarkeit(befunde):
+def prg_aufloesbarkeit(daten, befunde):
+    """Verwirft der Collector gerade RNV-Fahrten?
+
+    Die Fahrtenliste wird mitgegeben, und das ist der Unterschied zwischen einer
+    Betriebs- und einer Quellenaussage. Ohne sie misst quelle-pruefen alle 54
+    Agenturen des VRN-Feeds -- am 2026-08-31 waren das 2.812 Fahrten, davon 785
+    RNV. Die Pruefung stand damit beim ersten scharfen Lauf sofort rot, obwohl
+    alle 785 sauber erfasst wurden: 761 der 1.130 Fehlschlaege gehoerten DB, RNN
+    und anderen VRN-Betreibern (Regel 7).
+    """
     if not QUELLE_PRUEFEN.exists():
         befunde.append(f"{QUELLE_PRUEFEN} fehlt -- Aufloesbarkeit nicht pruefbar")
         return
-    lauf = subprocess.run(
-        [sys.executable, str(QUELLE_PRUEFEN)],
-        capture_output=True, text=True, timeout=180,
-    )
-    letzte_zeile = next(
-        (z for z in reversed(lauf.stdout.splitlines()) if "aufloesbar" in z), ""
-    )
+    befehl = [sys.executable, str(QUELLE_PRUEFEN)]
+    liste = Path(daten) / "static" / "rnv_trips_aktuell.parquet"
+    if liste.exists():
+        befehl += ["--scope", str(liste)]
+    else:
+        befunde.append(f"Fahrtenliste {liste} fehlt -- der Collector filtert ins Leere")
+        return
+    lauf = subprocess.run(befehl, capture_output=True, text=True, timeout=180)
     if lauf.returncode != 0:
-        befunde.append(f"Aufloesbarkeit unter 99 % ({letzte_zeile.strip() or 'siehe Log'})")
+        grund = next(
+            (z.strip() for z in lauf.stdout.splitlines() if "BEFUND:" in z),
+            "siehe Log",
+        )
+        befunde.append(grund.removeprefix("BEFUND:").strip() or "siehe Log")
 
 
 def prg_sollfahrplan_alter(daten, jetzt, befunde):
@@ -131,8 +146,35 @@ def prg_letzter_rebuild(daten, jetzt, befunde):
         befunde.append(f"letzter erfolgreicher rebuild {alter_h:.1f} h her (Grenze 3 h)")
 
 
+def seed_signatur():
+    """Fingerabdruck ueber den *Inhalt* aller Seeds, nicht ueber ihre Zeitstempel.
+
+    Der Unterschied ist kein Feinschliff. Bis zum 2026-08-31 verglich diese
+    Pruefung die mtime der Seed-Dateien mit dem Vollaufbau-Protokoll -- aber im
+    Container stammt die mtime aus dem git-Checkout des Deployments, nicht aus
+    der letzten inhaltlichen Aenderung. Jedes Deployment machte damit jeden Seed
+    "juenger als der letzte Vollaufbau", und die Pruefung stand ab dem ersten
+    scharfen Lauf rot (2026-08-31: bedarfsverkehr.csv inhaltlich zuletzt am
+    2026-08-30 19:44 geaendert, mtime aber vom Deployment desselben Tages).
+
+    Definiert ist der Fingerabdruck genau hier, einmal. vollaufbau.sh ruft
+    dieselbe Funktion ueber --seed-signatur auf, statt die Regel ein zweites Mal
+    zu formulieren.
+    """
+    seeds = sorted((HIER.parent.parent / "transform" / "seeds").glob("*.csv"))
+    if not seeds:
+        return None
+    h = hashlib.sha256()
+    for s in seeds:
+        h.update(s.name.encode("utf-8"))
+        h.update(b"\0")
+        h.update(s.read_bytes())
+        h.update(b"\0")
+    return h.hexdigest()[:16]
+
+
 def prg_seed_nach_vollaufbau(daten, befunde):
-    """Ist ein Seed juenger als der letzte Vollaufbau? (ADR-012)
+    """Hat sich ein Seed seit dem letzten Vollaufbau geaendert? (ADR-012)
 
     Seeds wirken rueckwirkend: eine neue Zeile in bedarfsverkehr.csv aendert die
     Netzsumme *aller* vergangenen Betriebstage, nicht nur der kommenden. Die
@@ -144,10 +186,9 @@ def prg_seed_nach_vollaufbau(daten, befunde):
     bis 2026-08-30 nicht gebaut.
     """
     protokoll = Path(daten) / "warehouse" / "vollaufbau.log"
-    seeds = sorted((HIER.parent.parent / "transform" / "seeds").glob("*.csv"))
-    if not seeds:
+    jetzige = seed_signatur()
+    if jetzige is None:
         return
-    juengster_seed = max(s.stat().st_mtime for s in seeds)
 
     if not protokoll.exists():
         befunde.append(
@@ -156,22 +197,35 @@ def prg_seed_nach_vollaufbau(daten, befunde):
         )
         return
 
-    letzter = 0.0
+    letzte_signatur = None
+    gesehen = False
     for zeile in protokoll.read_text(encoding="utf-8").splitlines():
         teile = zeile.split("	")
         if len(teile) >= 2 and teile[1] == "fertig":
-            try:
-                letzter = max(letzter, datetime.datetime.fromisoformat(
-                    teile[0].replace("Z", "+00:00")).timestamp())
-            except ValueError:
-                continue
+            gesehen = True
+            letzte_signatur = teile[3].strip() if len(teile) >= 4 else None
 
-    if juengster_seed > letzter:
-        neuer = [s.name for s in seeds if s.stat().st_mtime > letzter]
+    if not gesehen:
         befunde.append(
-            "Seed juenger als der letzte Vollaufbau (%s) -- die Aenderung wirkt "
+            f"{protokoll} enthaelt keinen abgeschlossenen Vollaufbau -- "
+            "nur 'start'-Zeilen, ein Lauf ist abgebrochen"
+        )
+        return
+
+    # Laeufe vor dem 2026-08-31 haben keine Signatur protokolliert. Daraus "rot"
+    # zu machen waere der bequeme Fehler: die Pruefung meldete dann bis zum
+    # naechsten Vollaufbau, ohne etwas zu wissen. Unbekannt ist nicht rot -- der
+    # naechste Lauf legt die Grundlage, bis dahin steht die Zeile im Log.
+    if letzte_signatur is None:
+        print("[pruefung] letzter Vollaufbau ohne Seed-Signatur protokolliert -- "
+              f"vergleichbar ab dem naechsten Lauf (jetzt: {jetzige})")
+        return
+
+    if letzte_signatur != jetzige:
+        befunde.append(
+            f"Seeds haben sich seit dem letzten Vollaufbau geaendert "
+            f"({letzte_signatur} -> {jetzige}) -- die Aenderung wirkt "
             "rueckwirkend und ist in den alten Betriebstagen noch nicht drin"
-            % ", ".join(neuer)
         )
 
 
@@ -192,6 +246,12 @@ def melden(ntfy_url, befunde):
 
 
 def main():
+    # vollaufbau.sh holt sich den Fingerabdruck hier ab, damit die Regel nur an
+    # einer Stelle steht (siehe seed_signatur).
+    if "--seed-signatur" in sys.argv:
+        print(seed_signatur() or "")
+        return 0
+
     daten = os.environ.get("TRAMPULS_DATEN", "/data")
     ntfy_url = os.environ.get("TRAMPULS_NTFY_URL", "")
     jetzt = datetime.datetime.now(datetime.timezone.utc)
@@ -201,7 +261,7 @@ def main():
         hb = prg_heartbeat_alter(daten, jetzt, befunde)
         prg_feed_alter(hb, befunde)
         prg_scope_treffer(hb, jetzt, befunde)
-        prg_aufloesbarkeit(befunde)
+        prg_aufloesbarkeit(daten, befunde)
         prg_sollfahrplan_alter(daten, jetzt, befunde)
         prg_stundenpartitionen_vortag(daten, jetzt, befunde)
         prg_plattenplatz(daten, befunde)

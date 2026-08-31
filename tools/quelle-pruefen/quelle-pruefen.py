@@ -8,7 +8,12 @@ ZIP gelesen (das Archiv ist 158 MB, davon 97 % shapes.txt, siehe ADR-008).
 
 Eingehaengt in pruefung.sh (TPULS-002, 2026-08-28).
 
-    python quelle-pruefen.py [--tag YYYY-MM-DD]
+    python quelle-pruefen.py [--tag YYYY-MM-DD] [--scope PFAD]
+
+Ohne --scope misst das Skript die Quelle: was liefern die beiden VRN-Endpunkte,
+und passen sie zueinander. Mit --scope (der Fahrtenliste des Collectors) misst es
+zusaetzlich den Betrieb: verwirft der Collector gerade RNV-Fahrten? Nur die
+zweite Frage taugt als stuendlicher Alarm -- siehe Kommentar am Join.
 """
 
 import argparse
@@ -203,11 +208,38 @@ def aktive_dienste(zf, tag):
     return aktiv
 
 
+def scope_lesen(pfad):
+    """Die Fahrtenliste, gegen die der Collector jede Meldung filtert -- die
+    Vereinigung der juengsten sieben Sollfahrplan-Versionen (ADR-018).
+
+    duckdb wird bewusst erst hier importiert und nicht oben: ohne --scope bleibt
+    dieses Skript abhaengigkeitsfrei (siehe Modulkopf), und genau das haelt es
+    langfristig lauffaehig.
+    """
+    import duckdb
+
+    con = duckdb.connect()
+    try:
+        zeilen = con.execute(
+            "select distinct trip_id from read_parquet(?)", [pfad]
+        ).fetchall()
+    finally:
+        con.close()
+    return {z[0] for z in zeilen}
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--tag", default=datetime.date.today().isoformat())
+    ap.add_argument(
+        "--scope",
+        default=None,
+        help="Pfad auf rnv_trips_aktuell.parquet. Ohne diese Liste misst das "
+             "Skript nur die Quelle, nicht den Betrieb.",
+    )
     args = ap.parse_args()
     tag = datetime.date.fromisoformat(args.tag)
+    scope = scope_lesen(args.scope) if args.scope else None
 
     print(f"== Echtzeit  {RT_URL}")
     groesse, kopf, fahrten = echtzeit_lesen()
@@ -262,13 +294,61 @@ def main():
     print(f"   direction_id            {dict(richtung)}")
     print(f"   trip_headsign befuellt  {ziel} von {len(heute)}")
 
+    # ------------------------------------------------------------------
+    # Join. Hier standen bis zum 2026-08-31 zwei Fragen als eine, und deshalb
+    # war die Antwort auf beide falsch.
+    #
+    # Gemessen am 2026-08-31 gegen den Live-Feed: von 2.812 RT-Fahrten im Abruf
+    # sind 785 RNV. Von den 1.130, die der aktuelle Sollfahrplan nicht kennt,
+    # gehoerten 761 zu DB, RNN und anderen VRN-Betreibern -- Fahrten, die
+    # TramPuls weder sammelt noch bewertet (Regel 7). Die alte Fassung mass alle
+    # 54 Agenturen gegen die 99-%-Schwelle aus ADR-013 und stand damit dauerhaft
+    # rot, ohne dass etwas kaputt war.
+    #
+    # Das ist nicht bloss unsauber: eine Pruefung, die immer rot ist, wird
+    # ueberlesen oder abgeschaltet. Genau diese Blindheit hat der Vorfall vom
+    # 2026-08-30 sechzehn Stunden Historie gekostet.
     trip_zu_route = {t["trip_id"]: t["route_id"] for t in fahrten_static}
+    rnv_static = {t for t, r in trip_zu_route.items() if r in rnv}
     treffer = sum(1 for t in fahrten if t in trip_zu_route)
+    rnv_im_abruf = {t for t in fahrten if t in rnv_static}
+
     print(f"\n== Join")
     print(f"   RT-Fahrten aufloesbar   {treffer} von {len(fahrten)} "
-          f"({100 * treffer / max(len(fahrten), 1):.1f} %)")
-    if treffer / max(len(fahrten), 1) < 0.99:
-        print("   BEFUND: unter 99 % -- der Sollfahrplan ist vermutlich veraltet (ADR-013)")
+          f"({100 * treffer / max(len(fahrten), 1):.1f} %) -- alle Agenturen, nur Auskunft")
+    print(f"   davon RNV (vrn-05)      {len(rnv_im_abruf)}")
+
+    if scope is None:
+        # Ohne Fahrtenliste laesst sich die Betriebsfrage nicht stellen: welche
+        # RT-Fahrt RNV ist, weiss nur, wer die Liste hat. Uebrig bleibt die
+        # Quellenfrage aus ADR-013 -- ist das Archiv als Ganzes brauchbar? Die
+        # 1000 sind gegriffen, nicht gemessen; ein Betriebstag liegt bei ueber
+        # 8.000 RNV-Fahrten (gemessen 2026-08-31: 8.151).
+        print("   Fahrtenliste            nicht angegeben (--scope) -- keine "
+              "Betriebsaussage, nur Quellenmessung")
+        if RNV_AGENCY not in agenturen or len(heute) < 1000:
+            print(f"   BEFUND: Sollfahrplan unbrauchbar -- {len(heute)} aktive "
+                  f"RNV-Fahrten am {tag.isoformat()} (Grenze 1000)")
+            return 1
+        return 0
+
+    # Mit Fahrtenliste wird die Frage betrieblich: verwirft der Collector gerade
+    # RNV-Fahrten? Er filtert gegen genau diese Datei (ADR-018, Vereinigung der
+    # juengsten sieben Versionen), also ist jede RNV-Fahrt im Feed, die darin
+    # fehlt, eine Meldung, die niemand je wiedersieht (Regel 1).
+    #
+    # Blinder Fleck, bewusst in Kauf genommen: sendet der Feed Kennungen, die
+    # weder in der Liste noch im aktuellen Sollfahrplan stehen, faellt das hier
+    # nicht auf -- solche Fahrten sind von hier aus nicht als RNV erkennbar.
+    # Dagegen steht scope_hits in der stuendlichen Pruefung.
+    fehlen = rnv_im_abruf - scope
+    print(f"   Fahrtenliste            {len(scope)} trip_id")
+    print(f"   RNV erfasst             {len(rnv_im_abruf) - len(fehlen)} "
+          f"von {len(rnv_im_abruf)}")
+    if fehlen:
+        print(f"   BEFUND: {len(fehlen)} RNV-Fahrten im Feed fehlen in der "
+              f"Fahrtenliste -- der Collector verwirft sie (ADR-018)")
+        print(f"           Beispiele: {sorted(fehlen)[:3]}")
         return 1
     return 0
 

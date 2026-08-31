@@ -42,8 +42,8 @@ start="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 echo "[vollaufbau] Start $start — Grund: $GRUND"
 
 # Das Protokoll ist der Punkt, an dem sich dieser Lauf von rebuild.sh
-# unterscheidet: pruefung-stuendlich meldet, wenn ein Seed juenger ist als der
-# letzte Vollaufbau (ADR-012). Ohne diese Zeile kann es das nicht wissen.
+# unterscheidet: pruefung-stuendlich meldet, wenn sich ein Seed seit dem letzten
+# Vollaufbau geaendert hat (ADR-012). Ohne diese Zeile kann es das nicht wissen.
 printf '%s\tstart\t%s\n' "$start" "$GRUND" >> "$PROTOKOLL"
 
 cd "$PROJEKT"
@@ -57,6 +57,16 @@ dbt run-operation export_marts --project-dir . --profiles-dir . \
 exporter -marts "$DATEN/export/marts" -ziel "$ZIEL"
 
 ende="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-printf '%s\tfertig\t%s\n' "$ende" "$GRUND" >> "$PROTOKOLL"
+
+# Vierte Spalte: der Fingerabdruck der Seeds, die in *diesen* Lauf eingegangen
+# sind. Die Pruefung vergleicht Inhalte statt Zeitstempel -- eine mtime stammt im
+# Container aus dem git-Checkout des Deployments und aenderte sich damit bei
+# jedem Deploy, auch ohne dass ein Seed angefasst wurde (2026-08-31).
+# Berechnet wird sie dort, wo sie auch gelesen wird, damit die Regel nur einmal
+# existiert.
+signatur="$("${TRAMPULS_PYTHON:-python3}" \
+    "${TRAMPULS_TOOLS:-/app/tools}/pruefung-stuendlich/pruefung_stuendlich.py" \
+    --seed-signatur 2>/dev/null || true)"
+printf '%s\tfertig\t%s\t%s\n' "$ende" "$GRUND" "$signatur" >> "$PROTOKOLL"
 echo "[vollaufbau] fertig $ende: $(find "$ZIEL" -name '*.json' | wc -l) JSON-Dateien"
 echo "[vollaufbau] Protokoll: $PROTOKOLL"

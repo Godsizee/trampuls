@@ -456,6 +456,59 @@ footer.fuss a { color: var(--akzent); }
   margin-top: var(--r6);
 }
 
+/* Umschalter fuer den Zeitraum der Netzzahlen (/ und /netz).
+
+   Zwei Zustaende, die einander ausschliessen — also Radioknoepfe und keine
+   zwei Schalter: nur damit sagt der Screenreader "1 von 2" und nur damit
+   wandert die Pfeiltaste zwischen ihnen. Der eigentliche Knopf liegt
+   unsichtbar ueber seiner Beschriftung, statt mit `display: none` aus der
+   Tabulatorreihenfolge zu verschwinden.
+
+   Der gewaehlte Abschnitt ist gefuellt und nicht nur unterstrichen: bei zwei
+   gleich aussehenden Feldern muss ohne Vergleich erkennbar sein, welches
+   gilt. Das ist derselbe Ton wie beim Hauptknopf auf der Startseite. */
+.zeitwahl {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--r2);
+  margin: var(--r5) 0 0;
+}
+.zeitwahl label {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--tippziel);
+  padding: var(--r2) var(--r4);
+  border: 1px solid var(--linie-stark);
+  border-radius: 2px;
+  font-size: var(--t-klein);
+  color: var(--gedaempft);
+  cursor: pointer;
+}
+.zeitwahl input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.zeitwahl label:hover { color: var(--akzent); border-color: var(--akzent); }
+.zeitwahl label:has(:checked) {
+  background: var(--tinte);
+  border-color: var(--tinte);
+  color: var(--papier);
+  font-weight: 600;
+}
+/* Der Rahmen gehoert um die Beschriftung, nicht um den unsichtbaren Knopf
+   darin — sonst liegt er auf einem Element ohne eigene Ausdehnung. */
+.zeitwahl label:has(:focus-visible) {
+  outline: 2px solid var(--akzent);
+  outline-offset: 2px;
+}
+
 .kennzahl { border-top: 2px solid var(--linie); padding-top: var(--r3); }
 
 /* /vergleich: zwei Zeitraeume nebeneinander (T6). Auf dem Telefon untereinander

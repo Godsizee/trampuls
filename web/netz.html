@@ -48,6 +48,13 @@
   <p class="lead">Alle Linien der Rhein-Neckar-Verkehr zusammengerechnet — Straßenbahn
      und Bus nebeneinander. Einzelne Linien stehen unter
      <a href="/linien.html">Linien</a>.</p>
+  <!-- Der Umschalter steht in der ausgelieferten HTML und nicht erst im
+       Skript: jede Eingabe hat vom ersten Aufbau an einen Wert, und "Aktueller
+       Tag" ist die Voreinstellung, wegen der die meisten hier sind. -->
+  <div class="zeitwahl" role="radiogroup" aria-label="Zeitraum der Zahlen" data-zeitwahl>
+    <label><input type="radio" name="zeitraum" value="tag" checked> Aktueller Tag</label>
+    <label><input type="radio" name="zeitraum" value="gesamt"> Gesamter Zeitraum</label>
+  </div>
   <section class="kennzahlen" data-netz>
     <p class="hinweis">Zahlen werden geladen…</p>
   </section>

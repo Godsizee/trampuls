@@ -12,42 +12,47 @@ import {
   BETRIEBSTAG_ERKLAERUNG, begriff, fussnote, grosseZahl, tabelle, zeigeFehler,
 } from "./seite";
 import { saeulenIn } from "./diagramm";
+import { ausTag, ausZeitraum, spanne, verdrahteZeitwahl } from "./netzzahlen";
+import type { NetzZahlen } from "./netzzahlen";
+import type { Zeitwahl } from "./zustand";
 
 const SCHWELLE = 3;
 
 async function start(): Promise<void> {
-  const index = await ladeIndex();
+  const [index, netz] = await Promise.all([ladeIndex(), ladeNetz()]);
   fussnote(index);
-  zeigeNetz(index);
-  zeigeVorbehalt(index);
-  await zeigeVerlauf();
+
+  const zeichne = (wahl: Zeitwahl): void => {
+    const zahlen = wahl === "gesamt" ? ausZeitraum(netz, SCHWELLE) : ausTag(index.netz_aktuell);
+    zeigeNetz(index, zahlen);
+    zeigeVorbehalt(index, zahlen, wahl);
+  };
+
+  zeichne(verdrahteZeitwahl(zeichne));
+  zeigeVerlauf(netz);
 }
 
-function zeigeNetz(index: IndexDatei): void {
+function zeigeNetz(index: IndexDatei, zahlen: NetzZahlen[]): void {
   const ziel = document.querySelector("[data-netz]");
   if (!ziel) return;
 
-  if (index.netz_aktuell.length === 0) {
+  if (zahlen.length === 0) {
     ziel.innerHTML =
       `<p class="hinweis">Für den ${datum(index.juengster_betriebstag)} ` +
       `liegen noch keine ausgewerteten Zahlen vor.</p>`;
     return;
   }
 
-  const reihe = [...index.netz_aktuell].sort((a, b) =>
-    a.verkehrsart === b.verkehrsart ? 0 : a.verkehrsart === "tram" ? -1 : 1,
-  );
-
   ziel.innerHTML = "";
-  for (const n of reihe) {
-    const q = quote(n.puenktlich_3min, n.bewertbare_halte);
+  for (const n of zahlen) {
+    const q = quote(n.puenktlich, n.bewertbare_halte);
     const karte = document.createElement("article");
     karte.className = "kennzahl";
     // Siehe start.ts: die Verkehrsart faerbt eine Flaeche, keinen Text.
     karte.dataset.art = n.verkehrsart;
     karte.innerHTML = `
       <h2>${VERKEHRSART_NAME[n.verkehrsart] ?? n.verkehrsart}</h2>
-      <p class="gross">${grosseZahl(n.puenktlich_3min, n.bewertbare_halte)}</p>
+      <p class="gross">${grosseZahl(n.puenktlich, n.bewertbare_halte)}</p>
       <p class="klein">${
         q === null
           ? "Noch keine gemessenen Halte."
@@ -57,7 +62,15 @@ function zeigeNetz(index: IndexDatei): void {
         <dt>Gemessene Halte</dt><dd>${zahl(n.bewertbare_halte)}</dd>
         <dt>Geplante Halte</dt><dd>${zahl(n.soll_halte)}</dd>
         <dt>Fahrten</dt><dd>${zahl(n.fahrten)}</dd>
-        <dt>Linien</dt><dd>${zahl(n.linien)}</dd>
+        ${
+          // Ueber mehrere Tage steht hier die Zahl der Betriebstage statt der
+          // Linien: die Linienzahl gilt je Tag und liesse sich weder summieren
+          // noch mitteln (siehe netzzahlen.ts). Ein Zeitraum bringt dafuer eine
+          // eigene Fallzahl mit, die ein einzelner Tag nicht hat.
+          n.linien === null
+            ? `<dt>Betriebstage</dt><dd>${zahl(n.tage.length)}</dd>`
+            : `<dt>Linien</dt><dd>${zahl(n.linien)}</dd>`
+        }
         <dt>Verspätung im Schnitt</dt><dd>${sekunden(n.delay_schnitt_sek)}</dd>
         <dt>Halte ausgefallener Fahrten</dt><dd>${zahl(n.halte_fahrt_ausgefallen)}</dd>
       </dl>`;
@@ -65,9 +78,28 @@ function zeigeNetz(index: IndexDatei): void {
   }
 }
 
-function zeigeVorbehalt(index: IndexDatei): void {
+const HALTE_ERKLAERUNG =
+  ` „Geplante Halte" zählt auch die, die ausgefallen sind; „gemessene Halte" nur die, ` +
+  `zu denen eine Ist-Zeit gemeldet wurde. Der Unterschied ist genau das, was nicht ` +
+  `gemessen werden konnte.`;
+
+function zeigeVorbehalt(index: IndexDatei, zahlen: NetzZahlen[], wahl: Zeitwahl): void {
   const ziel = document.querySelector("[data-vorbehalt]");
-  if (!ziel || index.netz_aktuell.length === 0) return;
+  if (!ziel || zahlen.length === 0) return;
+
+  if (wahl === "gesamt") {
+    // Der Zeitraum kommt aus den Tagen, die tatsaechlich eingegangen sind, nicht
+    // aus `index.zeitraum`: sonst kann hier ein Tag stehen, der in den Zahlen
+    // darueber gar nicht steckt.
+    const s = spanne(zahlen[0]?.tage ?? []);
+    ziel.innerHTML =
+      `Die Zahlen oben fassen ${zahl(s.anzahl)} ` +
+      `${begriff("Betriebstage", BETRIEBSTAG_ERKLAERUNG)} vom ${datum(s.von)} bis ` +
+      `${datum(s.bis)} zusammen — alles, was bisher aufgezeichnet wurde. Nicht jeder ` +
+      `dieser Tage ist von Anfang bis Ende erfasst; wie vollständig, steht auf ` +
+      `<a href="/methodik.html">Methodik</a>.` + HALTE_ERKLAERUNG;
+    return;
+  }
 
   const tag = index.juengster_betriebstag;
   const vollstaendig = index.juengster_vollstaendiger_betriebstag === tag;
@@ -78,16 +110,13 @@ function zeigeVorbehalt(index: IndexDatei): void {
     (vollstaendig
       ? "Dieser Tag ist von Anfang bis Ende aufgezeichnet."
       : "Dieser Tag ist noch nicht zu Ende aufgezeichnet — die Zahlen sind ein Zwischenstand.") +
-    ` „Geplante Halte" zählt auch die, die ausgefallen sind; „gemessene Halte" nur die, ` +
-    `zu denen eine Ist-Zeit gemeldet wurde. Der Unterschied ist genau das, was nicht ` +
-    `gemessen werden konnte.`;
+    HALTE_ERKLAERUNG;
 }
 
-async function zeigeVerlauf(): Promise<void> {
+function zeigeVerlauf(netz: NetzDatei): void {
   const ziel = document.querySelector("[data-verlauf]");
   if (!ziel) return;
 
-  const netz: NetzDatei = await ladeNetz();
   const tage = [...new Set(netz.betriebstag)].sort().slice(-30);
   if (tage.length === 0) return;
 

@@ -102,6 +102,31 @@ export function schreibeVergleich(felder: Record<string, string>): void {
   history.replaceState(null, "", `${location.pathname}?${p.toString()}`);
 }
 
+/**
+ * Zeitraum der Netzzahlen auf / und /netz: der juengste Betriebstag oder alles,
+ * was aufgezeichnet ist. Voreinstellung ist der Tag — er ist die Zahl, wegen
+ * der jemand die Seite aufruft, und er steht in `index.json` ohne zweite Datei.
+ *
+ * Eigener Parameter statt `von`/`bis`: die beiden meinen auf der Linienseite
+ * eine frei gewaehlte Spanne. Hier gibt es genau zwei Zustaende, und "gesamt"
+ * heisst ausdruecklich "so viel, wie vorliegt" — keine Spanne, die mit jedem
+ * neuen Betriebstag anders geschrieben werden muesste.
+ */
+export type Zeitwahl = "tag" | "gesamt";
+
+export function leseZeitraum(): Zeitwahl {
+  return new URLSearchParams(location.search).get("zeitraum") === "gesamt" ? "gesamt" : "tag";
+}
+
+/** Der Vorgabewert steht nicht in der Adresse — eine leere Adresse ist zitierbar. */
+export function schreibeZeitraum(wahl: Zeitwahl): void {
+  const p = new URLSearchParams(location.search);
+  if (wahl === "gesamt") p.set("zeitraum", "gesamt");
+  else p.delete("zeitraum");
+  const frage = p.toString();
+  history.replaceState(null, "", frage === "" ? location.pathname : `${location.pathname}?${frage}`);
+}
+
 const GEMERKT = "trampuls:linie";
 
 export function gemerkteLinie(): string | null {

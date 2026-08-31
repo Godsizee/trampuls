@@ -52,6 +52,13 @@
      zwar öffentlich, beschreiben aber immer nur den Moment und sind am nächsten Tag
      verschwunden. TramPuls schreibt sie mit und rechnet nach.</p>
 
+  <!-- Der Umschalter steht in der ausgelieferten HTML und nicht erst im
+       Skript: jede Eingabe hat vom ersten Aufbau an einen Wert, und "Aktueller
+       Tag" ist die Voreinstellung, wegen der die meisten hier sind. -->
+  <div class="zeitwahl" role="radiogroup" aria-label="Zeitraum der Zahlen" data-zeitwahl>
+    <label><input type="radio" name="zeitraum" value="tag" checked> Aktueller Tag</label>
+    <label><input type="radio" name="zeitraum" value="gesamt"> Gesamter Zeitraum</label>
+  </div>
   <section class="kennzahlen" data-netz>
     <p class="hinweis">Zahlen werden geladen…</p>
   </section>

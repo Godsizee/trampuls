@@ -277,9 +277,15 @@ h2 { font-size: var(--t-h2); margin: var(--r7) 0 var(--r3); }
 h3 { font-size: var(--t-h3); margin: var(--r5) 0 var(--r2); }
 
 /* Die erste Ueberschrift eines Abschnitts braucht ihren Vorlauf nicht, wenn
-   direkt darueber schon die Abschnittsgrenze sitzt. */
+   direkt darueber schon die Abschnittsgrenze sitzt.
+
+   Das gilt auch fuer h3: im Abschnitt mit Randspalte beginnt der Randteil an
+   der Oberkante des Rasters, die Ueberschrift daneben aber erst 24 px darunter
+   — die beiden Spalten sahen dadurch gegeneinander verschoben aus (gemessen
+   2026-08-31 auf /netz: 27 px Versatz). */
 section > h2:first-child,
-.block-haupt > h2:first-child { margin-top: 0; }
+.block-haupt > h2:first-child,
+.block-haupt > h3:first-child { margin-top: 0; }
 
 p { margin: var(--r3) 0; }
 
@@ -609,6 +615,42 @@ td { font-variant-numeric: tabular-nums lining-nums; }
   left: 0;
   background: var(--papier);
   box-shadow: 1px 0 0 var(--linie);
+}
+
+/* Dieselbe Tabelle in der Randspalte ist etwas anderes als im Hauptteil.
+
+   Oben ist der Scrollkasten richtig: elf Spalten Zahlen passen auf kein
+   Telefon, und die Seite darf dafuer nicht waagerecht laufen. In einer
+   Randspalte von 18 bis 20 rem ist er falsch — die Belegtabelle auf /netz hat
+   drei Spalten, brauchte mit `nowrap` und `max-content` 533 px und versteckte
+   ihre dritte, "Gemessene Halte", hinter einem Scrollbalken, den auf einem
+   Zeigegeraet niemand sieht (gemessen 2026-08-31 bei 1920 px: 533 auf 360).
+   Ausgerechnet die Fallzahl war damit unsichtbar. Hier bricht sie stattdessen
+   um.
+
+   Aussen sitzt kein Innenabstand: sonst steht die Tabelle um zwoelf Pixel
+   eingerueckt gegen die Ueberschrift der Randspalte darueber. */
+/* `overflow-x` bleibt `auto`: bricht die Tabelle in einer sehr engen
+   Randspalte trotz Umbruch nicht klein genug, scrollt sie lieber in ihrem
+   Kasten, als ueber ihn hinauszulaufen — die Seite darf auf keiner Breite
+   waagerecht scrollen. Der Schleier an der Kante entfaellt hier: er liegt
+   sonst dauerhaft ueber der ersten und letzten Spalte. */
+.block-rand .tabellenhuelle { background: none; }
+.block-rand .tabellenhuelle > table { width: 100%; min-width: 0; }
+.block-rand .tabellenhuelle th,
+.block-rand .tabellenhuelle td {
+  white-space: normal;
+  padding-inline: var(--r2);
+}
+.block-rand .tabellenhuelle th:first-child,
+.block-rand .tabellenhuelle td:first-child { padding-inline-start: 0; }
+.block-rand .tabellenhuelle th:last-child,
+.block-rand .tabellenhuelle td:last-child { padding-inline-end: 0; }
+.block-rand .tabellenhuelle thead th:first-child,
+.block-rand .tabellenhuelle th[scope="row"] {
+  position: static;
+  background: none;
+  box-shadow: none;
 }
 
 details { margin-top: var(--r4); }

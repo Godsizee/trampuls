@@ -43,25 +43,33 @@ function text(inhalt: string, attrs: Record<string, string | number>): SVGTextEl
 }
 
 /**
- * Beobachtet die Breite von `ziel` und zeichnet neu, statt ein einmal
- * gezeichnetes Bild zu verzerren — beim Drehen des Telefons und beim Ein- und
- * Ausblenden der Adressleiste.
+ * Beobachtet den Kasten des gezeichneten SVG und zeichnet neu, statt ein einmal
+ * gezeichnetes Bild zu verzerren — beim Drehen des Telefons, beim Ein- und
+ * Ausblenden der Adressleiste und beim Wechsel ueber eine Breitenstufe.
+ *
+ * Beobachtet wird das SVG selbst und nicht mehr sein Behaelter: `contentRect`
+ * liefert damit beide Masse auf einmal. Bis zum 2026-08-31 wurde nur die Breite
+ * gemessen und die Hoehe mit 176 fest angenommen — das stimmte genau so lange,
+ * wie `.diagramm` 11 rem bei 16 px Wurzelschrift hoch war. Seit den
+ * Breitenstufen (TPULS-094) sind es 187 bzw. 198 px, und
+ * `preserveAspectRatio="none"` zog das Bild um 12,5 % in die Laenge:
+ * Haarlinien 1,125 px breit, Achsenziffern senkrecht gedehnt.
  *
  * Beim ersten Aufruf haengt der Abschnitt oft noch nicht im Dokument und ist
- * damit 0 breit; dann zeichnet die Vorgabebreite, und der Beobachter
- * korrigiert, sobald die echte Breite feststeht.
+ * damit 0 breit; dann zeichnen die Vorgabemasse, und der Beobachter korrigiert,
+ * sobald die echten feststehen.
  */
 function haltAnBreite(
   ziel: Element,
-  zeichne: (breite: number | undefined) => SVGSVGElement,
+  zeichne: (breite: number | undefined, hoehe: number | undefined) => SVGSVGElement,
 ): void {
   const gemessen = Math.round(ziel.clientWidth);
-  let letzteBreite = gemessen;
-  let svg = zeichne(gemessen > 0 ? gemessen : undefined);
+  let svg = zeichne(gemessen > 0 ? gemessen : undefined, undefined);
   ziel.appendChild(svg);
 
   if (typeof ResizeObserver === "undefined") return;
 
+  let letzte = { breite: 0, hoehe: 0 };
   const beobachter = new ResizeObserver((eintraege) => {
     // Der Aufrufer baut seinen Abschnitt bei jeder Reglerauswahl neu auf. Ist
     // das gezeichnete SVG nicht mehr im Dokument, gehoert es zu einem
@@ -70,15 +78,24 @@ function haltAnBreite(
       beobachter.disconnect();
       return;
     }
-    const breite = Math.round(eintraege[0]?.contentRect.width ?? 0);
-    // Kleine Spruenge (Scrollbalken, Rundung) sind kein Neuzeichnen wert.
-    if (breite <= 0 || Math.abs(breite - letzteBreite) < 16) return;
-    letzteBreite = breite;
-    const neu = zeichne(breite);
+    const kasten = eintraege[0]?.contentRect;
+    const breite = Math.round(kasten?.width ?? 0);
+    const hoehe = Math.round(kasten?.height ?? 0);
+    if (breite <= 0 || hoehe <= 0) return;
+    // Kleine Spruenge (Scrollbalken, Rundung) sind kein Neuzeichnen wert. Die
+    // Hoehe darf enger geprueft werden: sie springt nicht von selbst, und ein
+    // Unterschied von 11 px ist bereits die sichtbare Verzerrung.
+    if (Math.abs(breite - letzte.breite) < 16 && Math.abs(hoehe - letzte.hoehe) < 4) return;
+    letzte = { breite, hoehe };
+    const neu = zeichne(breite, hoehe);
+    // Das ersetzte Element ist das beobachtete: Beobachtung mitziehen, sonst
+    // haengt sie an einem Knoten, den niemand mehr sieht.
+    beobachter.unobserve(svg);
     svg.replaceWith(neu);
     svg = neu;
+    beobachter.observe(svg);
   });
-  beobachter.observe(ziel);
+  beobachter.observe(svg);
 }
 
 /**
@@ -155,7 +172,15 @@ export function saeulen(
   // aneinander. Bei 24 Stunden auf einem Telefon ist das jede zweite Stunde,
   // auf dem Schreibtisch jede erste.
   const schritt = Math.max(1, Math.ceil(24 / spalte));
-  const saeulenBreite = Math.min(Math.max(spalte - 5, 1), 34);
+
+  // Der Deckel von 34 px war fuer 24 Stundensaeulen gebaut, wo eine Spalte rund
+  // 26 px breit ist. Bei vier Tagessaeulen auf 864 px ist eine Spalte 208 px
+  // breit — vier 34-px-Striche standen dort verloren in einem leeren Feld
+  // (gesehen 2026-08-31 auf /netz). Die Saeule nimmt jetzt gut die halbe
+  // Spalte, bleibt aber unter 88 px: darueber wird aus einer Saeule eine
+  // Flaeche. Dichte Diagramme aendern sich dadurch nicht — dort greift
+  // weiterhin `spalte - 5`.
+  const saeulenBreite = Math.min(Math.max(spalte - 5, 1), Math.max(34, spalte * 0.55), 88);
 
   daten.forEach((d, i) => {
     const x = rand.links + i * spalte;
@@ -183,9 +208,15 @@ export function saeulen(
   return svg;
 }
 
-/** Zeichnet ein Saeulendiagramm in `ziel` und haelt es an dessen Breite. */
+/**
+ * Zeichnet ein Saeulendiagramm in `ziel` und haelt es an dessen Kasten.
+ *
+ * `hoehe` ist die Vorgabe fuer den Moment, in dem noch nichts gemessen ist;
+ * steht das SVG erst im Dokument, gilt seine tatsaechliche Hoehe aus dem
+ * Stylesheet.
+ */
 export function saeulenIn(ziel: Element, daten: Saeule[], hoehe = 176): void {
-  haltAnBreite(ziel, (breite) => saeulen(daten, breite, hoehe));
+  haltAnBreite(ziel, (breite, gemessen) => saeulen(daten, breite, gemessen ?? hoehe));
 }
 
 export interface Balken {
@@ -295,5 +326,8 @@ export function balkenProfil(
 
 /** Zeichnet das Haltestellenprofil in `ziel` und haelt es an dessen Breite. */
 export function balkenProfilIn(ziel: Element, daten: Balken[], zeilenhoehe = 24): void {
+  // Die Hoehe des Profils ergibt sich aus der Zahl der Halte, nicht aus dem
+  // Stylesheet (`.profil { height: auto }`) — die gemessene bleibt hier also
+  // ausdruecklich ungenutzt.
   haltAnBreite(ziel, (breite) => balkenProfil(daten, breite ?? 320, zeilenhoehe));
 }

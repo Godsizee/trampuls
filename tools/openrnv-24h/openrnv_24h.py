@@ -274,11 +274,19 @@ def messen(args):
     print(f"   openRNV {len(trips)} Fahrten, VRN(RNV) {len(karte)} Fahrten")
 
     qp = quelle_pruefen() if args.vrn_jede else None
-    ende = time.time() + args.stunden * 3600
+    # Absolutes Ende schlaegt Dauer. Auf dem Server startet ein Waechter den
+    # Lauf nach einem Redeploy oder Absturz neu -- mit --stunden bekaeme jeder
+    # Neustart weitere 40 Stunden, und aus einer Tagesmessung wuerde eine
+    # Dauerbeobachtung, die niemand bestellt hat.
+    if args.bis:
+        ende = datetime.datetime.fromisoformat(args.bis).timestamp()
+    else:
+        ende = time.time() + args.stunden * 3600
     meta = {
         "start": jetzt().isoformat(),
         "intervall": args.intervall,
         "stunden": args.stunden,
+        "bis": args.bis,
         "vrn_jede": args.vrn_jede,
     }
     (lauf.dir / "lauf.json").write_text(json.dumps(meta, indent=1), encoding="utf-8")
@@ -417,6 +425,10 @@ def main():
     ap.add_argument("--verzeichnis",
                     default=f"messung/openrnv-24h/{jetzt():%Y%m%d-%H%M}")
     ap.add_argument("--stunden", type=float, default=24.0)
+    ap.add_argument("--bis", default=None,
+                    help="Absolutes Ende, ISO 8601 (2026-09-02T06:00). "
+                         "Schlaegt --stunden -- noetig, wenn ein Waechter den "
+                         "Lauf nach einem Neustart fortsetzt.")
     ap.add_argument("--intervall", type=int, default=60,
                     help="Sekunden zwischen zwei Abrufen. 60 statt der 30 des "
                          "Collectors (ADR-009): eine Fahrt steht Minuten bis "

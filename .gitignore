@@ -3,6 +3,9 @@
 /raw/
 /data/
 /health/
+# Messlaeufe (tools/openrnv-24h) -- Rohabrufe fremder Feeds, gehoeren
+# nicht ins Repo (Regel 15)
+/messung/
 *.parquet
 *.duckdb
 

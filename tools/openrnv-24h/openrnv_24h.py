@@ -381,7 +381,15 @@ def bericht(args):
     print(f"   scheduleRelationship    {dict(rel)}")
     print(f"   Fahrten mit SKIPPED     {sum(1 for v in fahrten.values() if v['skipped'])}")
 
-    tage = sorted({d for d, _ in fahrten})
+    # startDate fehlt an manchen ADDED-Fahrten (kein Sollbezug, siehe unten) --
+    # einmal_openrnv() traegt sie unter "?" ein. Auszaehlen statt verwerfen:
+    # ein still gedroppter Fehlerfall waere hier dieselbe Fehlerklasse wie der
+    # verschwiegene Strich aus TPULS-098 (Recent.md, 2026-08-31).
+    alle_tage = sorted({d for d, _ in fahrten})
+    ohne_datum = sum(1 for d, _ in fahrten if not (len(d) == 8 and d.isdigit()))
+    if ohne_datum:
+        print(f"   ohne auswertbares Datum {ohne_datum} (startDate fehlt im Feed)")
+    tage = [d for d in alle_tage if len(d) == 8 and d.isdigit()]
     for datum in tage:
         tag = datetime.datetime.strptime(datum, "%Y%m%d").date()
         aktiv, soll_fahrten, soll_linie = rnv_soll_je_tag(trips, kal, tag)

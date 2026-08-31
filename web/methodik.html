@@ -14,6 +14,10 @@
      Datei ein zweites Mal. -->
 <link rel="preload" href="/schrift/archivo-var-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/src/stil.css">
+<!-- Blockierend und ohne `type="module"`: eine gemerkte Farbwahl muss
+     stehen, bevor das erste Bild der Seite gezeichnet wird. Begruendung
+     in der Datei selbst. -->
+<script src="/farbschema.js"></script>
 </head>
 <body>
 <header class="kopfleiste">
@@ -27,6 +31,16 @@
       <a href="/methodik.html" aria-current="page">Methodik</a>
       <a href="/lizenz.html">Lizenz</a>
     </nav>
+    <button type="button" class="farbschalter" data-farbschalter
+            aria-label="Farbschema wechseln">
+      <!-- Halb gefuellte Scheibe: das uebliche Zeichen fuer Kontrast. Sie
+           steht in beiden Schemata gleich — was der Druck bewirkt, sagt
+           die Beschriftung, und die setzt src/farbschema.ts. -->
+      <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false">
+        <circle cx="8" cy="8" r="6.4" fill="none" stroke="currentColor" stroke-width="1.4"/>
+        <path d="M8 1.6a6.4 6.4 0 0 0 0 12.8z" fill="currentColor"/>
+      </svg>
+    </button>
   </div>
 </header>
 <main class="huelle" data-inhalt>

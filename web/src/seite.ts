@@ -2,6 +2,7 @@
 // und die Begriffserklaerungen im Fliesstext.
 
 import { ladeIndex, type IndexDatei } from "./daten";
+import { verdrahteFarbschalter } from "./farbschema";
 import { datum, prozentTeile, quote } from "./format";
 
 /**
@@ -130,6 +131,10 @@ function verdrahteBegriffe(): void {
 }
 
 verdrahteBegriffe();
+
+// Hier und nicht in jedem Seitenmodul: dieses Geruest laedt jede Seite, und der
+// Umschalter steht in der Kopfleiste jeder Seite.
+verdrahteFarbschalter();
 
 /**
  * Tabellenentsprechung zu jedem Diagramm (Barrierefreiheit).

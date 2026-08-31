@@ -14,15 +14,22 @@
      Flaeche, nie als Textfarbe.
    - Das Layout ist von der schmalsten Breite her gebaut. Grundregeln gelten
      fuer das Telefon; die Medienabfragen fuegen erst ab Tabletbreite etwas
-     hinzu. Geprueft wird bei 320 / 344 / 360 / 390 / 768 / 1024 / 1440 —
-     344 und 360 decken das Frontdisplay eines Galaxy Z Fold ab, dessen
+     hinzu. Geprueft wird bei 320 / 344 / 360 / 390 / 768 / 1024 / 1440 / 1920
+     — 344 und 360 decken das Frontdisplay eines Galaxy Z Fold ab, dessen
      Besonderheit weniger die Breite als das Seitenverhaeltnis von rund 1:2,4
-     ist: sehr hoch, sehr schmal.
+     ist: sehr hoch, sehr schmal. Ab 1400 px kommen zwei Stufen dazu, die
+     Schriftgrad und Huellenbreite anheben; alles darunter bleibt unberuehrt
+     (Abschnitt "Breiten" am Dateiende).
    - Auf keiner dieser Breiten scrollt die Seite waagerecht. Breite Tabellen
      und Diagramme scrollen in ihrem eigenen Kasten.
 
+   Welches Schema gilt, entscheidet die Systemvorgabe — bis der Leser den
+   Umschalter in der Kopfleiste benutzt; dann seine Wahl, in beide Richtungen.
+   Beide Paletten stehen als `light-dark()` in einem einzigen Merkmalsblock.
+
    Kontraste sind gegen WCAG AA im gebauten Stand im Browser gemessen, nicht
-   geschaetzt (2026-08-29, Chrome, beide Farbschemata):
+   geschaetzt (2026-08-29, Chrome, beide Farbschemata; die Farbwerte sind seit
+   der Messung unveraendert):
 
      hell    Tinte 17,20:1 · gedaempft 6,08:1 · Akzent 7,62:1
      dunkel  Tinte 14,88:1 · gedaempft 7,06:1 · Akzent 8,27:1
@@ -100,20 +107,31 @@
    --------------------------------------------------------------------------- */
 
 :root {
+  /* Beide Werte stehen nebeneinander: hell zuerst, dunkel danach. Welcher
+     gilt, entscheidet `color-scheme` — die Systemvorgabe, oder die
+     ausdrueckliche Wahl aus der Kopfleiste weiter unten.
+
+     Vorher stand die dunkle Palette in einem eigenen
+     `@media (prefers-color-scheme: dark)`-Block. Mit einem Umschalter braeuchte
+     sie dort ein zweites Mal Platz — einmal fuer die Systemvorgabe, einmal fuer
+     die Wahl —, und zwei gleichlautende Bloecke laufen auseinander, sobald ein
+     Ton nachjustiert wird. `light-dark()` setzt dieselbe Grenze wie `popover`
+     weiter unten (Chrome 123, Safari 17.5, Firefox 120); wer eins nicht kann,
+     kann das andere auch nicht. */
   color-scheme: light dark;
 
-  --papier: #faf9f6;
-  --flaeche: #f2f0eb;
-  --tinte: #14161a;
-  --gedaempft: #5a5f6a;
-  --linie: #dcd8d0;
-  --linie-stark: #8e887e;
-  --akzent: #12595e;
-  --plus: #9c4a21;
-  --minus: #2f6b46;
-  --tram: #12595e;
-  --bus: #3f5570;
-  --schleier: rgba(20, 22, 26, 0.34);
+  --papier: light-dark(#faf9f6, #121317);
+  --flaeche: light-dark(#f2f0eb, #1a1c21);
+  --tinte: light-dark(#14161a, #e8e6e1);
+  --gedaempft: light-dark(#5a5f6a, #9aa0aa);
+  --linie: light-dark(#dcd8d0, #2c2f36);
+  --linie-stark: light-dark(#8e887e, #676d79);
+  --akzent: light-dark(#12595e, #6fb9bd);
+  --plus: light-dark(#9c4a21, #e09a6a);
+  --minus: light-dark(#2f6b46, #7cc79c);
+  --tram: light-dark(#12595e, #6fb9bd);
+  --bus: light-dark(#3f5570, #93a8c4);
+  --schleier: light-dark(rgba(20, 22, 26, 0.34), rgba(0, 0, 0, 0.72));
 
   --schrift-serif: "TramPuls Serif", "Serif Ersatz", Georgia, "Times New Roman", serif;
   --schrift-grotesk: "Archivo Var", "Groteske Ersatz", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -154,22 +172,13 @@
   --tippziel: 2.75rem;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --papier: #121317;
-    --flaeche: #1a1c21;
-    --tinte: #e8e6e1;
-    --gedaempft: #9aa0aa;
-    --linie: #2c2f36;
-    --linie-stark: #676d79;
-    --akzent: #6fb9bd;
-    --plus: #e09a6a;
-    --minus: #7cc79c;
-    --tram: #6fb9bd;
-    --bus: #93a8c4;
-    --schleier: rgba(0, 0, 0, 0.72);
-  }
-}
+/* Die ausdrueckliche Wahl aus der Kopfleiste. Sie steht hinter der
+   Systemvorgabe und schlaegt sie in beide Richtungen — auch "hell" auf einem
+   Geraet, das dunkel gestellt ist. Gesetzt wird das Merkmal von
+   `public/farbschema.js`, noch bevor das erste Bild der Seite steht; ohne
+   JavaScript bleibt es aus und die Systemvorgabe gilt unveraendert weiter. */
+:root[data-farbschema="hell"] { color-scheme: light; }
+:root[data-farbschema="dunkel"] { color-scheme: dark; }
 
 * { box-sizing: border-box; }
 
@@ -386,6 +395,33 @@ header.kopfleiste nav a[aria-current="page"] {
   font-weight: 600;
   box-shadow: inset 0 -2px 0 var(--akzent);
 }
+
+/* Der Umschalter fuer das Farbschema. Er sitzt am aeusseren Rand der
+   Kopfleiste, hinter der Navigation: er gehoert nicht zu ihr — ein Knopf, der
+   die Seite umfaerbt, ist kein Ziel, das man ansteuert.
+
+   Der Vorgabestil fuer `button` weiter unten gibt jedem Knopf Rahmen und
+   Flaeche. Beides waere hier eine Kachel in einer Leiste, die sonst nur aus
+   Haarlinien besteht — deshalb zurueckgenommen, wie beim Begriffsknopf. Die
+   Fingerbreite bleibt, sie ist der Grund fuer die Mindestmasse. */
+.farbschalter {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+  min-height: var(--tippziel);
+  min-width: var(--tippziel);
+  padding: 0;
+  border: 0;
+  border-radius: 2px;
+  background: none;
+  color: var(--gedaempft);
+  /* Das Zeichen ist 16 px breit, sein Tippziel 44 — ohne den negativen
+     Aussenabstand stuende es sichtbar weit vom Rand der Huelle ab. */
+  margin-inline-end: calc(var(--r3) * -1);
+}
+.farbschalter:hover { color: var(--akzent); }
+.farbschalter svg { display: block; width: 1rem; height: 1rem; }
 
 footer.fuss {
   border-top: 1px solid var(--linie);
@@ -943,7 +979,12 @@ h1 .nummer { font-size: 1.35rem; min-width: 3.2rem; padding: 0.15rem 0.5rem; }
   /* Wortmarke oben, Navigation in der zweiten Zeile. Auf 344 px passen
      Wortmarke und fuenf Eintraege zusammen nicht in eine Zeile; getrennt
      passen sie beide. */
-  header.kopfleiste nav { margin-inline-start: 0; flex-basis: 100%; gap: 0 var(--r3); }
+  header.kopfleiste nav { margin-inline-start: 0; flex-basis: 100%; gap: 0 var(--r3); order: 2; }
+
+  /* Der Umschalter rueckt neben die Wortmarke, nicht unter die Navigation:
+     in der Quelltextreihenfolge steht er hinter ihr und laege sonst allein in
+     einer dritten Zeile. */
+  .farbschalter { order: 1; margin-inline-start: auto; }
 
   .linienliste li { flex-direction: column; align-items: stretch; gap: var(--r2); }
   /* In der Spalte ist die Flexbasis die Hoehe — 16rem waeren hier Luft. Und
@@ -1008,5 +1049,63 @@ h1 .nummer { font-size: 1.35rem; min-width: 3.2rem; padding: 0.15rem 0.5rem; }
     margin-top: 0;
     padding-top: var(--r2);
     border-top: 2px solid var(--linie);
+  }
+}
+
+/* Ab Schreibtischbreite: die Seite darf mehr vom Schirm belegen.
+
+   Zwei Stellschrauben, und nur eine davon ist die Huelle. Auf einer reinen
+   Textseite — /lizenz, /impressum — haette es nichts gebracht, allein die
+   Huelle zu weiten: der Lesetext haelt sein Mass von 40 rem, die gewonnene
+   Breite waere daneben leer geblieben und die Leere damit groesser statt
+   kleiner. Deshalb waechst zusaetzlich die Schrift. Die Zeile wird dadurch
+   breiter, ohne mehr Zeichen zu tragen — 40 rem sind bei 16 px 640 px und
+   bei 18 px 720 px, in beiden Faellen dieselben rund 80 Anschlaege. Das Mass
+   selbst bleibt also unangetastet.
+
+   Die Huelle waechst nur so weit mit, wie das Raster mit Randspalte es
+   ausfuellen kann: 74 rem abzueglich Innenabstand, Randspalte und Rinne
+   lassen dem Hauptteil 48 rem statt 44 — davon leben Tabellen und Diagramme,
+   nicht der Fliesstext.
+
+   `rem` und nicht `px` fuer den Schriftgrad: auf dem Wurzelelement bezieht
+   sich rem auf die *voreingestellte* Groesse des Browsers. Wer sie dort auf
+   20 px gestellt hat, bekommt hier 21,25 px und nicht 17 — eine px-Angabe
+   haette diese Einstellung stillschweigend ueberschrieben. Aus demselben
+   Grund verschieben sich die Haltepunkte nicht mit: in einer Medienabfrage
+   meint rem immer die Voreinstellung, nie den hier gesetzten Wert.
+
+   Unterhalb von 87,5 rem (1400 px) aendert sich nichts — Telefon und Tablet
+   behalten jeden Wert, den sie vorher hatten. */
+@media (min-width: 87.5rem) {
+  :root {
+    font-size: 1.0625rem;
+    --breite-seite: 70rem;
+    --breite-rand: 18rem;
+  }
+
+  /* Eine Seite, die nur aus Lesetext besteht — /lizenz, /impressum, /befunde —
+     hat nichts, was die zusaetzliche Huellenbreite fuellen koennte. Bekaeme
+     sie sie trotzdem, stuende die Navigation am aeusseren Rand, waehrend der
+     Text 300 px weiter innen aufhoert: die Leere daneben faellt dann staerker
+     auf als vorher, nicht weniger. Solche Seiten behalten deshalb eine engere
+     Huelle — die groessere Schrift oben gilt fuer sie weiterhin, ihr Textblock
+     waechst also trotzdem.
+
+     Erkannt am Inhalt statt an einer Klasse je Seite: die Merkmale unten
+     stehen alle schon in der ausgelieferten HTML, nicht erst nach dem Laden
+     der Zahlen — sonst spraenge die Seitenbreite beim Nachladen. */
+  body:not(:has(main .block, main .breit, main .kennzahlen, main .vergleich,
+                main .regler, main .linienliste, main .tabellenhuelle,
+                main .diagramm, main table)) {
+    --breite-seite: 62rem;
+  }
+}
+
+@media (min-width: 112.5rem) {
+  :root {
+    font-size: 1.125rem;
+    --breite-seite: 74rem;
+    --breite-rand: 20rem;
   }
 }

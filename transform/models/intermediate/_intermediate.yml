@@ -36,6 +36,25 @@ models:
               max_value: 7200
               config: {severity: warn}
 
+  - name: int_fremdkennung
+    description: >
+      ADR-021: beobachtete Fahrten und Halte, deren trip_id in der fuer den
+      Betriebstag gewaehlten Sollfahrplan-Version fehlt. Sie fallen in
+      int_soll_ist aus dem Join und tauchen danach nirgends mehr auf — dieses
+      Modell ist die einzige Stelle, an der sie gezaehlt werden.
+    columns:
+      - name: betriebstag
+        data_tests: [unique, not_null]
+      - name: beobachtete_fahrten
+        data_tests: [not_null]
+      - name: fahrten_ohne_sollrahmen
+        description: "Teilmenge von beobachtete_fahrten — nie groesser."
+        data_tests: [not_null]
+      - name: halte_ohne_sollrahmen
+        data_tests: [not_null]
+      - name: static_version
+        data_tests: [not_null]
+
   - name: int_richtung
     description: >
       Richtungsname je (route_id, richtung), abgeleitet aus dem haeufigsten Endhalt

@@ -102,3 +102,20 @@ models:
         data_tests: [not_null]
       - name: erhebung_vollstaendig
         data_tests: [not_null]
+      - name: beobachtete_fahrten
+        description: >
+          Fahrten, zu denen an diesem Betriebstag ueberhaupt eine Meldung kam —
+          unabhaengig davon, ob sie im Soll-Rahmen auftauchen. Nenner zu
+          fahrten_ohne_sollrahmen.
+        data_tests: [not_null]
+      - name: fahrten_ohne_sollrahmen
+        description: >
+          ADR-021: beobachtete Fahrten, deren trip_id in der fuer diesen
+          Betriebstag gewaehlten Sollfahrplan-Version fehlt. Sie fallen vor
+          fct_halt_events weg und stehen in keiner anderen Spalte dieses Marts.
+          Erwartet wird 0; auffaellig sind Umschalttage zwischen zwei
+          Fahrplanperioden.
+        data_tests: [not_null]
+      - name: halte_ohne_sollrahmen
+        description: "Dieselbe Menge auf Halt-Ebene."
+        data_tests: [not_null]

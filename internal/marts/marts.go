@@ -146,6 +146,25 @@ type Datenqualitaet struct {
 
 	Deckung              *float64 `parquet:"deckung"`
 	ErhebungVollstaendig bool     `parquet:"erhebung_vollstaendig"`
+
+	// ADR-021: Beobachtungen, die aus dem Soll-Rahmen fallen, weil ihre trip_id
+	// in der fuer den Betriebstag gewaehlten Sollfahrplan-Version fehlt. Sie
+	// stehen in keiner anderen Zahl dieser Struktur -- sie fallen vor
+	// fct_halt_events weg. Erwartet wird 0; ein Umschalttag zwischen zwei
+	// Fahrplanperioden faellt hier auf, statt als stiller Tag mit schlechter
+	// Deckung durchzugehen.
+	//
+	// Zeiger, und zwar aus einem Grund, der nichts mit NULL in SQL zu tun hat:
+	// mart_datenqualitaet ist inkrementell, und dbt legt neue Spalten in einer
+	// bestehenden Tabelle standardmaessig *nicht* an (on_schema_change: ignore).
+	// Zwischen dem Deployment dieser Aenderung und dem naechsten Vollaufbau
+	// fehlen die Spalten im Parquet also. Als int64 laese sich das als "0 Fahrten
+	// ohne Fahrplanbezug" -- eine gute Nachricht, die niemand gemessen hat.
+	// Als Zeiger bleibt es nil, wird zu null in der JSON-Datei und auf
+	// /methodik zu einem Strich.
+	BeobachteteFahrten    *int64 `parquet:"beobachtete_fahrten"`
+	FahrtenOhneSollrahmen *int64 `parquet:"fahrten_ohne_sollrahmen"`
+	HalteOhneSollrahmen   *int64 `parquet:"halte_ohne_sollrahmen"`
 }
 
 // Linie sind die Stammdaten einer Linie aus dem Sollfahrplan.

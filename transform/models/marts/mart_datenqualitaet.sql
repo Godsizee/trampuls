@@ -36,6 +36,25 @@ erhebung as (
 
 ),
 
+-- ADR-021: was der Soll-Rahmen nicht aufnehmen konnte. Diese Fahrten stehen in
+-- keiner anderen Spalte dieses Marts -- sie fallen vor fct_halt_events weg, sind
+-- also weder bewertbar noch "ohne_meldung" noch "nicht_erhoben", sondern gar
+-- nicht da. Ohne diese Zeile ist ein Umschalttag ein stiller Tag mit schlechter
+-- Deckung; mit ihr sagt er, warum.
+fremdkennung as (
+
+    select
+        betriebstag,
+        beobachtete_fahrten,
+        fahrten_ohne_sollrahmen,
+        halte_ohne_sollrahmen
+    from {{ ref('int_fremdkennung') }}
+    {% if is_incremental() %}
+    where betriebstag >= (select coalesce(max(betriebstag), '1900-01-01'::date) from {{ this }})
+    {% endif %}
+
+),
+
 je_tag as (
 
     select
@@ -69,6 +88,10 @@ select
     jt.static_versionen,
     -- Deckung: Anteil der Soll-Halte, zu denen ueberhaupt etwas beobachtet wurde.
     round(jt.bewertbare_halte * 1.0 / nullif(jt.soll_halte, 0), 4)       as deckung,
-    coalesce(e.erhebungsluecken_stunden, 0) = 0                          as erhebung_vollstaendig
+    coalesce(e.erhebungsluecken_stunden, 0) = 0                          as erhebung_vollstaendig,
+    coalesce(fk.beobachtete_fahrten, 0)                                  as beobachtete_fahrten,
+    coalesce(fk.fahrten_ohne_sollrahmen, 0)                              as fahrten_ohne_sollrahmen,
+    coalesce(fk.halte_ohne_sollrahmen, 0)                                as halte_ohne_sollrahmen
 from je_tag jt
 left join erhebung e on e.betriebstag = jt.betriebstag
+left join fremdkennung fk on fk.betriebstag = jt.betriebstag

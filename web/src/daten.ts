@@ -154,6 +154,13 @@ export interface MethodikDatei {
   erhebung_vollstaendig: boolean[];
   erste_beobachtung: string[];
   letzte_beobachtung: string[];
+  // ADR-021. `null` je Tag heisst "noch nicht erhoben" — der Export stammt aus
+  // der Zeit vor dieser Kennzahl, weil mart_datenqualitaet inkrementell ist und
+  // die Spalten erst ein Vollaufbau anlegt. Das ist nicht dasselbe wie 0 und
+  // darf auf der Seite nicht so aussehen.
+  beobachtete_fahrten?: (number | null)[];
+  fahrten_ohne_sollrahmen?: (number | null)[];
+  halte_ohne_sollrahmen?: (number | null)[];
 }
 
 const BASIS = "daten";

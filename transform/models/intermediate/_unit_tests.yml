@@ -179,3 +179,82 @@ unit_tests:
            fahrten_mit_diesem_endhalt: 1, fahrten_gesamt: 1, kurzlauf_anteil: 0.0, ringfahrten_anteil: 0.0}
         - {route_id: R, richtung: 1, richtung_name: Nord, namensregel: endhalt,
            fahrten_mit_diesem_endhalt: 1, fahrten_gesamt: 1, kurzlauf_anteil: 0.0, ringfahrten_anteil: 0.0}
+
+  # ADR-021: der Umschalttag als Fixture. Der Feed meldet an einem Betriebstag
+  # beide Namensraeume -- die eine Haelfte steht in der gewaehlten Version, die
+  # andere nicht. Genau die andere Haelfte faellt in int_soll_ist aus dem Join
+  # und tauchte bis zu diesem Modell nirgends mehr auf.
+  - name: int_fremdkennung_zaehlt_den_umschalttag
+    model: int_fremdkennung
+    description: >
+      40 beobachtete Fahrten, davon 15 mit Kennungen, die die gewaehlte Version
+      nicht kennt. Erwartet werden genau diese 15 -- und die Halte dazu, ohne
+      dass mehrfach gemeldete Halte doppelt zaehlen.
+    given:
+      - input: ref('int_static_version')
+        format: sql
+        rows: |
+          select date '2026-08-30' as betriebstag,
+                 date '2026-08-29' as static_version,
+                 date '2026-08-29' as aelteste_version
+      - input: ref('int_betriebstag')
+        format: sql
+        rows: |
+          -- 25 Fahrten, die die gewaehlte Version kennt, je zwei Halte
+          select date '2026-08-30' as betriebstag, 'alt-' || i as trip_id,
+                 'H' || s as stop_id, s as stop_sequence
+          from generate_series(1, 25) t(i), generate_series(1, 2) u(s)
+          union all
+          -- 15 Fahrten aus der anderen Fassung, je zwei Halte
+          select date '2026-08-30', 'neu-' || i, 'H' || s, s
+          from generate_series(1, 15) t(i), generate_series(1, 2) u(s)
+          union all
+          -- Derselbe Halt ein zweites Mal gemeldet: der Collector schreibt jede
+          -- Zustandsaenderung mit. Ohne distinct zaehlte er doppelt.
+          select date '2026-08-30', 'neu-1', 'H1', 1
+      - input: ref('stg_static_fahrt')
+        format: sql
+        rows: |
+          select date '2026-08-29' as static_version, 'alt-' || i as trip_id
+          from generate_series(1, 25) t(i)
+    expect:
+      format: sql
+      rows: |
+        select date '2026-08-30' as betriebstag,
+               date '2026-08-29' as static_version,
+               40                as beobachtete_fahrten,
+               15                as fahrten_ohne_sollrahmen,
+               80                as beobachtete_halte,
+               30                as halte_ohne_sollrahmen
+
+  # Gegenprobe: am normalen Tag steht dort eine Null. Ohne diesen Fall koennte
+  # das Modell konstant melden und der Test bliebe gruen.
+  - name: int_fremdkennung_normaler_tag_ist_null
+    model: int_fremdkennung
+    given:
+      - input: ref('int_static_version')
+        format: sql
+        rows: |
+          select date '2026-08-30' as betriebstag,
+                 date '2026-08-29' as static_version,
+                 date '2026-08-29' as aelteste_version
+      - input: ref('int_betriebstag')
+        format: sql
+        rows: |
+          select date '2026-08-30' as betriebstag, 'alt-' || i as trip_id,
+                 'H' || s as stop_id, s as stop_sequence
+          from generate_series(1, 25) t(i), generate_series(1, 2) u(s)
+      - input: ref('stg_static_fahrt')
+        format: sql
+        rows: |
+          select date '2026-08-29' as static_version, 'alt-' || i as trip_id
+          from generate_series(1, 25) t(i)
+    expect:
+      format: sql
+      rows: |
+        select date '2026-08-30' as betriebstag,
+               date '2026-08-29' as static_version,
+               25                as beobachtete_fahrten,
+               0                 as fahrten_ohne_sollrahmen,
+               50                as beobachtete_halte,
+               0                 as halte_ohne_sollrahmen

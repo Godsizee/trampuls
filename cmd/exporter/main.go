@@ -537,6 +537,15 @@ type methodikDatei struct {
 	Vollstaendig       []bool    `json:"erhebung_vollstaendig"`
 	Erste              []string  `json:"erste_beobachtung"`
 	Letzte             []string  `json:"letzte_beobachtung"`
+
+	// ADR-021. Ohne diese drei Spalten ist ein Umschalttag auf /methodik ein
+	// stiller Tag mit schlechter Deckung -- die Fahrten, die den Unterschied
+	// erklaeren, stehen in keiner anderen Zahl der Datei. null steht fuer "noch
+	// nicht erhoben" und ist ausdruecklich nicht dasselbe wie 0 (siehe
+	// marts.Datenqualitaet).
+	BeobachteteFahrten []*int64 `json:"beobachtete_fahrten"`
+	OhneSollrahmen     []*int64 `json:"fahrten_ohne_sollrahmen"`
+	HalteOhneSollramen []*int64 `json:"halte_ohne_sollrahmen"`
 }
 
 func schreibeMethodik(zielDir string, d *daten) error {
@@ -558,6 +567,9 @@ func schreibeMethodik(zielDir string, d *daten) error {
 		out.Vollstaendig = append(out.Vollstaendig, q.ErhebungVollstaendig)
 		out.Erste = append(out.Erste, text(q.ErsteBeobachtung))
 		out.Letzte = append(out.Letzte, text(q.LetzteBeobachtung))
+		out.BeobachteteFahrten = append(out.BeobachteteFahrten, q.BeobachteteFahrten)
+		out.OhneSollrahmen = append(out.OhneSollrahmen, q.FahrtenOhneSollrahmen)
+		out.HalteOhneSollramen = append(out.HalteOhneSollramen, q.HalteOhneSollrahmen)
 	}
 	return schreibeJSON(filepath.Join(zielDir, "methodik.json"), out)
 }

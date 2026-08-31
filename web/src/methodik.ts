@@ -7,9 +7,18 @@
 // Umbenennungen — eine Bezeichnung, die in der Oberflaeche steht, gehoert in
 // die Begriffstabelle im aufklappbaren Block dieser Seite.
 
-import { ladeIndex, ladeMethodik } from "./daten";
+import { ladeIndex, ladeMethodik, type MethodikDatei } from "./daten";
 import { datum, prozent, zahl } from "./format";
 import { fussnote, tabelle, zeigeFehler } from "./seite";
+
+// ADR-021. Drei Zustaende, nicht zwei: eine Zahl, eine echte Null, und "fuer
+// diesen Tag nie erhoben". Der dritte entsteht zwischen dem Deployment der
+// Kennzahl und dem naechsten Vollaufbau, weil mart_datenqualitaet inkrementell
+// ist und dbt neue Spalten in bestehenden Tabellen nicht nachtraegt.
+function ohneSollrahmen(m: MethodikDatei, i: number): string {
+  const wert = m.fahrten_ohne_sollrahmen?.[i];
+  return wert === undefined || wert === null ? "—" : zahl(wert);
+}
 
 async function start(): Promise<void> {
   const [index, m] = await Promise.all([ladeIndex(), ladeMethodik()]);
@@ -37,7 +46,11 @@ async function start(): Promise<void> {
       ["Betriebstag", "Durchgehend", "Anteil gemessen", "Geplante Halte",
        "Gemessene Halte", "Halte ohne Rückmeldung", "Nicht aufgezeichnet", "Fahrten",
        "Linien",
-       "Aufgezeichnete Stunden", "Stunden ohne Aufzeichnung"],
+       "Aufgezeichnete Stunden", "Stunden ohne Aufzeichnung",
+       // ADR-021: die einzige Spalte, die Fahrten zeigt, die in keiner anderen
+       // Spalte dieser Zeile stecken. Sie steht auch dann da, wenn sie ueberall
+       // 0 ist -- dass geprueft wird, gehoert zur Aussage.
+       "Fahrten ohne Fahrplanbezug"],
       reihenfolge.map((i) => [
         datum(m.betriebstag[i] ?? ""),
         m.erhebung_vollstaendig[i] ? "ja" : "nein",
@@ -50,6 +63,10 @@ async function start(): Promise<void> {
         zahl(m.linien[i] ?? 0),
         zahl(m.belegte_stunden[i] ?? 0),
         zahl(m.erhebungsluecken_stunden[i] ?? 0),
+        // null heisst "fuer diesen Tag noch nicht erhoben" und muss ein Strich
+        // bleiben: als 0 gelesen waere es eine gute Nachricht, die niemand
+        // gemessen hat (ADR-021).
+        ohneSollrahmen(m, i),
       ]),
     ),
   );

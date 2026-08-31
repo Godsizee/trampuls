@@ -162,6 +162,22 @@
         Server neu gestartet wurde. Solche Lücken stehen unten in der Tabelle.</li>
   </ul>
 
+  <h2>Wenn der Fahrplan wechselt, der Betrieb aber noch nicht</h2>
+  <p>Der Verkehrsverbund veröffentlicht einen neuen Fahrplan oft Wochen bevor er
+     gefahren wird. In dieser Zeit gibt es zwei gültige Fassungen, und jede Fahrt trägt
+     in beiden eine andere Kennung. TramPuls entscheidet je Betriebstag, welche Fassung
+     galt — und zwar danach, welche zu den Meldungen dieses Tages passt, nicht danach,
+     welche die neuere ist. Ein Kalenderdatum kann das nicht entscheiden: die neue Datei
+     beansprucht Gültigkeit ab sofort, auch wenn draußen noch der alte Fahrplan
+     gefahren wird.</p>
+  <p>An dem Tag, an dem umgeschaltet wird, kann ein Teil der Meldungen deshalb zur
+     jeweils anderen Fassung gehören. Diese Fahrten lassen sich keinem geplanten Halt
+     zuordnen und fließen in keine Kennzahl ein. <strong>Sie verschwinden aber nicht
+     stillschweigend</strong> — sie stehen in der Tabelle unten als „Fahrten ohne
+     Fahrplanbezug". Steht dort eine Null, gab es an diesem Tag keine. Steht dort eine
+     größere Zahl, ist der Tag nicht einfach schlecht gemessen, sondern es ist bekannt,
+     woran es lag.</p>
+
   <h2>Warum der Tag bis nach Mitternacht reicht</h2>
   <p>Ein
      <button type="button" class="begriff" popovertarget="erkl-betriebstag"
@@ -230,6 +246,15 @@
               wurde, ohne dass sie als ausgefallen gekennzeichnet waren. Ursache offen:
               echter Ausfall oder Aufzeichnungslücke. Zählt deshalb nicht als
               Ausfall.</td>
+        </tr>
+        <tr>
+          <th scope="row">Fahrten ohne Fahrplanbezug</th>
+          <td>Fahrten, zu denen Meldungen ankamen, deren Kennung aber in der für diesen
+              Betriebstag gewählten Fahrplanfassung fehlt — meist beim Wechsel zwischen
+              zwei Fahrplanperioden. Sie gehen in keine Kennzahl ein und sind
+              ausdrücklich <strong>nicht</strong> in „Halte ohne Rückmeldung" oder
+              „Nicht aufgezeichnet" enthalten; sie fallen früher heraus. Im Datenmodell:
+              <code>fahrten_ohne_sollrahmen</code>.</td>
         </tr>
         <tr>
           <th scope="row">Prozentpunkte</th>

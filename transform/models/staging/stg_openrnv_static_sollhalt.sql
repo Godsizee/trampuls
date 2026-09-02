@@ -1,12 +1,27 @@
+{% set muster = var("datenwurzel") ~ "/static-openrnv/v=*/rnv_stop_times.parquet" %}
+
 -- Soll-Zeiten je (trip_id, stop_sequence) aus dem openRNV-Sollfahrplan.
 --
 -- Wie beim VRN bleibt die Zeit Rohtext: GTFS kennt Werte ueber "24:00:00"
 -- hinaus, ein CAST AS TIME verliert genau die Nachtfahrten (Regel 6).
 with quelle as (
 
+{% if dateien_vorhanden(muster) %}
     select *
     from read_parquet('{{ var("datenwurzel") }}/static-openrnv/v=*/rnv_stop_times.parquet',
                       filename = true)
+{% else %}
+        -- Solange der Sammler nicht laeuft, existiert dieser Baum nicht.
+        -- Leeres, typisiertes Ergebnis statt Abbruch (Makro dateien_vorhanden).
+        select
+        cast(null as varchar) as trip_id,
+        cast(null as varchar) as stop_id,
+        cast(null as integer) as stop_sequence,
+        cast(null as varchar) as arrival_time,
+        cast(null as varchar) as departure_time,
+        cast(null as varchar) as filename
+        where false
+{% endif %}
 
 ),
 

@@ -1,3 +1,5 @@
+{% set muster = var("datenwurzel") ~ "/static-openrnv/v=*/rnv_routes.parquet" %}
+
 -- Linien aus dem openRNV-Sollfahrplan.
 --
 -- Achtung, anders als beim VRN: openRNV fuehrt **mehrere route_id je Linie**
@@ -10,9 +12,21 @@
 -- Tram und Bus doppelt vergeben).
 with quelle as (
 
+{% if dateien_vorhanden(muster) %}
     select *
     from read_parquet('{{ var("datenwurzel") }}/static-openrnv/v=*/rnv_routes.parquet',
                       filename = true)
+{% else %}
+        -- Solange der Sammler nicht laeuft, existiert dieser Baum nicht.
+        -- Leeres, typisiertes Ergebnis statt Abbruch (Makro dateien_vorhanden).
+        select
+        cast(null as varchar) as route_id,
+        cast(null as varchar) as route_short_name,
+        cast(null as varchar) as route_long_name,
+        cast(null as integer) as route_type,
+        cast(null as varchar) as filename
+        where false
+{% endif %}
 
 )
 

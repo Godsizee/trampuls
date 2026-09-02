@@ -1,3 +1,5 @@
+{% set muster = var("datenwurzel") ~ "/static-openrnv/v=*/calendar.txt" %}
+
 -- Kalender des openRNV-Sollfahrplans, in derselben langen Form wie beim VRN --
 -- mit zwei Unterschieden, die beide gemessen sind (2026-09-02) und beide
 -- Fallstricke:
@@ -13,9 +15,27 @@
 --    Fahrten vervielfacht.
 with kalender_quelle as (
 
+{% if dateien_vorhanden(muster) %}
     select *
     from read_csv('{{ var("datenwurzel") }}/static-openrnv/v=*/calendar.txt',
                   header = true, all_varchar = true, filename = true)
+{% else %}
+        -- Solange der Sammler nicht laeuft, existiert dieser Baum nicht.
+        -- Leeres, typisiertes Ergebnis statt Abbruch (Makro dateien_vorhanden).
+        select
+        cast(null as varchar) as service_id,
+        cast(null as varchar) as monday,
+        cast(null as varchar) as tuesday,
+        cast(null as varchar) as wednesday,
+        cast(null as varchar) as thursday,
+        cast(null as varchar) as friday,
+        cast(null as varchar) as saturday,
+        cast(null as varchar) as sunday,
+        cast(null as varchar) as start_date,
+        cast(null as varchar) as end_date,
+        cast(null as varchar) as filename
+        where false
+{% endif %}
 
 ),
 

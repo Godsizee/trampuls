@@ -1,3 +1,5 @@
+{% set muster = var("datenwurzel") ~ "/raw-openrnv/date=*/hour=*/*.parquet" %}
+
 -- Eine Zeile je beobachtetem Halt-Zustand aus dem openRNV-Feed (ADR-023).
 --
 -- Bis auf die Wurzel identisch mit stg_rt_meldung: derselbe Collector-Code
@@ -7,9 +9,27 @@
 -- eine Vermischung waere nicht nur unschoen, sie waere fachlich falsch.
 with quelle as (
 
+{% if dateien_vorhanden(muster) %}
     select *
     from read_parquet('{{ var("datenwurzel") }}/raw-openrnv/date=*/hour=*/*.parquet',
                       filename = true, union_by_name = true)
+{% else %}
+        -- Solange der Sammler nicht laeuft, existiert dieser Baum nicht.
+        -- Leeres, typisiertes Ergebnis statt Abbruch (Makro dateien_vorhanden).
+        select
+        cast(null as varchar) as betriebstag,
+        cast(null as varchar) as trip_id,
+        cast(null as varchar) as stop_id,
+        cast(null as integer) as stop_sequence,
+        cast(null as varchar) as schedule_relationship,
+        cast(null as integer) as arrival_delay,
+        cast(null as bigint) as arrival_time,
+        cast(null as integer) as departure_delay,
+        cast(null as bigint) as departure_time,
+        cast(null as bigint) as observed_at,
+        cast(null as varchar) as filename
+        where false
+{% endif %}
 
 ),
 

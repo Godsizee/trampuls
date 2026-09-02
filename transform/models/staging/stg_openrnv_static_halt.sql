@@ -1,3 +1,5 @@
+{% set muster = var("datenwurzel") ~ "/static-openrnv/v=*/stops.txt" %}
+
 -- Haltestellen aus dem openRNV-Sollfahrplan.
 --
 -- **Hier liegt der wichtigste Unterschied zum VRN-Zweig.** Beim VRN ist die
@@ -16,9 +18,24 @@
 -- nur so aussieht, als liesse sie sich vergleichen.
 with quelle as (
 
+{% if dateien_vorhanden(muster) %}
     select *
     from read_csv('{{ var("datenwurzel") }}/static-openrnv/v=*/stops.txt',
                   header = true, all_varchar = true, filename = true)
+{% else %}
+        -- Solange der Sammler nicht laeuft, existiert dieser Baum nicht.
+        -- Leeres, typisiertes Ergebnis statt Abbruch (Makro dateien_vorhanden).
+        select
+        cast(null as varchar) as stop_id,
+        cast(null as varchar) as stop_name,
+        cast(null as varchar) as stop_lat,
+        cast(null as varchar) as stop_lon,
+        cast(null as varchar) as location_type,
+        cast(null as varchar) as platform_code,
+        cast(null as varchar) as parent_station,
+        cast(null as varchar) as filename
+        where false
+{% endif %}
 
 ),
 

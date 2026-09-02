@@ -21,3 +21,80 @@ models:
       - name: exception_type
         data_tests:
           - accepted_values: {values: [1, 2], quote: false}
+  # ------------------------------------------------------------------ openRNV
+  # Zweite Quelle (ADR-023). Eigene Modelle statt einer Quellenspalte, weil die
+  # Namensraeume disjunkt sind: die Schnittmenge der trip_id mit dem VRN ist 0
+  # (gemessen 2026-08-31). Zusammengefuehrt wird erst dort, wo beide dieselbe
+  # Bedeutung haben -- an der Linie und an der Station.
+
+  - name: stg_openrnv_rt_meldung
+    description: >
+      Beobachtete Halt-Zustaende aus dem openRNV-Feed. Schema identisch mit
+      stg_rt_meldung -- derselbe Collector-Code schreibt beide Baeume.
+    columns:
+      - name: trip_id
+        data_tests: [not_null]
+
+  - name: stg_openrnv_rt_fahrtmeldung
+    description: >
+      Fahrtzustand aus denselben Dateien (Zeilen ohne stop_id) -- die Ausfaelle,
+      die sonst spurlos verschwaenden (Regel 8).
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [trip_id, betriebstag_feed, schedule_relationship]
+
+  - name: stg_openrnv_static_linie
+    description: >
+      Linien des openRNV-Sollfahrplans. **Mehrere route_id je Linie** -- die
+      Linienidentitaet ist (linie, verkehrsart), nicht die route_id.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [route_id, static_version]
+    columns:
+      - name: verkehrsart
+        data_tests:
+          - accepted_values: {values: ['tram', 'bus', 'sonstige']}
+
+  - name: stg_openrnv_static_fahrt
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [trip_id, static_version]
+    columns:
+      - name: trip_id
+        data_tests: [not_null]
+      - name: route_id
+        data_tests: [not_null]
+
+  - name: stg_openrnv_static_sollhalt
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [trip_id, stop_sequence, static_version]
+
+  - name: stg_openrnv_static_halt
+    description: >
+      Halte des openRNV-Sollfahrplans. Die Station kommt aus parent_station
+      (vollstaendig befuellt, anders als beim VRN) und ist die DHID, ueber die
+      sich beide Quellen ueberhaupt vergleichen lassen -- 923 von 924 kommen
+      auch im VRN-Sollfahrplan vor (gemessen 2026-08-31).
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [stop_id, static_version]
+    columns:
+      - name: station_id
+        data_tests: [not_null]
+
+  - name: stg_openrnv_static_kalender
+    description: >
+      Kalender des openRNV-Sollfahrplans. Kein calendar_dates-Zweig (den liefert
+      openRNV nicht), und **eine service_id kommt mehrfach vor**, mit
+      ueberlappenden Datumsbereichen -- deshalb gehoeren start_date/end_date in
+      das Korn, anders als beim VRN.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [service_id, static_version, wochentag, start_date, end_date]
+    columns:
+      - name: service_id
+        data_tests: [not_null]
+      - name: quelle
+        data_tests:
+          - accepted_values: {values: ['calendar']}

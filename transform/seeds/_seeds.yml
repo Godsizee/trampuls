@@ -28,3 +28,60 @@ seeds:
         tests: [unique, not_null]
       - name: linie
         tests: [not_null]
+  - name: quelle_openrnv
+    description: >
+      Die Linien, deren Ist-Daten **nicht** aus dem VRN-Feed kommen, sondern aus
+      openRNV (ADR-023). Aufnahmekriterium ist kein Gefuehl, sondern eine Zahl:
+      **keine einzige bewertbare Beobachtung im eigenen Bestand**, bei
+      gleichzeitiger Lieferung durch openRNV.
+
+      Stand 2026-09-02, gemessen ueber 2026-08-28 bis 2026-09-02 (6 Betriebstage,
+      890.659 Soll-Halte im Netz, 43,5 % davon bewertbar): vier
+      Strassenbahnlinien mit zusammen 78.414 Soll-Halten und 0 Beobachtungen.
+      openRNV deckt dieselben Linien am Betriebstag 2026-09-01 zu 95,4 bis
+      100,0 % ab -- am oberen Rand des Bandes der Kontrolllinien (ADR-022).
+
+      **Nicht aufgenommen, obwohl naheliegend:**
+
+      - **RNV 9** (`de:vrn:02009:s`, in openRNV "9X"). Die Messung vom
+        2026-09-02 fuehrte sie als blind -- das war ein Artefakt des
+        Messwerkzeugs, das VRN-Namen auf die openRNV-Schreibweise normalisiert
+        ("RNV 9" -> "9") und danach "9X" suchte. Im eigenen Bestand sind 1.782
+        von 10.545 Soll-Halten bewertbar (16,9 %). Schwach, nicht blind -- und
+        wo beide Quellen liefern, braeuchte es eine Bruecke je Fahrt, die zu
+        10,7 % raten muesste (ADR-022).
+      - **22 Buslinien** mit zusammen 51.864 Soll-Halten und ebenfalls 0
+        Beobachtungen. Dass der VRN-Feed sie nicht meldet, steht fest; dass
+        openRNV sie meldet, steht **nicht** fest -- ein Einzelabruf zeigte 0 bis
+        4 Fahrten je Linie, was keine Aussage ist. Sie kommen dazu, sobald der
+        eigene openRNV-Bestand sie belegt, nicht vorher.
+
+      Die Zuordnung laeuft ueber (openrnv_linie, openrnv_verkehrsart) und nicht
+      ueber die route_id: openRNV fuehrt mehrere route_id je Linie (1.343 Routen
+      fuer gut 100 Linien, gemessen 2026-09-02). Die Verkehrsart gehoert
+      zwingend dazu -- sieben RNV-Nummern sind zwischen Tram und Bus doppelt
+      vergeben (Regel 12).
+
+      Aendert sich diese Liste, wirkt das **rueckwirkend** auf alle Betriebstage.
+      Ein Vollaufbau ist dann Pflicht (ADR-012); die Seed-Signatur in
+      pruefung-stuendlich meldet es, wenn er ausbleibt.
+    columns:
+      - name: route_id
+        description: >
+          Der Schluessel des VRN-Sollfahrplans -- unter ihm existiert die Linie im
+          Frontend schon heute, mit Verlauf und Richtungen, nur ohne Zahlen.
+        tests: [unique, not_null]
+      - name: linie
+        description: Anzeige, nie Schluessel (Regel 12).
+        tests: [not_null]
+      - name: openrnv_linie
+        description: route_short_name im openRNV-Sollfahrplan.
+        tests: [not_null]
+      - name: openrnv_verkehrsart
+        tests:
+          - not_null
+          - accepted_values:
+              values: ["tram", "bus"]
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [openrnv_linie, openrnv_verkehrsart]

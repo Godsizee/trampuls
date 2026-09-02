@@ -104,7 +104,7 @@ func BuildVersion(ctx context.Context, cacheDir string) (*VersionResult, error) 
 	if err := os.MkdirAll(versionDir, 0o755); err != nil {
 		return nil, fmt.Errorf("static: Versionsverzeichnis anlegen: %w", err)
 	}
-	if err := extractRawFiles(zr, versionDir); err != nil {
+	if err := extractRawFiles(zr, versionDir, rawEntries); err != nil {
 		return nil, err
 	}
 
@@ -178,8 +178,11 @@ func BuildVersion(ctx context.Context, cacheDir string) (*VersionResult, error) 
 	return res, nil
 }
 
-func extractRawFiles(zr *zip.ReadCloser, versionDir string) error {
-	for _, name := range rawEntries {
+// extractRawFiles nimmt die Dateiliste als Parameter: der VRN-Fahrplan und der
+// openRNV-Fahrplan liefern nicht dasselbe (ADR-023, openRNV hat keine
+// calendar_dates.txt).
+func extractRawFiles(zr *zip.ReadCloser, versionDir string, entries []string) error {
+	for _, name := range entries {
 		dst := filepath.Join(versionDir, name)
 		if info, err := os.Stat(dst); err == nil && info.Size() > 0 {
 			continue // Version bereits abgelegt, nie überschreiben

@@ -23,17 +23,23 @@ Beide Anwendungen mounten **denselben Host-Pfad** `/data/coolify/trampuls` nach 
 
 ```
 /data/coolify/trampuls/
-  raw/date=YYYY-MM-DD/hour=HH/rnv-*.parquet   Rohdaten, unveränderlich (Regel 1)
-  static/v=YYYY-MM-DD/                        Sollfahrplan, versioniert
+  raw/date=YYYY-MM-DD/hour=HH/rnv-*.parquet   Rohdaten VRN, unveränderlich (Regel 1)
+  static/v=YYYY-MM-DD/                        Sollfahrplan VRN, versioniert
   static/rnv_trips_aktuell.parquet            Filterliste des Collectors
   health/heartbeat.json                       Zustand des letzten Polls
+  raw-openrnv/date=…/hour=…/rnv-*.parquet     Rohdaten openRNV (ADR-023)
+  static-openrnv/v=YYYY-MM-DD/                Sollfahrplan openRNV
+  health/heartbeat-openrnv.json               Zustand des zweiten Sammlers
   warehouse/trampuls.duckdb                   Zwischenprodukt, jederzeit neu baubar
   export/marts/*.parquet                      Marts für den Exporter
   export/web/daten/*.json                     was das Frontend lädt
 ```
 
 Der Collector schreibt `raw/`, `static/`, `health/`. Der Webcontainer liest die beiden
-ersten und schreibt ausschließlich `warehouse/` und `export/`.
+ersten und schreibt ausschließlich `warehouse/` und `export/`. Der openRNV-Sammler
+schreibt ausschließlich seine eigenen Bäume — **kein Pfad des VRN-Collectors wird von ihm
+berührt**, und das ist Absicht: die Trennung ist der halbe Grund für den eigenen
+Container (Regel 3).
 
 ## trampuls-collector
 
@@ -61,6 +67,41 @@ Grund: Coolify deployt über Docker Compose. `custom_docker_run_options` mit
 **Das ist die stille Sorte Fehler, vor der die Betriebsdoku warnt:** der Deploy meldete
 Erfolg, der Collector lief weiter, und trotzdem hätte jedes Deployment bis zu eine Stunde
 Historie gekostet.
+
+## trampuls-openrnv (zweite Quelle, ADR-023)
+
+Sammelt den Echtzeitfeed der rnv für die **26 Linien, die der VRN-Verbundfeed nicht
+meldet** (4 Straßenbahn-, 22 Buslinien = 14,6 % aller Soll-Halte, gemessen am eigenen
+Bestand 2026-08-28 bis 2026-09-02).
+
+| Einstellung | Wert | Warum |
+|---|---|---|
+| Dockerfile | `/deploy/Dockerfile.openrnv` | |
+| Volume | `host_path` `/data/coolify/trampuls` → `/data` | **derselbe Pfad wie die anderen beiden** |
+| Ports Exposes | `3000` | nur der Healthcheck-Endpunkt |
+| Health Check Path | `/health` | |
+| **Stop Grace Period** | `60` | **Pflicht (Regel 4)** — dieselbe Falle wie beim Collector |
+| Health Check Start Period | `120` | deckt den Kaltstart-Aufbau des Sollfahrplans ab |
+| Scheduled Task | `openrnv-statictool-taeglich`, `35 3 * * *` mit Befehl `/usr/local/bin/openrnv-statictool` | Sollfahrplan nachziehen, versetzt zum VRN-Task |
+
+Kein FQDN. Optionale Umgebungsvariablen:
+
+| Variable | Voreinstellung | Wofür |
+|---|---|---|
+| `OPENRNV_RT_URL` | `https://gtfs-dds.rnv-online.de/tripupdates` | Endpunkt, falls die rnv auf den Data-Hub-Zugang umstellt |
+| `OPENRNV_STATIC_URL` | `https://gtfs-dds.rnv-online.de/latest/gtfs.zip` | dito für den Sollfahrplan |
+| `OPENRNV_POLL_SECONDS` | `60` | Takt; 60 s sind über 41,5 h ohne Drosselung gemessen (ADR-022) |
+
+**Der Endpunkt ist nicht der dokumentierte.** Der in der Zugangsmail genannte
+Sandbox-Host löst öffentlich nicht auf; erreichbar und unauthentifiziert beantwortet ist
+derselbe Feed unter `gtfs-dds.rnv-online.de`. Die Rückfrage an die rnv läuft. Deshalb
+steht der Endpunkt in einer Variablen und nicht im Code — ein Wechsel ist dann eine
+Einstellung, kein Deploy mit Codeänderung.
+
+**Fällt dieser Container aus, passiert dem VRN-Collector nichts.** Umgekehrt genauso. Das
+ist der Zweck der eigenen Anwendung (Regel 3), und die stündliche Prüfung meldet den
+Ausfall: `pruefung-stuendlich` liest `health/heartbeat-openrnv.json` mit, sobald es das
+erste Mal existiert.
 
 ## trampuls-web
 

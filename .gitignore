@@ -1,6 +1,9 @@
 # Rohdaten und Cache — gehören aufs Volume, nie ins Repo
 /static/
 /raw/
+# Zweite Quelle (ADR-023) -- eigene Baeume, gleiche Regel: Volume, nicht Repo
+/static-openrnv/
+/raw-openrnv/
 /data/
 /health/
 # Messlaeufe (tools/openrnv-24h) -- Rohabrufe fremder Feeds, gehoeren
@@ -36,6 +39,9 @@ __pycache__/
 .env.*
 *.pem
 *.key
+
+# Werkzeug-Cache (rtk) -- lokal, gehoert niemandem sonst
+.rtk/
 
 # Editor/OS
 .DS_Store

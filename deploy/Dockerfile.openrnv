@@ -1,0 +1,47 @@
+# Baut openrnv-collector und openrnv-statictool — die zweite Quelle (ADR-023), fuer die
+# 26 Linien, die der VRN-Verbundfeed nicht meldet.
+#
+# Eigenes Image und eigene Coolify-Anwendung, nicht ein zweiter Prozess im
+# Collector-Container: Regel 3 entscheidet den Konflikt zwischen Collector-Stabilitaet
+# und allem anderen zugunsten des Collectors. Faellt dieser Container aus, sammelt der
+# VRN-Collector unbeirrt weiter.
+#
+# openrnv-statictool laeuft zusaetzlich als eigener taeglicher Scheduled Task mit
+# demselben Image, Befehl ueberschrieben:
+#   /usr/local/bin/openrnv-statictool
+#
+# WICHTIG (Regel 2): WORKDIR /data muss auf dasselbe Persistent Volume gemountet werden
+# wie beim Collector (Host-Pfad /data/coolify/trampuls, siehe README) — die Daten
+# beider Quellen gehoeren nebeneinander, sonst kann dbt sie nie zusammenfuehren.
+# Geschrieben wird ausschliesslich in raw-openrnv/, static-openrnv/ und
+# health/heartbeat-openrnv.json; kein Pfad des VRN-Collectors wird beruehrt.
+
+FROM golang:1.26-alpine AS build
+WORKDIR /src
+
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY cmd/ cmd/
+COPY internal/ internal/
+
+RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/openrnv-collector ./cmd/openrnv-collector
+RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/openrnv-statictool ./cmd/openrnv-statictool
+
+# alpine statt distroless: der Kaltstart braucht eine Shell fuer den Entrypoint.
+# ca-certificates ist Pflicht — der openRNV-Endpunkt ist HTTPS. tzdata wird nicht
+# installiert, die Zeitzonendatenbank steckt ueber time/tzdata im Binary (Regel 5).
+FROM alpine:3.21
+RUN apk add --no-cache ca-certificates
+
+COPY --from=build /out/openrnv-collector /usr/local/bin/openrnv-collector
+COPY --from=build /out/openrnv-statictool /usr/local/bin/openrnv-statictool
+COPY deploy/entrypoint-openrnv.sh /usr/local/bin/entrypoint-openrnv.sh
+RUN chmod +x /usr/local/bin/entrypoint-openrnv.sh
+
+WORKDIR /data
+
+# Nur der Healthcheck-Endpunkt (internal/health/server.go).
+EXPOSE 3000
+
+ENTRYPOINT ["/usr/local/bin/entrypoint-openrnv.sh"]

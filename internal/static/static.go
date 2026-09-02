@@ -94,7 +94,14 @@ func Load(ctx context.Context, cacheDir string) (*RNVData, error) {
 
 func ensureCached(ctx context.Context, cacheDir string) (string, error) {
 	versionDir := filepath.Join(cacheDir, "v="+time.Now().Format("2006-01-02"))
-	zipPath := filepath.Join(versionDir, "vrn_gtfs.zip")
+	return ensureCachedFrom(ctx, versionDir, VRNStaticURL, "vrn_gtfs.zip")
+}
+
+// ensureCachedFrom laedt ein GTFS-Zip genau einmal je Versionsverzeichnis. Von
+// ensureCached getrennt, seit es zwei Sollfahrplaene gibt (ADR-023) — der Download
+// selbst ist bei beiden derselbe, die Herkunft nicht.
+func ensureCachedFrom(ctx context.Context, versionDir, url, dateiname string) (string, error) {
+	zipPath := filepath.Join(versionDir, dateiname)
 
 	if info, err := os.Stat(zipPath); err == nil && info.Size() > 0 {
 		return zipPath, nil
@@ -104,7 +111,7 @@ func ensureCached(ctx context.Context, cacheDir string) (string, error) {
 		return "", fmt.Errorf("static: Cache-Verzeichnis anlegen: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, VRNStaticURL, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return "", fmt.Errorf("static: Anfrage bauen: %w", err)
 	}

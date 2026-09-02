@@ -229,6 +229,75 @@ def prg_seed_nach_vollaufbau(daten, befunde):
         )
 
 
+def prg_openrnv_sammler(daten, jetzt, befunde):
+    """Der zweite Sammler (ADR-023) -- Heartbeat, Feed-Alter, Fahrten je Abruf.
+
+    Gibt zurueck, ob geprueft wurde. Solange die Anwendung nicht deployt ist, gibt
+    es nichts zu pruefen; sobald sie *einmal* gesammelt hat, ist ein fehlender
+    Heartbeat dagegen ein Befund. Der Unterschied ist die Lehre aus dem
+    2026-08-31: eine Pruefung, die nie rot werden kann, ist keine.
+    """
+    hb_pfad = Path(daten) / "health" / "heartbeat-openrnv.json"
+    hat_gesammelt = any((Path(daten) / "raw-openrnv").glob("date=*"))
+
+    if not hb_pfad.exists():
+        if hat_gesammelt:
+            befunde.append(
+                f"openRNV-Sammler hat Rohdaten geschrieben, aber {hb_pfad} fehlt -- "
+                "der Sammler laeuft nicht mehr"
+            )
+            return True
+        return False
+
+    try:
+        with open(hb_pfad, encoding="utf-8") as f:
+            hb = json.load(f)
+        alter_s = (jetzt - datetime.datetime.fromisoformat(hb["time"])).total_seconds()
+    except (OSError, ValueError, KeyError) as exc:
+        befunde.append(f"openRNV-Heartbeat nicht lesbar ({exc})")
+        return True
+
+    # 10 Minuten statt 5 wie beim VRN: der openRNV-Sammler pollt im 60-Sekunden-Takt
+    # (cmd/openrnv-collector), das sind dieselben 10 verpassten Zyklen.
+    if alter_s > 600:
+        befunde.append(f"openRNV-Heartbeat ist {alter_s / 60:.1f} min alt (Grenze 10 min)")
+
+    feed_age_s = hb.get("feed_age_s")
+    if feed_age_s is not None and feed_age_s > 300:
+        befunde.append(f"openRNV-Feed-Alter {feed_age_s / 60:.1f} min (Grenze 5 min)")
+
+    # Gemessen am 2026-09-02: 244 Fahrten je Abruf um 17:36, 228 um 06:29. Die
+    # Grenze liegt bewusst weit darunter -- sie soll den stillen Feed fangen, nicht
+    # den schwachen Tag.
+    stunde = jetzt.astimezone(BERLIN).hour
+    fahrten = hb.get("scope_hits")
+    if 5 <= stunde < 24 and fahrten is not None and fahrten < 50:
+        befunde.append(f"nur {fahrten} Fahrten je openRNV-Abruf (Grenze 50, tagsueber)")
+
+    prg_openrnv_partitionen(daten, jetzt, befunde)
+    return True
+
+
+def prg_openrnv_partitionen(daten, jetzt, befunde):
+    """Stundenpartitionen des Vortags -- erst ab dem zweiten vollen Tag.
+
+    Am Anlauftag beginnt die Aufzeichnung mitten am Tag; 24 Partitionen zu
+    verlangen hiesse, den Deploy-Tag zuverlaessig rot zu faerben und die Pruefung
+    damit zur Gewohnheit des Wegsehens zu erziehen.
+    """
+    heute = jetzt.astimezone(BERLIN).date()
+    gestern = heute - datetime.timedelta(days=1)
+    vorgestern = heute - datetime.timedelta(days=2)
+    wurzel = Path(daten) / "raw-openrnv"
+    if not (wurzel / f"date={vorgestern.isoformat()}").exists():
+        return  # Anlaufphase
+    partitionen = list((wurzel / f"date={gestern.isoformat()}").glob("hour=*/*.parquet"))
+    if len(partitionen) < 24:
+        befunde.append(
+            f"nur {len(partitionen)} openRNV-Stundenpartitionen fuer {gestern} (Grenze 24)"
+        )
+
+
 def melden(ntfy_url, befunde):
     text = "TramPuls-Pruefung rot:\n" + "\n".join(f"- {b}" for b in befunde)
     print(text)
@@ -267,14 +336,18 @@ def main():
         prg_plattenplatz(daten, befunde)
         prg_letzter_rebuild(daten, jetzt, befunde)
         prg_seed_nach_vollaufbau(daten, befunde)
+        openrnv = prg_openrnv_sammler(daten, jetzt, befunde)
     except Exception as exc:  # noqa: BLE001 -- die Pruefung selbst darf nie stumm sterben
         befunde.append(f"Pruefung selbst abgestuerzt: {exc!r}")
+        openrnv = False
 
     if befunde:
         melden(ntfy_url, befunde)
         return 1
 
-    print("[pruefung] alle neun Kennzahlen gruen")
+    print("[pruefung] alle neun Kennzahlen gruen"
+          + (" -- openRNV-Sammler mitgeprueft (ADR-023)" if openrnv
+             else " -- openRNV-Sammler noch nicht deployt, nichts zu pruefen"))
     return 0
 
 

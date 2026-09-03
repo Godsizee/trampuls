@@ -315,6 +315,25 @@ type linieKopf struct {
 	BewertbareHalte int64 `json:"bewertbare_halte"`
 	Puenktlich3Min  int64 `json:"puenktlich_3min"`
 	Fahrten         int64 `json:"fahrten"`
+
+	// Erster Betriebstag, dessen Zahlen aus dem Echtzeitfeed der rnv stammen
+	// statt aus dem Verbund-Feed des VRN (ADR-023). Fehlt bei jeder Linie, die
+	// der Verbund meldet — also bei fast allen, weshalb omitempty.
+	//
+	// Das Feld traegt eine Aussage, keine Herkunftsangabe fuer Feinschmecker:
+	// dass eine Linie ueberhaupt hier steht, heisst, dass der Verbund-Feed sie
+	// nicht weiterleitet. /befunde macht genau das daraus.
+	OpenRNVAb string `json:"openrnv_ab,omitempty"`
+
+	// Wie viele der gemessenen Halte dieser Linie aus dem Verbund-Feed stammen.
+	// Nur gesetzt, wo es etwas zu unterscheiden gibt (OpenRNVAb) — sonst waere
+	// es dieselbe Zahl wie BewertbareHalte, auf jeder Linie, in einer Datei auf
+	// dem kritischen Pfad jeder Seite.
+	//
+	// Zeiger und nicht int64, weil hier gerade die **Null** die Aussage ist:
+	// "der Verbund-Feed hat zu dieser Linie nichts beigetragen" laesst sich mit
+	// omitempty auf einem Zahlwert nicht ausdruecken.
+	BewertbareHalteVRN *int64 `json:"bewertbare_halte_vrn,omitempty"`
 }
 
 // attributionstext steht im Wortlaut aus TramPuls_Recht_und_Lizenz. Er wandert
@@ -323,8 +342,10 @@ type linieKopf struct {
 // jede Veroeffentlichung und jede abgeleitete Zahl).
 const attributionstext = "Datengrundlage: Echtzeit- und Sollfahrplandaten des Verkehrsverbunds " +
 	"Rhein-Neckar GmbH, bereitgestellt über opendata.vrn.de unter der Datenlizenz Deutschland – " +
-	"Namensnennung – Version 2.0. Die Daten wurden von TramPuls verändert: gefiltert auf die " +
-	"Rhein-Neckar-Verkehr GmbH, über die Zeit archiviert und zu Kennzahlen aggregiert."
+	"Namensnennung – Version 2.0, sowie Echtzeit- und Sollfahrplandaten der Rhein-Neckar-Verkehr " +
+	"GmbH (openRNV), bereitgestellt unter derselben Lizenz. Die Daten wurden von TramPuls " +
+	"verändert: gefiltert auf die Rhein-Neckar-Verkehr GmbH, über die Zeit archiviert und zu " +
+	"Kennzahlen aggregiert."
 
 func schreibeIndex(zielDir string, d *daten, slugs map[string]string) error {
 	var out indexDatei
@@ -394,6 +415,18 @@ func schreibeIndex(zielDir string, d *daten, slugs map[string]string) error {
 		k.Puenktlich3Min += r.Puenktlich3Min
 		k.Fahrten += r.Fahrten
 		k.Bedarfsverkehr = r.Bedarfsverkehr
+		// Nil heisst "vor der zweiten Quelle" und damit VRN — die Spalte kam am
+		// 2026-09-03 dazu, aeltere Betriebstage tragen sie nicht (marts.LinieTag).
+		if r.Datenquelle != nil && *r.Datenquelle == "openrnv" {
+			if k.OpenRNVAb == "" || r.Betriebstag < k.OpenRNVAb {
+				k.OpenRNVAb = r.Betriebstag
+			}
+		} else {
+			if k.BewertbareHalteVRN == nil {
+				k.BewertbareHalteVRN = new(int64)
+			}
+			*k.BewertbareHalteVRN += r.BewertbareHalte
+		}
 	}
 
 	for _, l := range d.linien {
@@ -411,6 +444,17 @@ func schreibeIndex(zielDir string, d *daten, slugs map[string]string) error {
 			k.Puenktlich3Min = s.Puenktlich3Min
 			k.Fahrten = s.Fahrten
 			k.Bedarfsverkehr = s.Bedarfsverkehr
+			k.OpenRNVAb = s.OpenRNVAb
+			if s.OpenRNVAb != "" {
+				// Null ist hier ein Wert und kein Fehlen: eine Linie, zu der der
+				// Verbund-Feed nie etwas gemeldet hat, hat genau deshalb eine
+				// zweite Quelle bekommen.
+				n := int64(0)
+				if s.BewertbareHalteVRN != nil {
+					n = *s.BewertbareHalteVRN
+				}
+				k.BewertbareHalteVRN = &n
+			}
 		}
 		out.Linien = append(out.Linien, k)
 	}

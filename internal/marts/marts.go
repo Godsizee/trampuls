@@ -29,6 +29,11 @@ type LinieTag struct {
 	// nicht in die Netzsumme (ADR-011).
 	Bedarfsverkehr bool `parquet:"bedarfsverkehr"`
 
+	// Datenquelle ist ein Zeiger, weil die Spalte am 2026-09-03 dazukam und die
+	// Marts inkrementell sind: Betriebstage davor tragen NULL. Nil heisst nicht
+	// "unbekannt", sondern "vor der zweiten Quelle" — also VRN (ADR-023).
+	Datenquelle *string `parquet:"datenquelle"`
+
 	SollHalte       int64 `parquet:"soll_halte"`
 	BewertbareHalte int64 `parquet:"bewertbare_halte"`
 	Fahrten         int64 `parquet:"fahrten"`

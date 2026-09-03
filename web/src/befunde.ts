@@ -56,6 +56,7 @@ async function start(): Promise<void> {
   ziel.innerHTML = [
     befundVerkehrsart(lage),
     befundStummeLinien(lage),
+    befundZweiteQuelle(lage),
     befundAusfaelle(lage),
   ].join("");
 }
@@ -201,14 +202,85 @@ function befundStummeLinien(l: Lage): string {
          ${zahl(sollHalte)} Halte im Fahrplan stehen.</p>
       <p class="klein">Betroffen: ${escape(namen)}. Zeitraum: ${escape(zeitraum(l.tage))}.</p>
       <p class="vorbehalt">Ob diese Linien nicht fuhren oder nur nicht gemeldet wurden,
-         lässt sich von außen nicht entscheiden. Beides ist möglich, und aus den Daten
-         allein folgt keines von beidem. Für die Pünktlichkeitszahlen des Netzes heißt
-         es: dieser Teil des Netzes steckt nicht darin.</p>
+         lässt sich aus diesem Datenstrom allein nicht entscheiden. Beides ist möglich,
+         und aus den Daten folgt keines von beidem.${escape(hinweisZweiteQuelle(l))}
+         Für die Pünktlichkeitszahlen des Netzes heißt es so oder so: dieser Teil des
+         Netzes steckt nicht darin.</p>
     </section>`;
 }
 
 /**
- * Befund 3 — Ausfaelle.
+ * Verweist im Stumme-Linien-Befund auf die Linien, bei denen die Frage
+ * inzwischen entschieden ist -- aber nur, wenn es solche gibt. Ein Satz, der
+ * auf einen leeren Abschnitt zeigt, waere schlimmer als keiner.
+ */
+function hinweisZweiteQuelle(l: Lage): string {
+  const n = l.index.linien.filter((x) => x.openrnv_ab).length;
+  if (n === 0) return "";
+  return ` Für ${n} andere Linien ist es inzwischen entschieden — siehe den nächsten Befund.`;
+}
+
+/**
+ * Befund 3 — Linien, die der Verbund-Feed nicht weiterleitet.
+ *
+ * Der einzige Befund dieser Seite, der eine *Ursache* nennt, und er darf es,
+ * weil hier zwei Quellen dasselbe Netz beschreiben: was in der einen fehlt und
+ * in der anderen steht, ist keine Vermutung mehr (ADR-023).
+ *
+ * Regel 14 gilt trotzdem und ist hier besonders leicht zu verletzen. Der Befund
+ * gilt der **Weiterleitung im Verbund-Feed** — nicht dem Betrieb, und schon gar
+ * nicht der Meldedisziplin der rnv, die dieselben Fahrten ja meldet.
+ */
+function befundZweiteQuelle(l: Lage): string {
+  const zweit = l.index.linien.filter((x) => x.openrnv_ab);
+  if (zweit.length === 0) return "";
+
+  const ab = zweit.map((x) => x.openrnv_ab ?? "").sort()[0] ?? "";
+  const soll = zweit.reduce((s, x) => s + x.soll_halte, 0);
+  const gemessen = zweit.reduce((s, x) => s + x.bewertbare_halte, 0);
+  const ausVerbund = zweit.reduce((s, x) => s + (x.bewertbare_halte_vrn ?? 0), 0);
+  const namen = [...zweit]
+    .sort((x, y) => y.soll_halte - x.soll_halte)
+    .map((x) => `${x.linie} (${VERKEHRSART_NAME[x.verkehrsart] ?? x.verkehrsart})`)
+    .join(" · ");
+
+  // Am Anlauftag der zweiten Quelle liegen noch keine Messungen vor. Dann traegt
+  // der Befund seine eigene Aussage nicht -- und ein "sie fuhren" ohne eine
+  // einzige Messung waere genau die Behauptung, die diese Seite vermeidet.
+  if (gemessen === 0) {
+    return `<section class="befund">
+        <h2>Bei einem Teil davon liegt es nicht am Betrieb</h2>
+        <p>Fahren die Linien, zu denen der Verbund-Feed nichts meldet?</p>
+        <p class="hinweis">Für ${zahl(zweit.length)} Linien wird seit dem
+           ${escape(datum(ab))} eine zweite Quelle aufgezeichnet. Gemessene Halte
+           liegen daraus noch nicht vor — sobald die erste Stunde durch ist, steht die
+           Antwort hier.</p>
+      </section>`;
+  }
+
+  return `<section class="befund">
+      <h2>Bei einem Teil davon liegt es nicht am Betrieb</h2>
+      <p class="aussage">Zu <strong>${zahl(zweit.length)}</strong> Linien hat der
+         Verbund-Feed über den gesamten Zeitraum
+         <strong>${zahl(ausVerbund)}</strong> Halte gemessen — bei
+         ${zahl(soll)} geplanten. Seit dem ${escape(datum(ab))} kommen ihre Zahlen aus
+         dem Echtzeitfeed der Rhein-Neckar-Verkehr selbst, und der liefert für dieselben
+         Linien <strong>${zahl(gemessen)}</strong> gemessene Halte.</p>
+      <p class="klein">Betroffen: ${escape(namen)}. Zweite Quelle ab
+         ${escape(datum(ab))}.</p>
+      <p class="vorbehalt">Damit ist für diese Linien entschieden, was oben offen
+         bleibt: sie fuhren. Der Befund gilt der Weiterleitung im Verbund-Feed — nicht
+         dem Betrieb und nicht der Meldung durch das Unternehmen, das dieselben Fahrten
+         im eigenen Feed ausweist. Für die übrigen stummen Linien folgt daraus nichts:
+         dort ist beides weiterhin möglich.</p>
+      <p class="vorbehalt">Ihre Aufzeichnung beginnt erst am ${escape(datum(ab))}. Über
+         den ganzen Zeitraum sind diese Linien deshalb nicht mit dem übrigen Netz
+         vergleichbar — ihre Fallzahl ist kleiner, nicht ihr Betrieb.</p>
+    </section>`;
+}
+
+/**
+ * Befund 4 — Ausfaelle.
  *
  * Gezaehlt werden Halte ausgefallener Fahrten, nicht Fahrten: nur so ist die
  * Zahl mit den Soll-Halten vergleichbar, gegen die sie steht.

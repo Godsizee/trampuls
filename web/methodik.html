@@ -66,6 +66,32 @@
      daneben auswählen; die Zahl der gemessenen Halte steht dann daneben und zeigt, ob
      der Tag überhaupt trägt.</p>
 
+  <h2>Warum vier Linien aus einer anderen Quelle kommen</h2>
+  <p>Der Verbund-Datenstrom des VRN führt nicht alle Fahrten der Rhein-Neckar-Verkehr.
+     Zu einigen Linien meldet er über den gesamten Aufzeichnungszeitraum <strong>keine
+     einzige</strong> Ist-Zeit, obwohl sie im Fahrplan stehen. Für vier
+     Straßenbahnlinien — 4, 4A, 6 und 6A — nimmt TramPuls die Ist-Zeiten deshalb aus
+     dem eigenen offenen Datenstrom der Rhein-Neckar-Verkehr (openRNV), der dieselben
+     Fahrten führt.</p>
+  <p>Drei Dinge sind daran wichtig, und alle drei stehen auf <a href="/befunde.html">
+     Befunde</a> mit Zahlen:</p>
+  <ul>
+    <li><strong>Für diese Linien beginnt die Aufzeichnung später</strong> als für das
+        übrige Netz — nämlich an dem Tag, ab dem die zweite Quelle gesammelt wird. Ihre
+        Fallzahl ist deshalb kleiner, nicht ihr Betrieb.</li>
+    <li><strong>Doppelt gezählt wird nichts.</strong> Ist eine Linie an einem
+        Betriebstag aus der zweiten Quelle beschrieben, wird sie an diesem Tag aus der
+        ersten vollständig herausgenommen — Fahrplan wie Messungen.</li>
+    <li><strong>Die Richtung wird aus dem Laufweg bestimmt.</strong> Die zweite Quelle
+        liefert keine Richtungskennung; TramPuls vergleicht deshalb die Reihenfolge der
+        Haltestellen mit dem Fahrplan und ordnet die Fahrt der Richtung zu, zu der sie
+        passt. Für Fahrten, bei denen das nicht eindeutig ausgeht, wird nicht geraten.</li>
+  </ul>
+  <p>Der Befund gilt der Weiterleitung im Verbund-Datenstrom, nicht dem Betrieb und
+     nicht der Meldung durch das Unternehmen: die Fahrten <em>werden</em> gemeldet, nur
+     eben im eigenen Datenstrom. Beide Quellen stehen unter derselben Lizenz und sind
+     auf <a href="/lizenz.html">Lizenz</a> genannt.</p>
+
   <h2>Was „pünktlich" hier heißt</h2>
   <p>Pünktlich ist ein Halt, an dem die Bahn oder der Bus weniger als die eingestellte
      Zahl an Minuten zu spät ankam. Die Prozentzahl ist der Anteil solcher Halte an

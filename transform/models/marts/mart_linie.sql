@@ -42,6 +42,17 @@ select
     -- mit eigener Erklaerung (ADR-011). Die Zahlen der Linie werden trotzdem
     -- gerechnet -- nur eben nicht in die Netzsumme (mart_netz).
     bv.route_id is not null                                           as bedarfsverkehr,
+    -- Woher die Zahlen dieser Zeile stammen (ADR-023). Je (Betriebstag, Linie,
+    -- Richtung) ist das immer genau eine Quelle -- fct_halt_events schliesst das
+    -- aus, und assert_openrnv_keine_doppelzaehlung prueft es. max() ist deshalb
+    -- keine Auswahl, sondern nur die Form, in der ein konstanter Wert durch eine
+    -- Gruppierung kommt.
+    --
+    -- Alte Betriebstage tragen hier NULL: die Spalte kam am 2026-09-03 dazu, und
+    -- die Marts sind inkrementell (Regel 10). NULL heisst hier nicht "unbekannt",
+    -- sondern "vor der zweiten Quelle" -- also VRN. Der Exporter setzt das um,
+    -- damit kein Vollaufbau noetig ist, nur um Vergangenes umzuschreiben.
+    max(b.datenquelle)                                                as datenquelle,
 
     count(*)                                                          as soll_halte,
     count(*) filter (where {{ ist_bewertbar('b.zustand') }})           as bewertbare_halte,

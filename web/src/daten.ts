@@ -35,6 +35,13 @@ export interface LinieKopf {
   /** Ruftaxi, faehrt nur auf Anmeldung (ADR-011). Fehlt bei Linienverkehr:
    *  der Exporter laesst das Feld weg, wenn es falsch ist. */
   bedarfsverkehr?: boolean;
+  /** Erster Betriebstag, dessen Zahlen aus dem Echtzeitfeed der rnv stammen
+   *  statt aus dem Verbund-Feed des VRN (ADR-023). Fehlt bei jeder Linie, die
+   *  der Verbund meldet — also bei fast allen. */
+  openrnv_ab?: string;
+  /** Gemessene Halte aus dem Verbund-Feed. Nur gesetzt, wo es eine zweite
+   *  Quelle gibt; dort ist gerade die Null die Aussage. */
+  bewertbare_halte_vrn?: number;
 }
 
 export interface NetzEintrag {

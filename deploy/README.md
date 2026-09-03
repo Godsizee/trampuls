@@ -68,6 +68,35 @@ Grund: Coolify deployt über Docker Compose. `custom_docker_run_options` mit
 Erfolg, der Collector lief weiter, und trotzdem hätte jedes Deployment bis zu eine Stunde
 Historie gekostet.
 
+### Ein Deploy zerreisst den Scheduled Task, der gerade laeuft
+
+Faellt ein Deployment auf die Minute eines Scheduled Tasks, scheitert der Lauf mit
+
+```
+ScheduledTaskJob failed: More than one container exists but no container name was provided.
+```
+
+Der Grund steht im Deploy-Protokoll: Coolify startet den **neuen** Container, bevor es
+den alten entfernt („Container … Started" vor „Removing old containers"). Waehrend
+dieses Fensters existieren zwei Container, und der Task weiss nicht, welchen er meinen
+soll. Beobachtet am 2026-09-01 (Waechter-Task) und am 2026-09-03, 08:10 UTC
+(`rebuild-stuendlich`, waehrend eines Deploys) — beide Male ohne Datenverlust, aber der
+Export blieb bis zum naechsten Lauf eine Stunde alt.
+
+**Gegenmassnahme, bewusst die kleine:** nicht zwischen :08 und :16 deployen, und wenn es
+doch passiert, den Task danach von Hand ausloesen:
+
+```bash
+curl -X POST -H "Authorization: Bearer $COOLIFY_API_TOKEN"   "$COOLIFY_BASE_URL/api/v1/applications/<uuid>/scheduled-tasks/<task-uuid>/execute"
+```
+
+Die grosse Gegenmassnahme waere `Consistent Container Names` in den
+Anwendungseinstellungen — dann hat der Container einen festen Namen, den der Task
+adressieren kann. Sie ist hier **nicht** gesetzt: der Preis ist ein Namenskonflikt
+waehrend genau desselben Fensters, und ein verpasster Lauf kostet eine Stunde alten
+Export, kein Datum. Der Collector ist davon ohnehin nicht betroffen — er ist ein
+Dauerprozess und kein Task.
+
 ## trampuls-openrnv (zweite Quelle, ADR-023)
 
 Sammelt den Echtzeitfeed der rnv für die **26 Linien, die der VRN-Verbundfeed nicht

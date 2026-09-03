@@ -15,6 +15,20 @@ models:
           - not_null
           - accepted_values:
               values: ['gemessen', 'nur_abfahrt', 'ausgelassen', 'fahrt_ausgefallen', 'ohne_meldung', 'nicht_erhoben']
+      - name: datenquelle
+        description: >
+          Woher die Zeile stammt (ADR-023). 'vrn' ist die Erstquelle; 'openrnv'
+          steht fuer die Linien, die der Verbund-Feed nicht meldet. Fuer eine
+          (Betriebstag, Linie) gilt immer genau eine Quelle -- geprueft in
+          assert_openrnv_keine_doppelzaehlung.
+        data_tests:
+          - not_null
+          - accepted_values: {values: ['vrn', 'openrnv']}
+      - name: quell_version
+        description: >
+          Die Sollfahrplan-Version der **Quelle**. Bei openRNV-Zeilen eine andere
+          als static_version: ausgewiesen wird die VRN-Version des Betriebstags,
+          weil die Marts ihre Linien- und Richtungsangaben darueber joinen.
       - name: richtung
         data_tests:
           - accepted_values: {values: [0, 1], quote: false}
@@ -132,3 +146,63 @@ models:
           - dbt_utils.accepted_range: {min_value: 0, max_value: 30}
       - name: erhoben
         data_tests: [not_null]
+  # ------------------------------------------------------------------ openRNV
+  # Die Zustandslogik ist dieselbe wie im VRN-Zweig und steht in Makros
+  # (ADR-023). Getestet wird deshalb hier nur, was den zweiten Zweig
+  # unterscheidet -- vor allem die Richtung, die openRNV nicht mitliefert.
+
+  - name: int_openrnv_richtung
+    description: >
+      Richtung je openRNV-Fahrt, aus dem Laufweg bestimmt: openRNV liefert kein
+      direction_id. Die Korrelation des Laufwegs mit der Richtung 0 des
+      VRN-Sollfahrplans entscheidet; die unabhaengige Gegenprobe ueber
+      (Anfangs-, Endstation) steht in derselben Zeile und wird in
+      assert_openrnv_richtung_einig dagegengehalten.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [trip_id, static_version]
+    columns:
+      - name: route_id
+        description: Die **VRN**-route_id aus dem Seed, nicht die openRNV-Kennung.
+        data_tests:
+          - not_null
+          - relationships: {to: ref('quelle_openrnv'), field: route_id}
+      - name: richtung
+        data_tests:
+          - not_null
+          - accepted_values: {values: [0, 1], quote: false}
+      - name: korrelation
+        description: >
+          Vorzeichen entscheidet die Richtung, der Betrag ist das Vertrauen.
+          Gemessen 2026-09-02 ueber 1.120 Fahrten: schwaechster Betrag 0,693.
+          Ein Wert nahe 0 hiesse, dass der Laufweg nichts aussagt -- dann waere
+          die Richtung geraten.
+        data_tests:
+          - dbt_utils.accepted_range:
+              min_value: -1
+              max_value: 1
+      - name: gemeinsame_halte
+        description: Halte, die beide Quellen kennen -- unter zwei ist corr() undefiniert.
+        data_tests:
+          - dbt_utils.accepted_range: {min_value: 2}
+
+  - name: int_openrnv_betriebstag
+    columns:
+      - name: betriebstag
+        data_tests: [not_null]
+
+  - name: int_openrnv_soll_ist
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [betriebstag, trip_id, stop_sequence]
+
+  - name: int_openrnv_halt_zustand
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [betriebstag, trip_id, stop_sequence]
+    columns:
+      - name: zustand
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ['gemessen', 'nur_abfahrt', 'ausgelassen', 'fahrt_ausgefallen', 'ohne_meldung', 'nicht_erhoben']

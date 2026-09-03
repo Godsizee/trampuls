@@ -80,6 +80,9 @@ kalender_fahrten as (
     join {{ ref('stg_' ~ p ~ 'static_fahrt') }} f
       on f.static_version = ad.static_version
      and f.service_id     = ad.service_id
+{%- if quelle == 'openrnv' %}
+    {{ nur_uebernommene_linien('f') }}
+{%- endif %}
 
 ),
 
@@ -89,8 +92,15 @@ beobachtete_fahrten as (
     -- version_ersatzweise (aelteste verfuegbare Version statt der eigentlich
     -- gueltigen), kann deren calendar.txt-Datumsbereich den Tag verfehlen. Eine
     -- tatsaechlich beobachtete Fahrt darf dadurch nie verlorengehen.
-    select distinct betriebstag, trip_id
-    from {{ ref('int_' ~ p ~ 'betriebstag') }}
+    select distinct b.betriebstag, b.trip_id
+    from {{ ref('int_' ~ p ~ 'betriebstag') }} b
+{%- if quelle == 'openrnv' %}
+    -- Auch das Sicherheitsnetz bleibt bei den uebernommenen Linien: sonst holt
+    -- es genau das zurueck, was kalender_fahrten gerade ausgeschlossen hat.
+    join {{ ref('stg_openrnv_static_fahrt') }} f
+      on f.trip_id = b.trip_id
+    {{ nur_uebernommene_linien('f') }}
+{%- endif %}
 
 ),
 

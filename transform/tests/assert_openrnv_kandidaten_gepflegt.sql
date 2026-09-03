@@ -18,8 +18,8 @@ select
     verkehrsart,
     vrn_soll_halte,
     vrn_tage,
-    openrnv_soll_halte,
-    openrnv_bewertbare_halte,
+    openrnv_fahrten_soll,
+    openrnv_fahrten_ist,
     openrnv_deckung,
     openrnv_tage
 from {{ ref('int_quelle_kandidaten') }}

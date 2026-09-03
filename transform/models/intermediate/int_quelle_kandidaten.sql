@@ -45,26 +45,85 @@ with vrn_linie as (
 
 ),
 
-openrnv_linie as (
+-- Die zweite Quelle wird ab hier **auf Fahrtebene** gemessen, nicht auf
+-- Halt-Ebene. Zwei Gruende, und beide zaehlen:
+--
+--   1. Der Soll-Rahmen des openRNV-Zweigs ist seit dem 2026-09-03 auf die
+--      uebernommenen Linien beschraenkt (Makro nur_uebernommene_linien) -- der
+--      volle Rahmen hat den stuendlichen Neubau in die Zeitgrenze getrieben.
+--      Ueber int_openrnv_halt_zustand waeren die uebrigen Linien damit
+--      unsichtbar, und dieser Bericht waere blind fuer genau die Frage, fuer
+--      die es ihn gibt.
+--   2. Die Zahlen, gegen die die Schwelle geeicht ist, sind ohnehin Fahrten:
+--      95,4 bis 100,0 % der Sollfahrten am 2026-09-01 (ADR-022).
+--
+-- Gerechnet wird aus dem Kalender und den Beobachtungen -- beides klein.
+openrnv_tag as (
 
-    -- Dieselbe Rechnung wie oben, nur auf der zweiten Quelle: Soll-Halte gegen
-    -- bewertbare. Nicht die Zahl beobachteter Fahrten -- dass openRNV eine
-    -- Fahrt einer Linie gesehen hat, sagt noch nicht, dass es die Linie
-    -- *abdeckt*, und ein Quellenwechsel auf eine schlecht abgedeckte Linie
-    -- waere schlechter als die sichtbare Luecke.
+    select betriebstag, static_version
+    from {{ ref('int_openrnv_static_version') }}
+
+),
+
+openrnv_soll as (
+
+    -- Fahrten je Linie und Betriebstag laut openRNV-Kalender. `distinct` ist
+    -- Pflicht: openRNV fuehrt eine service_id mehrfach mit ueberlappenden
+    -- Zeitraeumen, ein Join darueber vervielfacht sonst jede Fahrt.
     select
-        l.linie                                                    as linie_kurz,
+        t.betriebstag,
+        l.linie                      as linie_kurz,
         l.verkehrsart,
-        count(*)                                                   as soll_halte,
-        count(*) filter (where {{ ist_bewertbar('hz.zustand') }})   as bewertbare_halte,
-        count(distinct hz.betriebstag)                             as tage
-    from {{ ref('int_openrnv_halt_zustand') }} hz
+        count(distinct f.trip_id)    as fahrten_soll
+    from openrnv_tag t
+    join {{ ref('stg_openrnv_static_kalender') }} k
+      on  k.static_version = t.static_version
+     and k.quelle          = 'calendar'
+     and k.wochentag       = lower(dayname(t.betriebstag))
+     and t.betriebstag between k.start_date and k.end_date
     join {{ ref('stg_openrnv_static_fahrt') }} f
-      on  f.trip_id        = hz.trip_id
-     and f.static_version  = hz.static_version
+      on  f.static_version = t.static_version
+     and f.service_id      = k.service_id
     join {{ ref('stg_openrnv_static_linie') }} l
       on  l.route_id       = f.route_id
-     and l.static_version  = hz.static_version
+     and l.static_version  = f.static_version
+    group by 1, 2, 3
+
+),
+
+openrnv_ist as (
+
+    select
+        b.betriebstag,
+        l.linie                      as linie_kurz,
+        l.verkehrsart,
+        count(distinct b.trip_id)    as fahrten_ist
+    from {{ ref('int_openrnv_betriebstag') }} b
+    join openrnv_tag t
+      on t.betriebstag = b.betriebstag
+    join {{ ref('stg_openrnv_static_fahrt') }} f
+      on  f.trip_id        = b.trip_id
+     and f.static_version  = t.static_version
+    join {{ ref('stg_openrnv_static_linie') }} l
+      on  l.route_id       = f.route_id
+     and l.static_version  = f.static_version
+    group by 1, 2, 3
+
+),
+
+openrnv_linie as (
+
+    select
+        s.linie_kurz,
+        s.verkehrsart,
+        sum(s.fahrten_soll)                as fahrten_soll,
+        sum(coalesce(i.fahrten_ist, 0))    as fahrten_ist,
+        count(distinct s.betriebstag)      as tage
+    from openrnv_soll s
+    left join openrnv_ist i
+      on  i.betriebstag  = s.betriebstag
+     and i.linie_kurz    = s.linie_kurz
+     and i.verkehrsart   = s.verkehrsart
     group by 1, 2
 
 )
@@ -77,11 +136,11 @@ select
     v.soll_halte           as vrn_soll_halte,
     v.bewertbare_halte     as vrn_bewertbare_halte,
     v.tage                 as vrn_tage,
-    coalesce(o.soll_halte, 0)       as openrnv_soll_halte,
-    coalesce(o.bewertbare_halte, 0) as openrnv_bewertbare_halte,
-    coalesce(o.tage, 0)             as openrnv_tage,
-    round(coalesce(o.bewertbare_halte, 0) * 1.0
-          / nullif(o.soll_halte, 0), 4) as openrnv_deckung,
+    coalesce(o.fahrten_soll, 0) as openrnv_fahrten_soll,
+    coalesce(o.fahrten_ist, 0)  as openrnv_fahrten_ist,
+    coalesce(o.tage, 0)         as openrnv_tage,
+    round(coalesce(o.fahrten_ist, 0) * 1.0
+          / nullif(o.fahrten_soll, 0), 4) as openrnv_deckung,
     bv.route_id is not null as bedarfsverkehr,
     s.route_id is not null  as im_seed,
     -- Der Befund in einer Spalte: still im Verbund-Feed, bei openRNV *belegt*
@@ -89,13 +148,17 @@ select
     --
     -- Die Schwelle ist getroffen, nicht hergeleitet, aber an gemessenen Werten
     -- geeicht: die vier bereits uebernommenen Linien lagen am Betriebstag
-    -- 2026-09-01 bei 95,4 bis 100,0 % der Sollfahrten (ADR-022), und die
-    -- Kontrolllinien des VRN-Zweigs liegen auf Halt-Ebene im Median bei 53,5 %
-    -- (gemessen 2026-09-03). 25 % trennt damit "openRNV traegt diese Linie" von
-    -- "openRNV hat sie zufaellig einmal gesehen" -- ohne eine Linie zu fordern,
-    -- die besser abgedeckt ist als der Rest des Netzes.
+    -- 2026-09-01 bei 95,4 bis 100,0 % der Sollfahrten, die Kontrolllinien
+    -- desselben Laufs bei 89,5 bis 99,2 % (ADR-022). 25 % trennt damit
+    -- "openRNV traegt diese Linie" von "openRNV hat sie zufaellig einmal
+    -- gesehen", mit reichlich Abstand nach beiden Seiten.
+    --
+    -- Ein angebrochener erster Betriebstag drueckt die Quote und kann einen
+    -- Kandidaten verspaeten. Das ist die richtige Richtung: lieber einen Tag
+    -- spaeter aufnehmen als eine Linie auf eine Quelle umstellen, die sie an
+    -- diesem Tag nur halb gesehen hat.
     v.bewertbare_halte = 0
-      and coalesce(o.bewertbare_halte, 0) * 1.0 / nullif(o.soll_halte, 0) >= 0.25
+      and coalesce(o.fahrten_ist, 0) * 1.0 / nullif(o.fahrten_soll, 0) >= 0.25
       and bv.route_id is null
       and s.route_id is null as kandidat
 from vrn_linie v

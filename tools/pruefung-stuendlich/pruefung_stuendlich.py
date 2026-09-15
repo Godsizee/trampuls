@@ -146,6 +146,23 @@ def prg_letzter_rebuild(daten, jetzt, befunde):
         befunde.append(f"letzter erfolgreicher rebuild {alter_h:.1f} h her (Grenze 3 h)")
 
 
+# Seeds, deren Aenderung *keinen* Vollaufbau verlangt (ADR-024).
+#
+# Die Regel dahinter ist nicht der Dateiname, sondern die Materialisierung des
+# Modells, das den Seed liest: schulferien speist ausschliesslich mart_kalender,
+# und das ist `table` -- es baut bei jedem Lauf vollstaendig neu, eine Korrektur
+# wirkt also sofort und rueckwirkend von selbst.
+#
+# Ohne diese Ausnahme stuende die Pruefung nach jeder Ferienkorrektur rot und
+# verlangte einen Vollaufbau, der nichts aendert. Ein Alarm, der zu einer
+# folgenlosen Handlung auffordert, ist derselbe Fehler wie ein Alarm, der nie
+# kommt -- beide werden ueberlesen (ADR-020).
+#
+# **Wer schulferien je in einen inkrementellen Mart joint, nimmt diese Zeile
+# zurueck.** Der Seed selbst sagt es in seiner Beschreibung noch einmal.
+SEEDS_OHNE_RUECKWIRKUNG = {"schulferien.csv"}
+
+
 def seed_signatur():
     """Fingerabdruck ueber den *Inhalt* aller Seeds, nicht ueber ihre Zeitstempel.
 
@@ -161,7 +178,11 @@ def seed_signatur():
     dieselbe Funktion ueber --seed-signatur auf, statt die Regel ein zweites Mal
     zu formulieren.
     """
-    seeds = sorted((HIER.parent.parent / "transform" / "seeds").glob("*.csv"))
+    seeds = sorted(
+        s
+        for s in (HIER.parent.parent / "transform" / "seeds").glob("*.csv")
+        if s.name not in SEEDS_OHNE_RUECKWIRKUNG
+    )
     if not seeds:
         return None
     h = hashlib.sha256()

@@ -170,6 +170,56 @@ export interface MethodikDatei {
   halte_ohne_sollrahmen?: (number | null)[];
 }
 
+/** Ein Land, in dem die rnv faehrt, mit seinem gemessenen Anteil am Netz. */
+export interface LandAnteil {
+  kuerzel: string;
+  name: string;
+  anteil_soll_halte: number;
+  soll_halte: number;
+  gemessen_am: string;
+  gemessen_gegen: string;
+}
+
+/** Die schulische Lage je Betriebstag (ADR-024). Traegt keine Kennzahl. */
+export interface KalenderDatei {
+  betriebstag: string[];
+  /** Leitland Baden-Wuerttemberg. `null` heisst **nicht eingeordnet**, nicht
+   *  „Schulzeit" — der Tag liegt jenseits der gepflegten Ferienliste und faellt
+   *  aus beiden Mengen, statt still einen Nenner zu fuellen. */
+  ferien_bw: (boolean | null)[];
+  ferien_rp: (boolean | null)[];
+  ferien_he: (boolean | null)[];
+  ferien_name: (string | null)[];
+  /** 'keine' | 'teilweise' | 'alle' — in wie vielen der drei Laender Ferien
+   *  waren. 'teilweise' ist der haeufige Fall und der, der den Vorbehalt traegt. */
+  ferienlage: (string | null)[];
+  leitland: string;
+  laender: LandAnteil[];
+}
+
+/** Die drei Mengen, in die ein Betriebstag fallen kann (ADR-024). */
+export type Tagesmenge = "ferien" | "schule" | "unbekannt";
+
+/**
+ * Ordnet jeden aufgezeichneten Betriebstag einer Menge zu — ueber das Leitland
+ * Baden-Wuerttemberg, in dem 84,2 % der Soll-Halte liegen.
+ *
+ * „unbekannt" ist keine Restkategorie, sondern der eigentliche Schutz: laeuft
+ * die gepflegte Ferienliste aus, landen neue Tage hier und nicht bei „Schulzeit".
+ * Eine Quote, die still einen falschen Nenner bekommt, waere von aussen nicht
+ * von einer echten Veraenderung zu unterscheiden.
+ */
+export function tagesmengen(k: KalenderDatei): Map<string, Tagesmenge> {
+  const m = new Map<string, Tagesmenge>();
+  for (let i = 0; i < k.betriebstag.length; i++) {
+    const tag = k.betriebstag[i];
+    if (tag === undefined) continue;
+    const ferien = k.ferien_bw[i];
+    m.set(tag, ferien === null || ferien === undefined ? "unbekannt" : ferien ? "ferien" : "schule");
+  }
+  return m;
+}
+
 const BASIS = "daten";
 
 async function hole<T>(pfad: string): Promise<T> {
@@ -188,6 +238,7 @@ export async function ladeIndex(): Promise<IndexDatei> {
   return { ...index, linien: index.linien.filter((l) => l.bewertbare_halte > 0) };
 }
 export const ladeNetz = () => hole<NetzDatei>("netz.json");
+export const ladeKalender = () => hole<KalenderDatei>("kalender.json");
 export const ladeMethodik = () => hole<MethodikDatei>("methodik.json");
 export const ladeLinie = (datei: string) => hole<LinieDatei>(`linie/${datei}.json`);
 export const ladeLinieHalte = (datei: string) => hole<HalteDatei>(`linie/${datei}-halte.json`);

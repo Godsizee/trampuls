@@ -92,6 +92,34 @@ export function leseVergleich(): Vergleichszeitraum {
   };
 }
 
+/**
+ * Wonach die Vergleichsseite ihre beiden Seiten bildet (ADR-024).
+ *
+ * "zeitraum" ist die urspruengliche Form: zwei frei gewaehlte Spannen. "ferien"
+ * stellt stattdessen zwei *Tagesmengen* gegenueber — alle Schultage gegen alle
+ * Ferientage im Bestand. Beides sind Praedikate ueber dem Betriebstag; deshalb
+ * teilen sie sich denselben Rechenweg und unterscheiden sich nur darin, welche
+ * Tage sie durchlassen.
+ *
+ * Eigener Parameter und keine dritte Bedeutung fuer a_von/a_bis: eine Tagesmenge
+ * ist keine Spanne. Sie hat Loecher — Ferien sind nicht zusammenhaengend, und
+ * genau das ist der Grund, warum die Seite sie ueberhaupt braucht.
+ */
+export type Vergleichsmodus = "zeitraum" | "ferien";
+
+export function leseModus(): Vergleichsmodus {
+  return new URLSearchParams(location.search).get("modus") === "ferien" ? "ferien" : "zeitraum";
+}
+
+/** Der Vorgabewert steht nicht in der Adresse — eine leere Adresse ist zitierbar. */
+export function schreibeModus(modus: Vergleichsmodus): void {
+  const p = new URLSearchParams(location.search);
+  if (modus === "ferien") p.set("modus", "ferien");
+  else p.delete("modus");
+  const frage = p.toString();
+  history.replaceState(null, "", frage === "" ? location.pathname : `${location.pathname}?${frage}`);
+}
+
 /** Schreibt einzelne Grenzen zurueck; Schluessel sind die Namen aus der Adresse. */
 export function schreibeVergleich(felder: Record<string, string>): void {
   const p = new URLSearchParams(location.search);

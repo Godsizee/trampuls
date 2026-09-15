@@ -5,11 +5,11 @@
 // (TramPuls_Frontend, "/netz — Netz"). Die Vorstellung des Projekts steht
 // eine Seite davor, auf "/".
 
-import { ladeIndex, ladeNetz } from "./daten";
-import type { IndexDatei, NetzDatei } from "./daten";
+import { ladeIndex, ladeKalender, ladeNetz, tagesmengen } from "./daten";
+import type { IndexDatei, KalenderDatei, NetzDatei, Tagesmenge } from "./daten";
 import { datum, prozent, quote, sekunden, vonHundert, zahl, VERKEHRSART_NAME } from "./format";
 import {
-  BETRIEBSTAG_ERKLAERUNG, begriff, fussnote, grosseZahl, tabelle, zeigeFehler,
+  BETRIEBSTAG_ERKLAERUNG, begriff, escape, fussnote, grosseZahl, tabelle, zeigeFehler,
 } from "./seite";
 import { saeulenIn } from "./diagramm";
 import { ausTag, ausZeitraum, spanne, verdrahteZeitwahl } from "./netzzahlen";
@@ -19,7 +19,7 @@ import type { Zeitwahl } from "./zustand";
 const SCHWELLE = 3;
 
 async function start(): Promise<void> {
-  const [index, netz] = await Promise.all([ladeIndex(), ladeNetz()]);
+  const [index, netz, kalender] = await Promise.all([ladeIndex(), ladeNetz(), ladeKalender()]);
   fussnote(index);
 
   const zeichne = (wahl: Zeitwahl): void => {
@@ -30,6 +30,7 @@ async function start(): Promise<void> {
 
   zeichne(verdrahteZeitwahl(zeichne));
   zeigeVerlauf(netz);
+  zeigeFerien(netz, kalender);
 }
 
 function zeigeNetz(index: IndexDatei, zahlen: NetzZahlen[]): void {
@@ -186,6 +187,143 @@ function zeigeVerlauf(netz: NetzDatei): void {
 
     block.append(haupt, rand);
     ziel.appendChild(block);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Ferien und Schulzeit (ADR-024)
+// ---------------------------------------------------------------------------
+
+interface Eimer {
+  tage: Set<string>;
+  soll: number;
+  bewertbar: number;
+  puenktlich: number;
+}
+
+const leererEimer = (): Eimer => ({ tage: new Set(), soll: 0, bewertbar: 0, puenktlich: 0 });
+
+/**
+ * Ein Abschnitt und kein Regler.
+ *
+ * Diese Seite stellt bewusst keine Auswahl vor die Zahl (siehe oben). Die
+ * Ferienfrage ist aber eine Aussage ueber das Netz und keine Einstellung —
+ * also steht sie hier als dritter Abschnitt, mit derselben Fallzahl-Disziplin
+ * wie alles andere: drei Zahlen nebeneinander, jede mit ihren Betriebstagen.
+ *
+ * Gerechnet wird nichts Neues. Die Zaehler kommen fertig aus mart_netz, dieser
+ * Code teilt sie nur nach der Tagesmenge auf, die mart_kalender liefert
+ * (Regel 11).
+ */
+function zeigeFerien(netz: NetzDatei, kalender: KalenderDatei): void {
+  const ziel = document.querySelector("[data-ferien]");
+  if (!ziel) return;
+
+  const mengen = tagesmengen(kalender);
+  // Je Verkehrsart drei Eimer: alles, Ferien, Schulzeit. "unbekannt" bekommt
+  // keinen — solche Tage stecken in "alle Tage" und in keiner der beiden
+  // Gegenueberstellungen, und genau so soll es sein.
+  const eimer = new Map<string, Map<string, Eimer>>();
+  const hole = (art: string, menge: string): Eimer => {
+    let je = eimer.get(art);
+    if (!je) eimer.set(art, (je = new Map()));
+    let e = je.get(menge);
+    if (!e) je.set(menge, (e = leererEimer()));
+    return e;
+  };
+
+  for (let i = 0; i < netz.betriebstag.length; i++) {
+    const tag = netz.betriebstag[i];
+    const art = netz.verkehrsart[i];
+    if (tag === undefined || art === undefined) continue;
+    const ziele = ["alle", mengen.get(tag) ?? "unbekannt"];
+    for (const menge of ziele) {
+      if (menge === "unbekannt") continue;
+      const e = hole(art, menge);
+      e.tage.add(tag);
+      e.soll += netz.soll_halte[i] ?? 0;
+      e.bewertbar += netz.bewertbare_halte[i] ?? 0;
+      e.puenktlich += netz.puenktlich[String(SCHWELLE)]?.[i] ?? 0;
+    }
+  }
+
+  if (eimer.size === 0) return;
+
+  const zeilen: Array<[string, Tagesmenge | "alle"]> = [
+    ["Alle Betriebstage", "alle"],
+    ["In den Ferien", "ferien"],
+    ["Außerhalb der Ferien", "schule"],
+  ];
+
+  const leitland = kalender.laender.find((l) => l.kuerzel === kalender.leitland);
+  const andere = kalender.laender.filter((l) => l.kuerzel !== kalender.leitland);
+
+  ziel.innerHTML =
+    `<h2>In den Ferien und außerhalb</h2>
+     <p class="klein legende">Dieselben Zahlen wie oben, aufgeteilt danach, ob an dem
+     Betriebstag in ${escape(leitland?.name ?? "Baden-Württemberg")} Schulferien
+     waren. Die Zeile „alle Betriebstage" enthält beide und ist die Zahl, die sonst
+     überall auf dieser Seite steht.</p>`;
+
+  for (const art of ["tram", "bus"] as const) {
+    const je = eimer.get(art);
+    if (!je) continue;
+    const block = document.createElement("section");
+    block.innerHTML = `<h3>${VERKEHRSART_NAME[art]}</h3>`;
+    block.appendChild(
+      tabelle(
+        ["Tage", "Betriebstage", "Gemessene Halte", `Weniger als ${SCHWELLE} Min zu spät`],
+        zeilen.map(([kopf, menge]) => {
+          const e = je.get(menge) ?? leererEimer();
+          const q = quote(e.puenktlich, e.bewertbar);
+          return [
+            kopf,
+            zahl(e.tage.size),
+            zahl(e.bewertbar),
+            q === null ? "—" : prozent(q),
+          ];
+        }),
+      ),
+    );
+    ziel.appendChild(block);
+  }
+
+  const vorbehalte: string[] = [];
+  if (leitland) {
+    vorbehalte.push(
+      `„Ferien" heißt Schulferien in ${leitland.name}. Dort liegen ` +
+        `${prozent(leitland.anteil_soll_halte)} der geplanten Halte des Netzes ` +
+        `(${zahl(leitland.soll_halte)} von ` +
+        `${zahl(kalender.laender.reduce((s, l) => s + l.soll_halte, 0))}, gemessen ` +
+        `${datum(leitland.gemessen_am)}). ` +
+        `Die übrigen ${andere.map((l) => `${prozent(l.anteil_soll_halte)} in ${l.name}`)
+          .join(" und ")} folgen einer eigenen Ferienordnung — an vielen dieser Tage ` +
+        "war dort Schule.",
+    );
+  }
+  vorbehalte.push(
+    "Ferien sind ein Zeitraum und keine Ursache. Sommerferien sind auch Sommer: " +
+      "Wetter, Baustellensaison und Berufsverkehr verschieben sich mit. Der " +
+      "Unterschied zwischen den beiden Zeilen ist deshalb kein gemessener Effekt " +
+      "der Ferien.",
+  );
+
+  const ohneTage = zeilen
+    .filter(([, menge]) => menge !== "alle")
+    .filter(([, menge]) =>
+      [...eimer.values()].every((je) => (je.get(menge)?.tage.size ?? 0) === 0));
+  for (const [kopf] of ohneTage) {
+    vorbehalte.push(
+      `Für „${kopf.toLowerCase()}" liegt noch kein aufgezeichneter Betriebstag vor. ` +
+        "Die Gegenüberstellung wird erst aussagekräftig, wenn beide Zeilen gefüllt sind.",
+    );
+  }
+
+  for (const text of vorbehalte) {
+    const p = document.createElement("p");
+    p.className = "vorbehalt";
+    p.textContent = text;
+    ziel.appendChild(p);
   }
 }
 

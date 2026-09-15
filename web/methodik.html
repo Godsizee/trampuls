@@ -164,10 +164,11 @@
      Gesamtzahl entsprechend seiner Fallzahl mit — er wird weder ausgeschlossen noch
      hochgerechnet.</p>
 
-  <h2>Was ein Vergleich zweier Zeiträume aussagt</h2>
-  <p>Auf <a href="/vergleich.html">Vergleich</a> stehen dieselben Kennzahlen für zwei
-     Zeiträume nebeneinander. Neu gerechnet wird dabei nichts — es sind dieselben Zahlen
-     wie auf der Linienseite, nur zweimal.</p>
+  <h2>Was ein Vergleich aussagt</h2>
+  <p>Auf <a href="/vergleich.html">Vergleich</a> stehen dieselben Kennzahlen zweimal
+     nebeneinander — entweder für zwei frei gewählte Zeiträume oder für Schulzeit und
+     Ferien. Neu gerechnet wird dabei nichts; es sind dieselben Zahlen wie auf der
+     Linienseite, nur getrennt aufaddiert.</p>
   <p>Der Unterschied darunter ist deshalb <strong>kein Befund über den Betrieb</strong>.
      TramPuls sieht Verspätung, nicht ihren Grund: eine Baustelle, eine Umleitung oder
      ein Fahrplanwechsel erscheinen in diesen Zahlen nicht als solche. Genauso kann ein
@@ -175,6 +176,52 @@
      dort weniger gemessen wurde oder dass zu wenige Fahrten dahinterstehen. Diese drei
      Angaben stehen deshalb unter jedem Vergleich, und wo sie deutlich auseinandergehen,
      steht ein ausdrücklicher Vorbehalt daneben.</p>
+
+  <h2>Was „in den Ferien" hier heißt</h2>
+  <p>Ein Betriebstag gilt als Ferientag, wenn an diesem Tag in
+     <strong>Baden-Württemberg</strong> Schulferien waren. Das Land ist nicht beliebig
+     gewählt: dort liegen <strong>84,2 %</strong> der geplanten Halte des RNV-Netzes
+     (353.506 von 419.991, gemessen am 7. September 2026). Die Ferientermine stammen aus
+     den Kultusministerien der drei Länder, in denen die rnv fährt, und stehen als
+     gepflegte Liste im Projekt — nicht aus einer fremden Schnittstelle, die ausfallen
+     kann.</p>
+  <p>Die übrigen <strong>15,4 %</strong> des Netzes liegen in Rheinland-Pfalz und
+     <strong>0,4 %</strong> in Hessen, und dort gilt eine eigene Ferienordnung. Während
+     der baden-württembergischen Sommerferien 2026 — vom 30. Juli bis 12. September —
+     war in Rheinland-Pfalz ab dem 10. August wieder Schule. Ein Ferientag in dieser
+     Auswertung ist also für einen Teil des Netzes ein ganz normaler Schultag. Wie viele
+     Tage einer Auswahl das betrifft, steht unter jedem Vergleich.</p>
+  <p>Eingeordnet wird der <strong>Betriebstag</strong>, nicht der Kalendertag: die Bahn
+     um 1:30 Uhr in der Nacht auf den ersten Ferientag zählt noch zum letzten Schultag.</p>
+
+  <h3>Was in dieser Einordnung nicht steckt</h3>
+  <ul>
+    <li><strong>Bewegliche Ferientage.</strong> Jede Schule darf einige Tage im Jahr
+        selbst festlegen; zentral bekannt sind sie nicht. Sie laufen hier als Schulzeit
+        mit.</li>
+    <li><strong>Feiertage.</strong> Ein Feiertag mitten in der Schulzeit fährt sich wie
+        ein Ferientag, wird hier aber nicht als solcher gezählt.</li>
+    <li><strong>Tage, die die Liste nicht kennt.</strong> Reicht die hinterlegte
+        Ferienliste nicht bis zu einem Betriebstag, wird dieser Tag <em>nicht
+        eingeordnet</em> — er fällt aus beiden Seiten heraus und wird nicht
+        stillschweigend zur Schulzeit gezählt. Wie viele Tage das sind, steht unter dem
+        Vergleich.</li>
+  </ul>
+
+  <h3>Warum der Unterschied nicht die Wirkung der Ferien ist</h3>
+  <p>Zwei Dinge stehen zwischen der Differenz und einer Erklärung, und beide sind
+     gemessen:</p>
+  <p><strong>Der Fahrplan ist nicht überall derselbe.</strong> Netzweit unterscheidet
+     sich das geplante Angebot zwischen einem Ferien- und einem Schulmittwoch nur um
+     0,7 % — bei <strong>34 von 107 Linien</strong> aber überhaupt, und bei einzelnen
+     erheblich: die Linie 21 fährt an einem Schulmittwoch 202 statt 106 Fahrten
+     (gemessen am 7. September 2026 gegen die Fahrplanfassung vom 27. August 2026). Wo
+     das eine Linie betrifft, steht es als Vorbehalt unter ihrem Vergleich, und die
+     Fahrten je Betriebstag stehen in der Tabelle daneben.</p>
+  <p><strong>Ferien sind ein Zeitraum, keine Ursache.</strong> Sommerferien sind auch
+     Sommer, Weihnachtsferien auch Winter. Wetter, Baustellensaison, Berufsverkehr und
+     Urlaubsverkehr verschieben sich mit. TramPuls kann sagen, dass zwei Tagesmengen
+     verschiedene Zahlen tragen — nicht, woran das liegt.</p>
 
   <h2>Warum nicht jeder geplante Halt gemessen werden konnte</h2>
   <p>Auf jeder Seite stehen zwei Zahlen nebeneinander: <strong>geplante Halte</strong>
@@ -344,6 +391,27 @@
           <th scope="row">Stunden ohne Aufzeichnung</th>
           <td>Betriebsstunden eines Tages, für die keine einzige Beobachtung vorliegt —
               Lücken der Erhebung selbst, nicht des Verkehrs.</td>
+        </tr>
+        <tr>
+          <th scope="row">Ferientag / Schultag</th>
+          <td>Einordnung eines Betriebstags danach, ob in Baden-Württemberg Schulferien
+              waren — dem Land mit 84,2 % der geplanten Halte. Grundlage ist eine
+              gepflegte Liste der Ferientermine, keine Ableitung aus dem Fahrplan. Im
+              Datenmodell: <code>ferien_bw</code> in <code>mart_kalender</code>.</td>
+        </tr>
+        <tr>
+          <th scope="row">Nicht eingeordnet</th>
+          <td>Ein Betriebstag, der jenseits der hinterlegten Ferienliste liegt. Er zählt
+              <strong>weder</strong> als Ferientag <strong>noch</strong> als Schultag.
+              Der Unterschied ist wichtig: als „Schultag" gezählt würde ein solcher Tag
+              eine veröffentlichte Quote verschieben, ohne dass es auffiele. Im
+              Datenmodell: <code>NULL</code>, nicht <code>false</code>.</td>
+        </tr>
+        <tr>
+          <th scope="row">Fahrten je Betriebstag</th>
+          <td>Geplante Fahrten einer Linie geteilt durch die Zahl der Betriebstage einer
+              Auswahl. Steht unter dem Vergleich, weil eine Linie, die auf beiden Seiten
+              unterschiedlich oft fährt, dort nicht zweimal denselben Betrieb zeigt.</td>
         </tr>
         <tr>
           <th scope="row">Betriebstag</th>

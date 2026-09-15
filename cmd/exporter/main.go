@@ -68,6 +68,9 @@ func run(martsDir, zielDir string) error {
 	if err := schreibeMethodik(zielDir, d); err != nil {
 		return err
 	}
+	if err := schreibeKalender(zielDir, d); err != nil {
+		return err
+	}
 
 	geschrieben := 0
 	for _, l := range d.linien {
@@ -97,6 +100,7 @@ type daten struct {
 	ausfaelle  []marts.Ausfall
 	netz       []marts.Netz
 	qualitaet  []marts.Datenqualitaet
+	kalender   []marts.Kalender
 
 	von, bis string
 }
@@ -128,6 +132,9 @@ func lade(dir string) (*daten, error) {
 		return nil, err
 	}
 	if d.qualitaet, err = marts.Lies[marts.Datenqualitaet](p("mart_datenqualitaet.parquet")); err != nil {
+		return nil, err
+	}
+	if d.kalender, err = marts.Lies[marts.Kalender](p("mart_kalender.parquet")); err != nil {
 		return nil, err
 	}
 
@@ -623,6 +630,73 @@ func text(p *string) string {
 		return ""
 	}
 	return *p
+}
+
+// ---------------------------------------------------------------------------
+// kalender.json — die schulische Lage je Betriebstag (ADR-024)
+// ---------------------------------------------------------------------------
+
+// Eigene Datei und kein Feld in index.json: index.json liegt auf dem kritischen
+// Pfad jeder Seite, den Kalender brauchen drei von acht. Bei einem Jahr Historie
+// sind das rund 365 Eintraege in fuenf Arrays — wenige Kilobyte.
+type kalenderDatei struct {
+	Betriebstag []string `json:"betriebstag"`
+
+	// Zeiger, damit nil zu `null` wird und nicht zu `false`. Der Unterschied ist
+	// der Kern von ADR-024: null heisst "nicht eingeordnet" und faellt aus
+	// beiden Eimern, false heisst "Schulzeit" und fuellt einen Nenner.
+	FerienBW []*bool `json:"ferien_bw"`
+	FerienRP []*bool `json:"ferien_rp"`
+	FerienHE []*bool `json:"ferien_he"`
+
+	FerienName []*string `json:"ferien_name"`
+	Ferienlage []*string `json:"ferienlage"`
+
+	Leitland string       `json:"leitland"`
+	Laender  []landAnteil `json:"laender"`
+}
+
+type landAnteil struct {
+	Kuerzel       string  `json:"kuerzel"`
+	Name          string  `json:"name"`
+	AnteilSoll    float64 `json:"anteil_soll_halte"`
+	SollHalte     int64   `json:"soll_halte"`
+	GemessenAm    string  `json:"gemessen_am"`
+	GemessenGegen string  `json:"gemessen_gegen"`
+}
+
+// Wie sich das Netz auf die drei Laender verteilt — gemessen, nicht geschaetzt.
+//
+// Gemessen am 2026-09-07 gegen Sollfahrplan-Version v=2026-08-27: 419.991
+// Soll-Halte, zugeordnet ueber die ersten beiden Stellen des AGS in der DHID
+// (`de:08222:...` = Mannheim/BW, `de:07314:...` = Ludwigshafen/RP,
+// `de:06431:...` = Viernheim/HE).
+//
+// Die Zahl steht hier und nicht im Frontend, weil sie eine Messung ist und kein
+// Text: sie traegt die Begruendung dafuer, dass die veroeffentlichte Quote ueber
+// Baden-Wuerttemberg laeuft, und sie gehoert mit ihrem Datum neben das Ergebnis.
+// Aendert sich der Zuschnitt des Netzes, wird sie neu gemessen — nicht
+// fortgeschrieben.
+var netzanteile = []landAnteil{
+	{"BW", "Baden-Württemberg", 0.842, 353506, "2026-09-07", "v=2026-08-27"},
+	{"RP", "Rheinland-Pfalz", 0.154, 64874, "2026-09-07", "v=2026-08-27"},
+	{"HE", "Hessen", 0.004, 1611, "2026-09-07", "v=2026-08-27"},
+}
+
+func schreibeKalender(zielDir string, d *daten) error {
+	zeilen := append([]marts.Kalender(nil), d.kalender...)
+	sort.Slice(zeilen, func(i, j int) bool { return zeilen[i].Betriebstag < zeilen[j].Betriebstag })
+
+	out := kalenderDatei{Leitland: "BW", Laender: netzanteile}
+	for _, k := range zeilen {
+		out.Betriebstag = append(out.Betriebstag, k.Betriebstag)
+		out.FerienBW = append(out.FerienBW, k.FerienBW)
+		out.FerienRP = append(out.FerienRP, k.FerienRP)
+		out.FerienHE = append(out.FerienHE, k.FerienHE)
+		out.FerienName = append(out.FerienName, k.FerienName)
+		out.Ferienlage = append(out.Ferienlage, k.Ferienlage)
+	}
+	return schreibeJSON(filepath.Join(zielDir, "kalender.json"), out)
 }
 
 // ---------------------------------------------------------------------------

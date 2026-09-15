@@ -172,6 +172,30 @@ type Datenqualitaet struct {
 	HalteOhneSollrahmen   *int64 `parquet:"halte_ohne_sollrahmen"`
 }
 
+// Kalender ist eine Zeile aus mart_kalender: die schulische Lage eines
+// Betriebstags (ADR-024). Keine Kennzahl, eine Dimension — das Frontend
+// summiert damit die Zaehler der uebrigen Marts ueber eine Tagesmenge.
+//
+// Alle vier Merkmale sind Zeiger, und hier meint nil tatsaechlich NULL in der
+// Datenbank: **"nicht eingeordnet", nicht "Schulzeit"**. Ein false an dieser
+// Stelle wuerde einen Tag jenseits der gepflegten Ferienliste stillschweigend in
+// den Schulzeit-Nenner schieben und die veroeffentlichte Quote verschieben.
+// Der Unterschied muss deshalb bis in die JSON-Datei durchhalten.
+type Kalender struct {
+	Betriebstag string `parquet:"betriebstag"`
+
+	// Leitland: 84,2 % der Soll-Halte liegen in Baden-Wuerttemberg (gemessen
+	// 2026-09-07 gegen Version v=2026-08-27, 353.506 von 419.991). Ueber diese
+	// Spalte laeuft die veroeffentlichte Unterscheidung.
+	FerienBW *bool `parquet:"ferien_bw"`
+	// 15,4 % bzw. 0,4 %. Tragen keine Quote, sondern den Vorbehalt.
+	FerienRP *bool `parquet:"ferien_rp"`
+	FerienHE *bool `parquet:"ferien_he"`
+
+	FerienName *string `parquet:"ferien_name"`
+	Ferienlage *string `parquet:"ferienlage"`
+}
+
 // Linie sind die Stammdaten einer Linie aus dem Sollfahrplan.
 type Linie struct {
 	RouteID         string `parquet:"route_id"`

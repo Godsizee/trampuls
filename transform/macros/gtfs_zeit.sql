@@ -45,3 +45,22 @@
         else cast(floor(date_diff('second', {{ betriebstag }}::timestamp, {{ zeitstempel }}) / 3600.0) as integer)
     end
 {% endmacro %}
+
+
+{#
+    Umkehrung von betriebsstunde(): der Beginn einer Betriebsstunde als echter
+    Zeitstempel. Die beiden gehoeren zusammen und stehen deshalb nebeneinander --
+    wer eine aendert, muss die andere mitaendern, sonst verschiebt sich lautlos
+    ein Join statt laut zu brechen.
+
+    Invariante, auf die sich int_erhebungsluecke stuetzt:
+        betriebsstunde_beginn(t, betriebsstunde(t, ts)) = date_trunc('hour', ts)
+    Sie gilt, weil t::timestamp auf einer Stundengrenze liegt (Mitternacht).
+
+    Zeitumstellung: beide Formeln rechnen naiv in Europe/Berlin, wie schon
+    betriebsstunde() -- siehe Fallstrick 11 in TramPuls_Datenmodell. Die
+    Umkehrung erbt dieses Verhalten und fuegt kein neues hinzu.
+#}
+{% macro betriebsstunde_beginn(betriebstag, stunde) %}
+    ({{ betriebstag }}::timestamp + ({{ stunde }} * interval 1 hour))
+{% endmacro %}

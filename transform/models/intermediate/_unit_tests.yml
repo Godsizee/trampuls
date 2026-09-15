@@ -258,3 +258,45 @@ unit_tests:
                0                 as fahrten_ohne_sollrahmen,
                50                as beobachtete_halte,
                0                 as halte_ohne_sollrahmen
+
+  # TPULS-104. Der Fall, an dem die alte Formel scheiterte: die Randstunde eines
+  # Betriebstags, in der der Sammler laeuft -- seine Zeilen aber dem *naechsten*
+  # Betriebstag gehoeren, weil die Fahrten des alten laengst durch sind. Die alte
+  # Beobachtungsseite filterte nach betriebstag und las das als Luecke; jeder Tag
+  # trug dadurch dauerhaft 2-3 Phantom-Luecken, und erhebung_vollstaendig konnte
+  # nie wahr werden.
+  #
+  # Aus Produktionsdaten laesst sich das nicht nachweisen -- dort ist jede Stunde
+  # belegt, der Unterschied zeigt sich nur in der Zuordnung. Deshalb Fixture.
+  - name: int_erhebungsluecke_zaehlt_den_sammler_nicht_den_betriebstag
+    model: int_erhebungsluecke
+    description: >
+      Stunde 5 ist belegt durch eine Meldung desselben Betriebstags. Stunde 27
+      (03:00 des Folgetags) ist belegt, obwohl die einzige Meldung dieser Stunde
+      dem naechsten Betriebstag zugeordnet ist -- der Sammler lief. Stunde 12
+      bleibt Luecke: in dieser Kalenderstunde kam nichts an, von keiner Seite.
+    given:
+      - input: ref('int_soll_ist')
+        format: sql
+        rows: |
+          select date '2026-09-10' as betriebstag,  5 as betriebsstunde
+          union all
+          select date '2026-09-10' as betriebstag, 12 as betriebsstunde
+          union all
+          select date '2026-09-10' as betriebstag, 27 as betriebsstunde
+      - input: ref('int_betriebstag')
+        format: sql
+        rows: |
+          select timestamp '2026-09-10 05:30:00' as beobachtet_am,
+                 date '2026-09-10'                as betriebstag
+          union all
+          select timestamp '2026-09-11 03:30:00' as beobachtet_am,
+                 date '2026-09-11'                as betriebstag
+    expect:
+      format: sql
+      rows: |
+        select date '2026-09-10' as betriebstag,  5 as stunde, 1 as meldungen, true  as erhoben
+        union all
+        select date '2026-09-10' as betriebstag, 12 as stunde, 0 as meldungen, false as erhoben
+        union all
+        select date '2026-09-10' as betriebstag, 27 as stunde, 1 as meldungen, true  as erhoben

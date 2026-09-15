@@ -131,9 +131,13 @@ models:
 
   - name: int_erhebungsluecke
     description: >
-      Je (Betriebstag, Betriebsstunde): lag eine verwertbare Beobachtung vor?
-      Quelle sind Beobachtungszeitpunkte aus int_betriebstag (routenunabhaengig),
-      nicht der Heartbeat (kein Verlauf vorhanden, TPULS-036).
+      Je (Betriebstag, Betriebsstunde): hat der Sammler in dieser Stunde ueberhaupt
+      gesammelt? Quelle sind Beobachtungszeitpunkte aus int_betriebstag, und zwar
+      routen- UND betriebstagunabhaengig (TPULS-104) -- gezaehlt wird die
+      Kalenderstunde des Abrufs, gleich welchem Betriebstag die Meldung zugeordnet
+      ist. Sonst gilt die Randstunde eines Betriebstags als Luecke, obwohl der
+      Sammler laeuft und nur seine Zeilen schon dem naechsten Tag gehoeren.
+      Nicht der Heartbeat (kein Verlauf vorhanden, TPULS-036).
     data_tests:
       - dbt_utils.unique_combination_of_columns:
           combination_of_columns: [betriebstag, stunde]

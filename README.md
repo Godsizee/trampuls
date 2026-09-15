@@ -68,6 +68,18 @@ Siehe [deploy/README.md](./deploy/README.md).
 > verändert: gefiltert auf die Rhein-Neckar-Verkehr GmbH, über die Zeit archiviert und
 > zu Kennzahlen aggregiert.
 
+> Datengrundlage für einen Teil der Linien: Echtzeit- und Sollfahrplandaten der
+> **Rhein-Neckar-Verkehr GmbH** (openRNV), bereitgestellt unter der **Datenlizenz
+> Deutschland – Namensnennung – Version 2.0**
+> ([Lizenztext](https://www.govdata.de/dl-de/by-2-0)). Auch diese Daten wurden von
+> TramPuls verändert: über die Zeit archiviert, mit dem Fahrplan verknüpft und zu
+> Kennzahlen aggregiert.
+
+Die zweite Quelle steht daneben, weil der Verbund-Datenstrom zu einigen Linien keine
+Ist-Meldungen führt. Welche das sind und was daraus folgt, steht auf
+[/methodik](https://trampuls.dasdann.jetzt/methodik.html) und mit Zahlen auf
+[/befunde](https://trampuls.dasdann.jetzt/befunde.html).
+
 **Der Code** dieses Repos steht unter der [MIT-Lizenz](./LICENSE).
 
 **Die Daten stehen nicht darunter.** Die MIT-Lizenz gilt für das, was hier geschrieben

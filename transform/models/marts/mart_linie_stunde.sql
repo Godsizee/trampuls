@@ -7,7 +7,7 @@ with basis as (
     from {{ ref('fct_halt_events') }}
     where betriebsstunde is not null
     {% if is_incremental() %}
-      and betriebstag >= (select coalesce(max(betriebstag), '1900-01-01'::date) from {{ this }})
+      and betriebstag >= {{ inkrementelles_fenster() }}
     {% endif %}
 
 )

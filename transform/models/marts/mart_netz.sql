@@ -21,7 +21,7 @@ with basis as (
       on bv.route_id = b.route_id
     where bv.route_id is null
     {% if is_incremental() %}
-      and b.betriebstag >= (select coalesce(max(betriebstag), '1900-01-01'::date) from {{ this }})
+      and b.betriebstag >= {{ inkrementelles_fenster() }}
     {% endif %}
 
 )

@@ -20,8 +20,9 @@ with basis as (
     from {{ ref('fct_halt_events') }}
     {% if is_incremental() %}
     -- Der zuletzt geladene Betriebstag wird jedes Mal neu gebaut: er reicht bis
-    -- zu 30 h und ist beim ersten Lauf regelmaessig unvollstaendig.
-    where betriebstag >= (select coalesce(max(betriebstag), '1900-01-01'::date) from {{ this }})
+    -- zu 30 h und ist beim ersten Lauf regelmaessig unvollstaendig. Die
+    -- Sicherheitsspanne steht in inkrementelles_fenster().
+    where betriebstag >= {{ inkrementelles_fenster() }}
     {% endif %}
 
 )

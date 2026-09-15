@@ -10,7 +10,7 @@ with basis as (
     select *
     from {{ ref('fct_halt_events') }}
     {% if is_incremental() %}
-    where betriebstag >= (select coalesce(max(betriebstag), '1900-01-01'::date) from {{ this }})
+    where betriebstag >= {{ inkrementelles_fenster() }}
     {% endif %}
 
 ),
@@ -20,7 +20,7 @@ delta as (
     select *
     from {{ ref('int_abschnitt_delta') }}
     {% if is_incremental() %}
-    where betriebstag >= (select coalesce(max(betriebstag), '1900-01-01'::date) from {{ this }})
+    where betriebstag >= {{ inkrementelles_fenster() }}
     {% endif %}
 
 ),

@@ -17,7 +17,7 @@ with basis as (
     select *
     from {{ ref('fct_halt_events') }}
     {% if is_incremental() %}
-    where betriebstag >= (select coalesce(max(betriebstag), '1900-01-01'::date) from {{ this }})
+    where betriebstag >= {{ inkrementelles_fenster() }}
     {% endif %}
 
 ),
@@ -30,7 +30,7 @@ erhebung as (
         count(*) filter (where not erhoben)  as erhebungsluecken_stunden
     from {{ ref('int_erhebungsluecke') }}
     {% if is_incremental() %}
-    where betriebstag >= (select coalesce(max(betriebstag), '1900-01-01'::date) from {{ this }})
+    where betriebstag >= {{ inkrementelles_fenster() }}
     {% endif %}
     group by 1
 
@@ -50,7 +50,7 @@ fremdkennung as (
         halte_ohne_sollrahmen
     from {{ ref('int_fremdkennung') }}
     {% if is_incremental() %}
-    where betriebstag >= (select coalesce(max(betriebstag), '1900-01-01'::date) from {{ this }})
+    where betriebstag >= {{ inkrementelles_fenster() }}
     {% endif %}
 
 ),

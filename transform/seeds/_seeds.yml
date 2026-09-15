@@ -85,3 +85,75 @@ seeds:
     tests:
       - dbt_utils.unique_combination_of_columns:
           combination_of_columns: [openrnv_linie, openrnv_verkehrsart]
+  - name: schulferien
+    description: >
+      Die Schulferien der drei Laender, in denen die rnv faehrt (ADR-024).
+      Grundlage der Einordnung eines Betriebstags in mart_kalender.
+
+      **Warum eine gepflegte Liste und keine Bezugsquelle.** Die Termine aendern
+      sich zweimal im Jahr und stehen Jahre im Voraus fest. Eine Abhaengigkeit zu
+      einer fremden Schnittstelle waere Datenbeschaffung in dbt (SRP) und ein
+      Ausfallpunkt fuer eine Zahl, die sich nie kurzfristig aendert.
+
+      **Leitland ist Baden-Wuerttemberg.** Gemessen 2026-09-07 gegen Version
+      v=2026-08-27, Landeszuordnung ueber die ersten beiden Stellen des AGS in
+      der DHID (`de:08222:...` = Mannheim/BW): von 419.991 Soll-Halten liegen
+      **353.506 = 84,2 % in Baden-Wuerttemberg**, 64.874 = 15,4 % in
+      Rheinland-Pfalz, 1.611 = 0,4 % in Hessen.
+
+      Rheinland-Pfalz und Hessen stehen trotzdem in der Liste, obwohl keine
+      veroeffentlichte Quote ueber sie laeuft: ohne sie liesse sich der wichtigste
+      Vorbehalt nicht beziffern. Waehrend der BW-Sommerferien 2026
+      (30.07.-12.09.) waren die Schulen in Rheinland-Pfalz ab dem 10.08. wieder in
+      Betrieb -- fuer 15,4 % des Netzes ist ein BW-Ferientag ein Schultag.
+
+      **Was hier bewusst nicht steht:**
+
+      - **Bewegliche Ferientage.** BW gewaehrt vier, RP sechs, Hessen drei bis
+        vier je Schuljahr, und jede Schule legt sie selbst. Sie sind zentral nicht
+        bekannt und laufen als Schulzeit mit.
+      - **Feiertage.** Ein Feiertag in der Schulzeit faehrt verkehrlich wie ein
+        Ferientag, ist aber eine eigene Frage. Die Spalte `art` nimmt ihn ohne
+        Schemabruch auf, sobald gemessen ist, dass er die Quote traegt.
+
+      Der Reformationstag 2026 steht als eigene Zeile und nicht als Verlaengerung
+      der Herbstferien: das Kultusministerium fuehrt ihn getrennt, und ein Seed,
+      der amtliche Zeitraeume umschreibt, ist als Beleg nichts mehr wert.
+
+      **Aendert sich diese Liste, ist kein Vollaufbau noetig** -- anders als bei
+      bedarfsverkehr und quelle_openrnv. mart_kalender ist `table` und baut
+      vollstaendig neu bei jedem Lauf; deshalb nimmt die Seed-Signatur in
+      pruefung-stuendlich diese Datei ausdruecklich aus (ADR-024). Wer sie je in
+      einen inkrementellen Mart joint, muss dort dieselbe Ausnahme zuruecknehmen.
+    config:
+      column_types:
+        von: date
+        bis: date
+    columns:
+      - name: bundesland
+        description: Kuerzel, nicht Name -- der Schluessel der Pivotierung in mart_kalender.
+        data_tests:
+          - not_null
+          - accepted_values: {values: ['BW', 'RP', 'HE']}
+      - name: art
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ['sommer', 'herbst', 'weihnachten', 'ostern', 'pfingsten', 'schulfrei']
+      - name: name
+        description: Anzeige. Steht als `ferien_name` in mart_kalender, sobald der Tag in BW-Ferien faellt.
+        data_tests: [not_null]
+      - name: von
+        data_tests: [not_null]
+      - name: bis
+        data_tests: [not_null]
+      - name: quelle
+        description: >
+          Je Zeile die Stelle, aus der der Termin stammt. Amtlich, bis auf die
+          hessischen Sommerferien 2026: die gehoeren ins Schuljahr 2025/2026, das
+          das Kultusministerium nicht mehr fuehrt. 0,4 % des Netzes, keine
+          veroeffentlichte Quote haengt daran.
+        data_tests: [not_null]
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [bundesland, von]

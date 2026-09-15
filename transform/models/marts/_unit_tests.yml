@@ -1,0 +1,55 @@
+version: 2
+
+unit_tests:
+  # Der Zweig, den die Produktionsdaten nicht erreichen und der die ganze
+  # Entscheidung traegt (ADR-024): jenseits der gepflegten Ferienliste steht
+  # NULL, nicht `false`.
+  #
+  # Ohne diesen Test waere die Zusage "ein ausgelaufener Seed verschiebt keine
+  # Quote" eine Behauptung. Sie laesst sich sonst erst belegen, wenn die Liste
+  # tatsaechlich ausgelaufen ist -- also genau dann, wenn es zu spaet waere.
+  - name: mart_kalender_ordnet_ein_und_haelt_die_grenze
+    model: mart_kalender
+    description: >
+      Vier Betriebstage gegen dieselbe Liste: ein Tag mit Ferien in allen drei
+      Laendern, ein Tag mit Ferien nur in Baden-Wuerttemberg (die reale Lage im
+      September 2026), ein Schultag, und ein Tag jenseits der Abdeckung.
+    given:
+      - input: ref('fct_halt_events')
+        format: sql
+        rows: |
+          select date '2026-08-05' as betriebstag
+          union all select date '2026-09-07'
+          union all select date '2026-09-16'
+          union all select date '2026-11-02'
+      - input: ref('schulferien')
+        format: sql
+        rows: |
+          select 'BW' as bundesland, 'Sommerferien 2026' as name,
+                 date '2026-07-30' as von, date '2026-09-12' as bis
+          union all select 'BW', 'Herbstferien 2026', date '2026-10-26', date '2026-10-30'
+          union all select 'RP', 'Sommerferien 2026', date '2026-06-29', date '2026-08-07'
+          union all select 'RP', 'Herbstferien 2026', date '2026-10-05', date '2026-10-16'
+          union all select 'HE', 'Sommerferien 2026', date '2026-06-29', date '2026-08-07'
+          union all select 'HE', 'Herbstferien 2026', date '2026-10-05', date '2026-10-17'
+    expect:
+      format: sql
+      rows: |
+        -- Alle drei Laender in den Sommerferien.
+        select date '2026-08-05' as betriebstag,
+               true               as ferien_bw,
+               true               as ferien_rp,
+               true               as ferien_he,
+               'Sommerferien 2026' as ferien_name,
+               'alle'             as ferienlage
+        union all
+        -- Die reale Lage am 2026-09-07: Baden-Wuerttemberg hat noch Ferien,
+        -- Rheinland-Pfalz und Hessen sind seit dem 10.08. wieder in der Schule.
+        -- Fuer 15,4 % des Netzes ist das ein ganz normaler Schultag.
+        select date '2026-09-07', true, false, false, 'Sommerferien 2026', 'teilweise'
+        union all
+        -- Erster Schultag in Baden-Wuerttemberg.
+        select date '2026-09-16', false, false, false, null, 'keine'
+        union all
+        -- Jenseits der letzten gepflegten Zeile. Nicht "Schulzeit" -- unbekannt.
+        select date '2026-11-02', null, null, null, null, null

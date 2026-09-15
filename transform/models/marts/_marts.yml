@@ -119,3 +119,43 @@ models:
       - name: halte_ohne_sollrahmen
         description: "Dieselbe Menge auf Halt-Ebene."
         data_tests: [not_null]
+
+  - name: mart_kalender
+    description: >
+      Tagesdimension: die schulische Lage eines Betriebstags (ADR-024). Traegt
+      keine Kennzahl — das Frontend summiert damit die vorhandenen Zaehler der
+      uebrigen Marts ueber eine Tagesmenge, statt eine neue Quote zu bilden.
+
+      Einzige `table` in dieser Schicht, mit Grund: eine Korrektur an der
+      Ferienliste soll rueckwirkend wirken, ohne Vollaufbau (Regel 10 bleibt fuer
+      die Faktenmarts unberuehrt).
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [betriebstag]
+    columns:
+      - name: betriebstag
+        description: "Betriebstag, nicht Kalendertag (Regel 6)."
+        data_tests: [unique, not_null]
+      - name: ferien_bw
+        description: >
+          Schulferien in Baden-Wuerttemberg — das Leitland mit 84,2 % der
+          Soll-Halte (gemessen 2026-09-07). Ueber diese Spalte laeuft die
+          veroeffentlichte Unterscheidung.
+
+          **NULL heisst „nicht eingeordnet", nicht „Schulzeit".** Jenseits der
+          gepflegten Liste bleibt der Tag unbestimmt und faellt aus beiden
+          Eimern, statt still den Schulzeit-Nenner zu fuellen. Deshalb hier kein
+          not_null.
+      - name: ferien_rp
+        description: >
+          Rheinland-Pfalz, 15,4 % der Soll-Halte. Traegt keine veroeffentlichte
+          Quote, sondern den wichtigsten Vorbehalt: waehrend der BW-Sommerferien
+          2026 waren die Schulen dort ab dem 10.08. wieder in Betrieb.
+      - name: ferien_he
+        description: "Hessen, 0,4 % der Soll-Halte (10 Stationen in Viernheim)."
+      - name: ferien_name
+        description: "Name der BW-Ferien, sonst NULL. Beschriftung, kein Schluessel."
+      - name: ferienlage
+        description: "'keine' | 'teilweise' | 'alle' — wie viele der drei Laender an diesem Tag Ferien hatten. NULL, sobald eines unbekannt ist."
+        data_tests:
+          - accepted_values: {values: ['keine', 'teilweise', 'alle']}

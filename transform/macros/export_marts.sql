@@ -17,7 +17,8 @@
         'mart_linie_halt',
         'mart_ausfall',
         'mart_netz',
-        'mart_datenqualitaet'
+        'mart_datenqualitaet',
+        'mart_kalender'
     ] %}
 
     {% for mart in marts %}

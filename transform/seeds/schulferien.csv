@@ -1,0 +1,29 @@
+bundesland,art,name,von,bis,quelle
+BW,sommer,Sommerferien 2026,2026-07-30,2026-09-12,km.baden-wuerttemberg.de/de/service/ferien
+BW,herbst,Herbstferien 2026,2026-10-26,2026-10-30,km.baden-wuerttemberg.de/de/service/ferien
+BW,schulfrei,Reformationstag 2026,2026-10-31,2026-10-31,km.baden-wuerttemberg.de/de/service/ferien
+BW,weihnachten,Weihnachtsferien 2026/2027,2026-12-23,2027-01-09,km.baden-wuerttemberg.de/de/service/ferien
+BW,ostern,Osterferien 2027,2027-03-30,2027-04-03,km.baden-wuerttemberg.de/de/service/ferien
+BW,pfingsten,Pfingstferien 2027,2027-05-18,2027-05-29,km.baden-wuerttemberg.de/de/service/ferien
+BW,sommer,Sommerferien 2027,2027-07-29,2027-09-11,km.baden-wuerttemberg.de/de/service/ferien
+BW,herbst,Herbstferien 2027,2027-11-02,2027-11-06,km.baden-wuerttemberg.de/de/service/ferien
+BW,weihnachten,Weihnachtsferien 2027/2028,2027-12-23,2028-01-08,km.baden-wuerttemberg.de/de/service/ferien
+BW,ostern,Osterferien 2028,2028-04-18,2028-04-22,km.baden-wuerttemberg.de/de/service/ferien
+BW,pfingsten,Pfingstferien 2028,2028-06-06,2028-06-17,km.baden-wuerttemberg.de/de/service/ferien
+RP,sommer,Sommerferien 2026,2026-06-29,2026-08-07,bm.rlp.de/service/ferientermine
+RP,herbst,Herbstferien 2026,2026-10-05,2026-10-16,bm.rlp.de/service/ferientermine
+RP,weihnachten,Weihnachtsferien 2026/2027,2026-12-23,2027-01-08,bm.rlp.de/service/ferientermine
+RP,ostern,Osterferien 2027,2027-03-22,2027-04-02,bm.rlp.de/service/ferientermine
+RP,sommer,Sommerferien 2027,2027-06-28,2027-08-06,bm.rlp.de/service/ferientermine
+RP,herbst,Herbstferien 2027,2027-10-04,2027-10-15,bm.rlp.de/service/ferientermine
+RP,weihnachten,Weihnachtsferien 2027/2028,2027-12-23,2028-01-07,bm.rlp.de/service/ferientermine
+RP,ostern,Osterferien 2028,2028-04-10,2028-04-21,bm.rlp.de/service/ferientermine
+HE,sommer,Sommerferien 2026,2026-06-29,2026-08-07,schulferien.org (Schuljahr 2025/2026)
+HE,herbst,Herbstferien 2026,2026-10-05,2026-10-17,kultus.hessen.de/schulsystem/ferien/ferientermine
+HE,weihnachten,Weihnachtsferien 2026/2027,2026-12-23,2027-01-12,kultus.hessen.de/schulsystem/ferien/ferientermine
+HE,ostern,Osterferien 2027,2027-03-22,2027-04-02,kultus.hessen.de/schulsystem/ferien/ferientermine
+HE,sommer,Sommerferien 2027,2027-06-28,2027-08-06,kultus.hessen.de/schulsystem/ferien/ferientermine
+HE,herbst,Herbstferien 2027,2027-10-04,2027-10-16,kultus.hessen.de/schulsystem/ferien/ferientermine
+HE,weihnachten,Weihnachtsferien 2027/2028,2027-12-23,2028-01-11,kultus.hessen.de/schulsystem/ferien/ferientermine
+HE,ostern,Osterferien 2028,2028-04-03,2028-04-14,kultus.hessen.de/schulsystem/ferien/ferientermine
+HE,sommer,Sommerferien 2028,2028-07-03,2028-08-11,kultus.hessen.de/schulsystem/ferien/ferientermine

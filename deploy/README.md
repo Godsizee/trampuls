@@ -144,6 +144,7 @@ erste Mal existiert.
 | Scheduled Task | `rebuild-stuendlich`, `10 * * * *` |
 | Scheduled Task | `pruefung-stuendlich`, `15 * * * *` (nach `rebuild`) — `/usr/local/bin/pruefung-stuendlich.sh` |
 | Env (optional) | `TRAMPULS_NTFY_URL` — Ziel-URL fuer die Rot-Meldung (z. B. ein privates ntfy.sh-Thema). Ohne gesetzte URL laeuft die Pruefung, aber verschickt nichts — nur ein Log-Hinweis |
+| Env (optional) | `TRAMPULS_NTFY_URL_ESKALATION` — **zweiter** Kanal, der erst greift, wenn ein Befund 24 h steht (TPULS-108). Sinnvoll ist ein anderes Medium als der erste, nicht dasselbe Thema zweimal: der Sinn der Stufe ist, dass sie anders ankommt |
 
 Der Task läuft um `:10`, also nach dem Stundenflush des Collectors um `:00` — sonst
 fehlte der zuletzt abgeschlossenen Stunde regelmäßig ihre Partition.

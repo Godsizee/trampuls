@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Stuendliche fachliche Pruefung (TPULS-022). Prueft nicht, ob der Prozess laeuft,
-sondern ob das Ergebnis stimmt -- die neun Kennzahlen aus
+sondern ob das Ergebnis stimmt -- die zehn Kennzahlen aus
 TramPuls_Betrieb_und_Deployment.md, Abschnitt "Monitoring".
 
 Ein roter Task, den niemand sieht, ist kein Monitoring: bei jedem Rot geht eine
@@ -19,6 +19,7 @@ import datetime
 import hashlib
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -29,6 +30,12 @@ from zoneinfo import ZoneInfo
 BERLIN = ZoneInfo("Europe/Berlin")
 HIER = Path(__file__).resolve().parent
 QUELLE_PRUEFEN = HIER.parent / "quelle-pruefen" / "quelle-pruefen.py"
+
+# dbt legt sein Laufprotokoll neben das Projekt, nicht auf das Volume. Das ist
+# hier richtig: rebuild.sh laeuft im selben Container, fuenf Minuten vor dieser
+# Pruefung -- und nach einem Redeploy soll die Datei ausdruecklich fehlen, statt
+# einen Stand von vor dem Deploy vorzutaeuschen.
+RUN_RESULTS = Path(os.environ.get("TRAMPULS_TRANSFORM", "/app/transform")) / "target" / "run_results.json"
 
 
 def heartbeat_lesen(daten):
@@ -319,20 +326,193 @@ def prg_openrnv_partitionen(daten, jetzt, befunde):
         )
 
 
-def melden(ntfy_url, befunde):
-    text = "TramPuls-Pruefung rot:\n" + "\n".join(f"- {b}" for b in befunde)
-    print(text)
-    if not ntfy_url:
-        print("[pruefung] TRAMPULS_NTFY_URL nicht gesetzt -- keine Meldung verschickt")
-        return
+def zustand_lesen(pfad):
     try:
-        req = urllib.request.Request(
-            ntfy_url, data=text.encode("utf-8"), method="POST",
-            headers={"Title": "TramPuls-Pruefung"},
-        )
-        urllib.request.urlopen(req, timeout=30).read()
+        with open(pfad, encoding="utf-8") as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return None
+
+
+def zustand_schreiben(pfad, inhalt):
+    """Atomar, damit ein Abbruch mittendrin keinen halben Stand hinterlaesst --
+    ein zerschossener Vergleichsstand macht die naechste Pruefung blind."""
+    pfad.parent.mkdir(parents=True, exist_ok=True)
+    tmp = pfad.with_suffix(".tmp")
+    tmp.write_text(json.dumps(inhalt, indent=1), encoding="utf-8")
+    os.replace(tmp, pfad)
+
+
+def testname(unique_id):
+    """`test.trampuls.assert_ferien_abdeckung` -> `assert_ferien_abdeckung`.
+
+    Generische Tests tragen zusaetzlich einen Hash (`not_null_x_y.3aa8b6ec67`).
+    Er gehoert nicht in eine Meldung, die ein Mensch liest -- und er wechselt,
+    wenn dbt den Test neu ableitet, was den Vergleich mit dem letzten Stand
+    grundlos auf "neuer Befund" werfen wuerde.
+    """
+    teile = unique_id.split(".")
+    rest = teile[2:] if len(teile) > 2 else teile[-1:]
+    if len(rest) > 1 and re.fullmatch(r"[0-9a-f]{8,12}", rest[-1]):
+        rest = rest[:-1]
+    return ".".join(rest)
+
+
+def dbt_befunde_lesen():
+    with open(RUN_RESULTS, encoding="utf-8") as f:
+        ergebnis = json.load(f)
+    auffaellig = {}
+    for r in ergebnis.get("results", []):
+        status = (r.get("status") or "").lower()
+        if status in ("warn", "fail", "error"):
+            auffaellig[testname(r.get("unique_id", "?"))] = status
+    return auffaellig
+
+
+def prg_dbt_befunde(daten, jetzt, befunde):
+    """Die zehnte Kennzahl: was `dbt build` findet, aber niemandem sagt.
+
+    `severity=warn` ist die richtige Schwere fuer eine Frage, die ein Mensch
+    entscheidet (siehe assert_openrnv_kandidaten_gepflegt) -- aber eine Warnung,
+    die nur im Task-Log steht, ist Dokumentation und kein Monitoring. Der
+    VRN-Feed hat am 2026-09-16 vier Linien wieder aufgenommen; bis zum
+    2026-09-19 stand das ausschliesslich im dbt-Log, damals noch als Fehler, der
+    den Export drei Tage anhielt (b5a46e8).
+
+    Gemeldet wird die **Aenderung**, nicht der Bestand: assert_rt_aufloesbar
+    warnt planmaessig und in jedem Lauf. Wer das stuendlich wiederholt, erzieht
+    zum Wegsehen (ADR-020) -- genau der Fehler, aus dem diese Kennzahl entstanden
+    ist. Ein Befund, der stehen bleibt, meldet sich deshalb nur noch einmal am
+    Tag.
+    """
+    if not RUN_RESULTS.exists():
+        print(f"[pruefung] {RUN_RESULTS} fehlt -- seit dem Deploy kein dbt-Lauf, nichts zu vergleichen")
+        return
+    # Ist das Protokoll alt, steht der Neubau -- und das meldet prg_letzter_rebuild
+    # bereits. Zweimal dieselbe Nachricht ist eine zu viel.
+    if (jetzt.timestamp() - RUN_RESULTS.stat().st_mtime) / 3600 > 3:
+        return
+
+    jetzige = dbt_befunde_lesen()
+    pfad = Path(daten) / "health" / "dbt_befunde.json"
+    vorher = zustand_lesen(pfad)
+
+    if vorher is None:
+        zustand_schreiben(pfad, {n: {"status": s, "seit": jetzt.isoformat(), "gemeldet": jetzt.isoformat()}
+                                 for n, s in jetzige.items()})
+        print("[pruefung] dbt-Befunde zum ersten Mal notiert "
+              f"({', '.join(sorted(jetzige)) or 'keine'}) -- vergleichbar ab dem naechsten Lauf")
+        return
+
+    neuer_stand = {}
+    geaendert = False
+    for name, status in sorted(jetzige.items()):
+        alt = vorher.get(name)
+        if alt is None:
+            befunde.append(f"neuer dbt-Befund: {name} ({status})")
+            neuer_stand[name] = {"status": status, "seit": jetzt.isoformat(),
+                                 "gemeldet": jetzt.isoformat()}
+            geaendert = True
+            continue
+        neuer_stand[name] = dict(alt, status=status)
+        try:
+            gemeldet = datetime.datetime.fromisoformat(alt["gemeldet"])
+            seit = datetime.datetime.fromisoformat(alt["seit"])
+        except (KeyError, ValueError):
+            neuer_stand[name] = {"status": status, "seit": jetzt.isoformat(),
+                                 "gemeldet": jetzt.isoformat()}
+            geaendert = True
+            continue
+        if (jetzt - gemeldet).total_seconds() >= 24 * 3600:
+            tage = (jetzt - seit).days
+            befunde.append(f"dbt-Befund {name} ({status}) steht seit {tage} Tag(en)")
+            neuer_stand[name]["gemeldet"] = jetzt.isoformat()
+            geaendert = True
+
+    for name in sorted(set(vorher) - set(jetzige)):
+        befunde.append(f"dbt-Befund {name} ist weg -- die Lage hat sich geaendert")
+        geaendert = True
+
+    if geaendert:
+        zustand_schreiben(pfad, neuer_stand)
+
+
+def befund_schluessel(befund):
+    """Derselbe Befund mit anderer Zahl ist derselbe Befund.
+
+    "letzter erfolgreicher rebuild 3.0 h her" und "... 78.0 h her" sind eine
+    Lage, kein zweites Problem -- sonst faenge die Eskalation bei jeder vollen
+    Stunde von vorn an.
+    """
+    return re.sub(r"\d+(?:[.,]\d+)?", "#", befund)
+
+
+def eskalation(daten, jetzt, befunde):
+    """Wie lange steht der aelteste dieser Befunde schon?
+
+    Vom 2026-09-16 bis zum 2026-09-19 gingen 76 Meldungen mit derselben Zeile
+    raus, nur die Stundenzahl stieg von 3.0 auf 78.0. Erkannt wurde alles,
+    gehandelt wurde nichts. Ein Alarm, der sich wortgleich wiederholt, stumpft
+    ab -- er muss mit der Dauer seine Form aendern.
+    """
+    pfad = Path(daten) / "health" / "befunde_seit.json"
+    vorher = zustand_lesen(pfad) or {}
+    stand, alter = {}, {}
+    for b in befunde:
+        k = befund_schluessel(b)
+        seit = vorher.get(k, jetzt.isoformat())
+        stand[k] = seit
+        try:
+            alter[b] = (jetzt - datetime.datetime.fromisoformat(seit)).total_seconds() / 3600
+        except ValueError:
+            alter[b] = 0.0
+    try:
+        zustand_schreiben(pfad, stand)
     except OSError as exc:
-        print(f"[pruefung] Meldung an {ntfy_url} fehlgeschlagen: {exc}")
+        print(f"[pruefung] Eskalationsstand nicht schreibbar ({exc}) -- Meldung ohne Alter")
+    return alter
+
+
+def melden(ntfy_url, befunde, alter, eskalations_url=""):
+    aeltestes = max(alter.values(), default=0.0)
+    zeilen = []
+    for b in befunde:
+        h = alter.get(b, 0.0)
+        zeilen.append(f"- {b}" if h < 1 else f"- (seit {h:.0f} h) {b}")
+    text = "TramPuls-Pruefung rot:\n" + "\n".join(zeilen)
+    print(text)
+
+    # Die Stufen sind getroffen, nicht gemessen, aber an der Lage vom 2026-09-19
+    # geeicht: unter 3 h kann der naechste stuendliche Lauf es noch von selbst
+    # erledigen, ab 3 h ist es ein Zustand, ab 24 h hat das erste Nachsehen
+    # gefehlt -- und ab da geht es zusaetzlich in den zweiten Kanal.
+    # Reines ASCII, und das ist keine Kosmetik: HTTP-Header kodiert urllib nach
+    # latin-1. Ein Gedankenstrich im Titel wirft beim Versand eine
+    # UnicodeEncodeError -- ausserhalb des Schutzblocks in main(), also genau
+    # dort, wo die Pruefung still stirbt statt zu melden.
+    if aeltestes >= 24:
+        titel, prioritaet = f"TramPuls-Pruefung - seit {aeltestes / 24:.0f} Tagen", "5"
+    elif aeltestes >= 3:
+        titel, prioritaet = f"TramPuls-Pruefung - seit {aeltestes:.0f} h", "4"
+    else:
+        titel, prioritaet = "TramPuls-Pruefung", "3"
+
+    ziele = [(ntfy_url, "TRAMPULS_NTFY_URL")]
+    if aeltestes >= 24:
+        ziele.append((eskalations_url, "TRAMPULS_NTFY_URL_ESKALATION"))
+
+    for url, name in ziele:
+        if not url:
+            print(f"[pruefung] {name} nicht gesetzt -- keine Meldung an diesen Kanal")
+            continue
+        try:
+            req = urllib.request.Request(
+                url, data=text.encode("utf-8"), method="POST",
+                headers={"Title": titel, "Priority": prioritaet},
+            )
+            urllib.request.urlopen(req, timeout=30).read()
+        except OSError as exc:
+            print(f"[pruefung] Meldung an {url} fehlgeschlagen: {exc}")
 
 
 def main():
@@ -344,6 +524,7 @@ def main():
 
     daten = os.environ.get("TRAMPULS_DATEN", "/data")
     ntfy_url = os.environ.get("TRAMPULS_NTFY_URL", "")
+    eskalations_url = os.environ.get("TRAMPULS_NTFY_URL_ESKALATION", "")
     jetzt = datetime.datetime.now(datetime.timezone.utc)
 
     befunde = []
@@ -357,16 +538,20 @@ def main():
         prg_plattenplatz(daten, befunde)
         prg_letzter_rebuild(daten, jetzt, befunde)
         prg_seed_nach_vollaufbau(daten, befunde)
+        prg_dbt_befunde(daten, jetzt, befunde)
         openrnv = prg_openrnv_sammler(daten, jetzt, befunde)
     except Exception as exc:  # noqa: BLE001 -- die Pruefung selbst darf nie stumm sterben
         befunde.append(f"Pruefung selbst abgestuerzt: {exc!r}")
         openrnv = False
 
     if befunde:
-        melden(ntfy_url, befunde)
+        melden(ntfy_url, befunde, eskalation(daten, jetzt, befunde), eskalations_url)
         return 1
 
-    print("[pruefung] alle neun Kennzahlen gruen"
+    # Steht nichts mehr an, faengt die Eskalation beim naechsten Befund wieder
+    # bei null an -- sonst erbte ein neues Problem das Alter des alten.
+    eskalation(daten, jetzt, [])
+    print("[pruefung] alle zehn Kennzahlen gruen"
           + (" -- openRNV-Sammler mitgeprueft (ADR-023)" if openrnv
              else " -- openRNV-Sammler noch nicht deployt, nichts zu pruefen"))
     return 0

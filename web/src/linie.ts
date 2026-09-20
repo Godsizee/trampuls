@@ -25,6 +25,7 @@ import { balkenProfilIn, saeulenIn } from "./diagramm";
 import {
   SCHWELLEN, gemerkteLinie, leseAuswahl, merkeLinie, schreibeAuswahl, zeitraumFilter,
 } from "./zustand";
+import type { Auswahl } from "./zustand";
 
 async function start(): Promise<void> {
   const index = await ladeIndex();
@@ -77,6 +78,35 @@ function block(ziel: Element, haupt: string, rand: string): { haupt: HTMLElement
 
   ziel.append(h, r);
   return { haupt: h, rand: r };
+}
+
+/**
+ * Was die geschlossene Klappe sagen muss: die vollstaendige aktuelle Auswahl.
+ * Eine Klappe, die nur "Einstellungen" sagt, verbirgt eine getroffene Wahl —
+ * und die Seite verspricht, dass jede Auswahl sichtbar bei ihrer Zahl steht.
+ */
+function reglerstand(linie: LinieDatei, a: Auswahl, richtungName: string): string {
+  const zeitraum = a.von === null ? "ganzer Zeitraum" : datum(a.von);
+  return `${LINIENART_NAME[linie.verkehrsart]} ${liniennummer(linie.linie)} · ` +
+    `${richtungName} · ab ${a.schwelle} ${a.schwelle === 1 ? "Minute" : "Minuten"} · ${zeitraum}`;
+}
+
+/**
+ * Auf breiten Bildschirmen steht die Leiste offen und die Zusammenfassung
+ * verschwindet; auf dem Telefon ist sie zu, damit die Kennzahl ueber der
+ * Falzkante bleibt — fuenf Auswahlfelder untereinander sind dort rund 420 px
+ * (gemessen 2026-09-20), und die Zahl stand darunter.
+ *
+ * Gesetzt wird das in JavaScript und nicht in CSS: der Inhalt eines
+ * geschlossenen <details> laesst sich in neueren Browsern nicht mehr
+ * verlaesslich per `display` sichtbar machen — dort haengt `::details-content`
+ * mit `content-visibility` daran. Ein `open`-Attribut ist eindeutig.
+ */
+function haltReglerklappe(klappe: HTMLDetailsElement): void {
+  const breit = matchMedia("(min-width: 34.0625rem)");
+  const setze = (): void => { klappe.open = breit.matches; };
+  setze();
+  breit.addEventListener("change", setze);
 }
 
 function baueRegler(index: IndexDatei, datei: string, linie: LinieDatei): void {
@@ -147,22 +177,46 @@ function baueRegler(index: IndexDatei, datei: string, linie: LinieDatei): void {
   ).join("");
 
   ziel.innerHTML = `
-    <label>Verkehrsart
-      <select data-feld="art">${artOptionen}</select>
-    </label>
-    <label>Linie
-      <select data-feld="linie">${linienOptionen(a.art)}</select>
-    </label>
-    <label>Richtung
-      <select data-feld="richtung">${richtungOptionen}</select>
-    </label>
-    <label>Zeitraum
-      <select data-feld="zeitraum">${zeitraumOptionen}</select>
-    </label>
-    <label>Ab wann gilt „zu spät"?
-      <select data-feld="schwelle">${schwelleOptionen}</select>
-    </label>
-    <button type="button" data-merken>Diese Linie merken</button>`;
+    <details class="regler-aufklapp" data-reglerklappe>
+      <summary><span data-reglerstand></span></summary>
+      <div class="regler-felder">
+        <label>Verkehrsart
+          <select data-feld="art">${artOptionen}</select>
+        </label>
+        <label>Linie
+          <select data-feld="linie">${linienOptionen(a.art)}</select>
+        </label>
+        <label>Richtung
+          <select data-feld="richtung">${richtungOptionen}</select>
+        </label>
+        <label>Zeitraum
+          <select data-feld="zeitraum">${zeitraumOptionen}</select>
+        </label>
+        <label>Ab wann gilt „zu spät"?
+          <select data-feld="schwelle">${schwelleOptionen}</select>
+        </label>
+        <button type="button" data-merken>Diese Linie merken</button>
+      </div>
+    </details>`;
+
+  const klappe = ziel.querySelector<HTMLDetailsElement>("[data-reglerklappe]");
+  if (klappe) haltReglerklappe(klappe);
+
+  // Die Zusammenfassung in der geschlossenen Klappe muss mit jeder Auswahl
+  // mitziehen -- baueRegler() laeuft nur einmal, die einzelnen Felder aendern
+  // sich per nativer Select-Interaktion danach. `leseAuswahl()` liest dafuer
+  // frisch aus der Adresse, statt einen zweiten Zustand mitzufuehren.
+  const aktualisiereStand = (): void => {
+    const stand = ziel.querySelector<HTMLElement>("[data-reglerstand]");
+    if (!stand) return;
+    const aktuelleA = leseAuswahl();
+    const richtungName =
+      richtungen.find((r) => r.richtung === aktuelleA.richtung)?.name ??
+      `Richtung ${aktuelleA.richtung}`;
+    stand.textContent = reglerstand(linie, aktuelleA, richtungName);
+  };
+  aktualisiereStand();
+  ziel.addEventListener("change", aktualisiereStand);
 
   ziel.querySelector('[data-feld="art"]')?.addEventListener("change", (e) => {
     const wert = (e.target as HTMLSelectElement).value || null;

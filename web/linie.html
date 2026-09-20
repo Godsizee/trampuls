@@ -22,6 +22,9 @@
 <script src="/farbschema.js"></script>
 </head>
 <body>
+<!-- Sechs Navigationseintraege sind mit der Tastatur sonst sechs Tabulatorschritte
+     vor jedem Inhalt. Sichtbar erst im Fokus -- siehe stil.css, ".sprung". -->
+<a class="sprung" href="#inhalt">Zum Inhalt springen</a>
 <header class="kopfleiste">
   <div class="huelle">
     <a class="marke" href="/">TramPuls</a>
@@ -45,9 +48,9 @@
     </button>
   </div>
 </header>
-<main class="huelle" data-inhalt>
+<main class="huelle" id="inhalt" tabindex="-1" data-inhalt>
   <div data-kopf></div>
-  <div class="regler breit" data-regler></div>
+  <div class="breit" data-regler></div>
   <section data-kennzahl></section>
   <section data-tagesgang></section>
   <section data-profil></section>

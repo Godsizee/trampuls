@@ -26,6 +26,9 @@
 <script src="/farbschema.js"></script>
 </head>
 <body>
+<!-- Sechs Navigationseintraege sind mit der Tastatur sonst sechs Tabulatorschritte
+     vor jedem Inhalt. Sichtbar erst im Fokus -- siehe stil.css, ".sprung". -->
+<a class="sprung" href="#inhalt">Zum Inhalt springen</a>
 <header class="kopfleiste">
   <div class="huelle">
     <a class="marke" href="/">TramPuls</a>
@@ -49,7 +52,7 @@
     </button>
   </div>
 </header>
-<main class="huelle" data-inhalt>
+<main class="huelle" id="inhalt" tabindex="-1" data-inhalt>
 
   <h1>Wie pünktlich fahren Straßenbahn und Bus im Rhein-Neckar-Raum?</h1>
   <p class="lead">Straßenbahnen und Busse der Rhein-Neckar-Verkehr fahren jeden Tag

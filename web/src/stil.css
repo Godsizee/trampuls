@@ -222,6 +222,25 @@ svg, img { max-width: 100%; }
    Erklaersatz ueber die vollen 60rem.
    --------------------------------------------------------------------------- */
 
+/* Sichtbar erst im Fokus. Sechs Navigationseintraege auf jeder Seite sind mit
+   der Tastatur sonst sechs Tabulatorschritte vor jedem Inhalt (TPULS-117). */
+.sprung {
+  position: absolute;
+  left: var(--r4);
+  top: calc(var(--tippziel) * -2);
+  z-index: 10;
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tippziel);
+  padding: 0 var(--r4);
+  background: var(--tinte);
+  color: var(--papier);
+  border-radius: 2px;
+  text-decoration: none;
+  transition: top 120ms ease;
+}
+.sprung:focus-visible { top: var(--r2); }
+
 .huelle {
   width: 100%;
   max-width: var(--breite-seite);
@@ -861,9 +880,25 @@ text.rechts { text-anchor: end; }
   padding-block: var(--r4);
   border-block: 1px solid var(--linie);
 }
+/* Die aufklappbare Fassung auf /linie (TPULS-117) sitzt auf einem <details>,
+   dessen direkte Kinder <summary> und .regler-felder sind -- nicht mehr die
+   Felder selbst. .regler-aufklapp traegt deshalb nur den Rahmen von .regler,
+   das Flex-Layout darunter uebernimmt .regler-felder. */
+.regler-aufklapp {
+  margin: var(--r5) 0;
+  padding-block: var(--r4);
+  border-block: 1px solid var(--linie);
+}
+.regler-felder {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--r3) var(--r4);
+  align-items: end;
+}
 /* min-width: 0 laesst die Beschriftung schrumpfen; ohne sie macht die
    laengste Option im Auswahlfeld die Zeile breiter als den Bildschirm. */
-.regler label {
+.regler label,
+.regler-felder label {
   display: flex;
   flex-direction: column;
   gap: var(--r1);
@@ -881,8 +916,23 @@ text.rechts { text-anchor: end; }
    gequetscht — vorher fragte das den Bildschirm, obwohl der Regler auf /linie
    in der Hauptspalte (44–48 rem) steht, nicht in voller Bildschirmbreite. */
 @container (max-width: 34rem) {
-  .regler label { flex-basis: 100%; max-width: none; }
+  .regler label,
+  .regler-felder label { flex-basis: 100%; max-width: none; }
   button[data-merken] { width: 100%; }
+}
+
+/* Auf dem Telefon ist die Leiste zu, damit die Kennzahl ueber der Falzkante
+   bleibt (TPULS-117) -- ab Tablet-/Laptopbreite steht sie offen, dann ist
+   die Zusammenfassung in der Klappe ueberfluessig. `open` setzt
+   `haltReglerklappe()` in linie.ts per `matchMedia`, nicht diese Regel: der
+   Inhalt eines geschlossenen <details> laesst sich in neueren Browsern nicht
+   mehr verlaesslich per `display` sichtbar machen. */
+@media (min-width: 34.0625rem) {
+  .regler-aufklapp > summary { display: none; }
+}
+.regler-aufklapp > summary {
+  font-size: var(--t-klein);
+  color: var(--akzent);
 }
 
 select, input[type="search"], button {
@@ -1185,10 +1235,20 @@ h1 .nummer { font-size: 1.35rem; min-width: 3.2rem; padding: 0.15rem 0.5rem; }
 /* Telefon, einschliesslich Frontdisplay eines Fold: was nebeneinander stand,
    steht untereinander. */
 @media (max-width: 34rem) {
-  /* Wortmarke oben, Navigation in der zweiten Zeile. Auf 344 px passen
-     Wortmarke und fuenf Eintraege zusammen nicht in eine Zeile; getrennt
-     passen sie beide. */
-  header.kopfleiste nav { margin-inline-start: 0; flex-basis: 100%; gap: 0 var(--r3); order: 2; }
+  /* Sechs Eintraege in zwei Zeilen zu drei -- statt in zwei ungleich langen
+     Zeilen mit Flattersatz. Bei 320 px sind das drei Spalten zu je rund
+     100 px; der laengste Eintrag ("Methodik") misst bei 14 px rund 62 px und
+     passt. Ein waagerechter Scrollstreifen waere die Alternative und ist im
+     Bestand ausdruecklich verworfen: dort werden Eintraege unsichtbar. */
+  header.kopfleiste nav {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+    margin-inline-start: 0;
+    flex-basis: 100%;
+    order: 2;
+  }
+  header.kopfleiste nav a { justify-content: center; }
 
   /* Der Umschalter rueckt neben die Wortmarke, nicht unter die Navigation:
      in der Quelltextreihenfolge steht er hinter ihr und laege sonst allein in

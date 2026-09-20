@@ -143,14 +143,50 @@ verdrahteFarbschalter();
  * dieser Tabellen passt mit ihren sechs bis neun Spalten auf ein Telefon, und
  * ohne den Kasten scrollt stattdessen die ganze Seite waagerecht.
  */
-export function tabelle(kopf: string[], zeilen: string[][]): HTMLDivElement {
+export type Spaltentyp = "text" | "zahl";
+export interface Spalte { name: string; typ?: Spaltentyp; }
+export type Tabellenmodus = "daten" | "paar" | "text";
+
+/**
+ * Tabellenentsprechung zu jedem Diagramm und jede Zahlentabelle der Seite.
+ *
+ * Drei Modi statt drei Zufaelle (ADR-025):
+ *  - `daten` — ab vier Spalten. Nichts bricht um, der Kasten scrollt, die erste
+ *    Spalte steht. Fuer Ziffern ist Umbruch immer falsch: er zerreisst die
+ *    gemeinsame Grundlinie, an der eine Spalte ueberhaupt erst lesbar wird.
+ *  - `paar` — zwei bis drei Spalten. Passt in jede Randspalte, braucht keinen
+ *    Scrollkasten. Am 2026-08-31 versteckte genau so eine Tabelle ihre Fallzahl
+ *    hinter einem Scrollbalken, den auf einem Zeigegeraet niemand sieht
+ *    (TPULS-095, gemessen: 533 px Inhalt auf 360 px Kasten).
+ *  - `text` — Saetze statt Ziffern. Bricht um, bleibt aber eine Tabelle.
+ *
+ * Ohne ausdruecklichen Modus entscheidet die Spaltenzahl. Das ist Absicht: die
+ * bestehenden Aufrufstellen bekommen damit ohne Aenderung den richtigen Modus.
+ */
+export function tabelle(
+  kopf: (string | Spalte)[],
+  zeilen: string[][],
+  modus?: Tabellenmodus,
+  beschriftung = "Zahlentabelle",
+): HTMLDivElement {
+  const spalten: Spalte[] = kopf.map((k, i) =>
+    typeof k === "string" ? { name: k, typ: i === 0 ? "text" : "zahl" } : k,
+  );
+  const m: Tabellenmodus = modus ?? (spalten.length >= 4 ? "daten" : "paar");
+
   const t = document.createElement("table");
+  t.className = `tabelle tabelle--${m}`;
+  // Ab neun Spalten braucht die Seite auf sehr breiten Schirmen mehr Huelle
+  // (TPULS-110). Zwoelf sind es auf /methodik.
+  if (spalten.length >= 9) t.classList.add("tabelle--weit");
+
   const thead = document.createElement("thead");
   const kopfzeile = document.createElement("tr");
-  for (const k of kopf) {
+  for (const s of spalten) {
     const th = document.createElement("th");
     th.scope = "col";
-    th.textContent = k;
+    th.dataset.typ = s.typ ?? "zahl";
+    th.textContent = s.name;
     kopfzeile.appendChild(th);
   }
   thead.appendChild(kopfzeile);
@@ -161,7 +197,14 @@ export function tabelle(kopf: string[], zeilen: string[][]): HTMLDivElement {
     const tr = document.createElement("tr");
     zeile.forEach((z, i) => {
       const zelle = document.createElement(i === 0 ? "th" : "td");
-      if (i === 0) (zelle as HTMLTableCellElement).scope = "row";
+      if (i === 0) {
+        (zelle as HTMLTableCellElement).scope = "row";
+        // Die erste Spalte wird bei Bedarf gekuerzt, nie umgebrochen. Der volle
+        // Wert bleibt als `title` erreichbar — auf dem Telefon nicht antippbar,
+        // dort ist er dafuer im Diagramm-Ablesefeld zu sehen (TPULS-115).
+        zelle.title = z;
+      }
+      zelle.dataset.typ = spalten[i]?.typ ?? "zahl";
       zelle.textContent = z;
       tr.appendChild(zelle);
     });
@@ -172,7 +215,34 @@ export function tabelle(kopf: string[], zeilen: string[][]): HTMLDivElement {
   const huelle = document.createElement("div");
   huelle.className = "tabellenhuelle";
   huelle.appendChild(t);
+  if (m === "daten") haltScrollzustand(huelle, beschriftung);
   return huelle;
+}
+
+/**
+ * Ein waagerecht scrollender Kasten ist eine eigene Region: er braucht einen
+ * Namen, er muss mit der Tastatur erreichbar sein, und er darf beides nicht
+ * beanspruchen, solange er gar nicht scrollt — eine Tabelle, die vollstaendig
+ * sichtbar ist, waere sonst ein Tabulatorhalt ohne Zweck.
+ */
+function haltScrollzustand(huelle: HTMLElement, beschriftung: string): void {
+  const pruefe = (): void => {
+    const scrollt = huelle.scrollWidth - huelle.clientWidth > 1;
+    // Nur Klassen und ARIA — nichts davon aendert die Groesse des Kastens.
+    // Wuerde es das, geriete der Beobachter unten in eine Schleife.
+    huelle.classList.toggle("scrollt", scrollt);
+    if (scrollt) {
+      huelle.setAttribute("tabindex", "0");
+      huelle.setAttribute("role", "region");
+      huelle.setAttribute("aria-label", `${beschriftung}, waagerecht scrollbar`);
+    } else {
+      huelle.removeAttribute("tabindex");
+      huelle.removeAttribute("role");
+      huelle.removeAttribute("aria-label");
+    }
+  };
+  pruefe();
+  if (typeof ResizeObserver !== "undefined") new ResizeObserver(pruefe).observe(huelle);
 }
 
 /**

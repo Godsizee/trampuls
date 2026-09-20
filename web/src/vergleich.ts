@@ -22,7 +22,7 @@ import type {
   IndexDatei, KalenderDatei, LinieDatei, MethodikDatei, Tagesmenge,
 } from "./daten";
 import { datum, prozent, quote, sekunden, vonHundert, zahl } from "./format";
-import { escape, fussnote, grosseZahl, zeigeFehler } from "./seite";
+import { escape, fussnote, grosseZahl, tabelle, zeigeFehler } from "./seite";
 import {
   SCHWELLEN, leseAuswahl, leseModus, leseVergleich, schreibeAuswahl, schreibeModus,
   schreibeVergleich,
@@ -435,16 +435,18 @@ function einordnung(a: Seite, b: Seite, m: MethodikDatei, k: KalenderDatei,
   const deckungB = quote(b.bilanz.bewertbar, b.bilanz.soll);
   const fahrtenA = fahrtenJeTag(a.bilanz);
   const fahrtenB = fahrtenJeTag(b.bilanz);
-  const zeilen: string[] = [];
+  const zeilen: string[][] = [];
 
-  const zeile = (kopf: string, links: string, rechts: string): string =>
-    `<tr><th scope="row">${escape(kopf)}</th><td>${links}</td><td>${rechts}</td></tr>`;
+  // `tabelle()` setzt jeden Wert per `textContent` — hier ist kein `escape()`
+  // mehr noetig, das war nur fuer die vorherige innerHTML-Zusammensetzung noetig.
+  const zeile = (kopf: string, links: string, rechts: string): string[] =>
+    [kopf, links, rechts];
 
   zeilen.push(
     zeile("Betriebstage", zahl(a.bilanz.tage.length), zahl(b.bilanz.tage.length)),
     zeile("Wochentage",
-      escape(mischung(wochentage(a.bilanz.tage))),
-      escape(mischung(wochentage(b.bilanz.tage)))),
+      mischung(wochentage(a.bilanz.tage)),
+      mischung(wochentage(b.bilanz.tage))),
     // Der Nenner hinter dem Nenner: eine Linie, die in den Ferien nur halb so
     // oft faehrt, wird hier nicht in einem anderen Zeitraum gemessen, sondern in
     // einem anderen Betrieb.
@@ -552,16 +554,18 @@ function einordnung(a: Seite, b: Seite, m: MethodikDatei, k: KalenderDatei,
        Was hier steht, sind Bedingungen der Messung — keine Ursachen des Betriebs.
        <strong>TramPuls sieht Verspätung, nicht ihren Grund.</strong> Eine Baustelle,
        eine Umleitung oder ein Fahrplanwechsel erscheinen in diesen Zahlen nicht als
-       solche.</p>
-    <div class="tabellenhuelle">
-      <table>
-        <thead><tr><th scope="col"></th>
-          <th scope="col">${escape(a.name)}</th>
-          <th scope="col">${escape(b.name)}</th></tr></thead>
-        <tbody>${zeilen.join("")}</tbody>
-      </table>
-    </div>
-    ${warnungen.map((w) => `<p class="vorbehalt">${escape(w)}</p>`).join("")}`;
+       solche.</p>`;
+  // Drei Spalten -- Modus `paar` (ADR-025): passt in jede Randspalte, kein
+  // Scrollkasten, keine versteckte Fallzahl (siehe stil.css, "Tabellen").
+  ziel.appendChild(
+    tabelle(["", a.name, b.name], zeilen, "paar", `Einordnung: ${a.name} gegen ${b.name}`),
+  );
+  for (const w of warnungen) {
+    const p = document.createElement("p");
+    p.className = "vorbehalt";
+    p.textContent = w;
+    ziel.appendChild(p);
+  }
 }
 
 start().catch(zeigeFehler);

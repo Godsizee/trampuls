@@ -638,6 +638,13 @@ dt .klein { display: block; margin: 0; font-size: var(--t-mikro); line-height: 1
 
 /* ---------------------------------------------------------------------------
    Tabellen
+
+   Drei Modi statt drei Zufaelle (ADR-025) -- Begruendung und Grenzwerte bei
+   `tabelle()` in seite.ts. Was bis zum 2026-09-20 eine Sonderfall-Familie
+   `.block-rand .tabellenhuelle …` war (Bd-2, TPULS-095: 533 px Inhalt auf
+   360 px Randspalte-Kasten, die Fallzahl damit hinter einem Scrollbalken
+   verschwunden, den auf einem Zeigegeraet niemand sieht), ist jetzt der Modus
+   `paar` -- er gilt, gleich in welchem Container die Tabelle steht.
    --------------------------------------------------------------------------- */
 
 table {
@@ -647,11 +654,17 @@ table {
   margin-top: var(--r3);
 }
 th, td {
-  text-align: right;
   padding: var(--r2) var(--r3);
   border-bottom: 1px solid var(--linie);
+  text-align: left;
 }
-th[scope="row"], thead th:first-child { text-align: left; }
+/* Ausrichtung haengt am Inhalt der Spalte, nicht an ihrer Stelle. Vorher war
+   alles rechtsbuendig ausser der ersten Spalte — die Spalte "Durchgehend" auf
+   /methodik traegt "ja"/"nein" und stand damit rechts an der Zahlenkante. */
+th[data-typ="zahl"], td[data-typ="zahl"] {
+  text-align: right;
+  font-variant-numeric: tabular-nums lining-nums;
+}
 thead th {
   color: var(--gedaempft);
   font-weight: 600;
@@ -661,52 +674,89 @@ thead th {
   border-bottom-color: var(--linie-stark);
   vertical-align: bottom;
 }
-td { font-variant-numeric: tabular-nums lining-nums; }
 
-/* Elf Spalten passen auf kein Telefon. Statt die Zahlen zu quetschen, scrollt
-   die Tabelle waagerecht in ihrem Kasten — die Seite selbst bleibt stehen. */
-.tabellenhuelle {
-  overflow-x: auto;
-  overscroll-behavior-x: contain;
-  /* Auf dem Telefon ist kein Scrollbalken zu sehen. Der Schleier an der Kante
-     ist dort der einzige Hinweis, dass rechts noch Spalten stehen; er
-     verschwindet von selbst, sobald das Ende erreicht ist. */
+/* --- Modus `daten` ------------------------------------------------------- */
+
+.tabellenhuelle { overflow-x: auto; overscroll-behavior-x: contain; }
+
+/* Der Schleier an der Kante liegt nur an, solange wirklich etwas zu holen ist.
+   Vorher lag er dauerhaft ueber der ersten und letzten Spalte — auch bei einer
+   Tabelle, die vollstaendig sichtbar war. */
+.tabellenhuelle.scrollt {
   background:
     linear-gradient(to right, var(--papier), rgba(0, 0, 0, 0)) 0 0 / 2rem 100% no-repeat local,
     linear-gradient(to left, var(--papier), rgba(0, 0, 0, 0)) 100% 0 / 2rem 100% no-repeat local,
     radial-gradient(farthest-side at 0 50%, var(--schleier), rgba(0, 0, 0, 0)) 0 0 / 1.25rem 100% no-repeat scroll,
     radial-gradient(farthest-side at 100% 50%, var(--schleier), rgba(0, 0, 0, 0)) 100% 0 / 1.25rem 100% no-repeat scroll;
 }
-.tabellenhuelle > table { width: max-content; min-width: 100%; }
-.tabellenhuelle th, .tabellenhuelle td { white-space: nowrap; }
-/* Die erste Spalte bleibt stehen: ohne sie ist nach zwei Spalten Scrollen
-   nicht mehr erkennbar, zu welchem Tag oder Halt eine Zahl gehoert. */
-.tabellenhuelle thead th:first-child,
-.tabellenhuelle th[scope="row"] {
-  position: sticky;
-  left: 0;
-  background: var(--papier);
-  box-shadow: 1px 0 0 var(--linie);
+
+.tabelle--daten { width: max-content; min-width: 100%; }
+.tabelle--daten th, .tabelle--daten td { white-space: nowrap; }
+
+/* Zeilenstreifen. Der Ton sitzt an den Zellen und nicht an der Zeile: die
+   stehende erste Spalte hat einen eigenen Hintergrund (sonst scheint der Text
+   darunter durch), und der muss denselben Streifen treffen wie der Rest der
+   Zeile. Ueber die Zeile gesetzt, bliebe die stehende Spalte einfarbig.
+   --flaeche liegt bei 1,08:1 (hell) / 1,09:1 (dunkel) gegen --papier, gemessen
+   2026-09-20 — genau die Staerke, die ein Streifen braucht. Gedaempfter Text
+   darauf kommt auf 5,62:1 / 6,48:1 und bleibt damit ueber AA. */
+.tabelle--daten tbody tr > * { background: var(--papier); }
+.tabelle--daten tbody tr:nth-child(even) > * { background: var(--flaeche); }
+@media (hover: hover) {
+  .tabelle--daten tbody tr:hover > * { background: var(--zeile-aktiv); }
 }
 
-/* Dieselbe Tabelle in der Randspalte ist etwas anderes als im Hauptteil.
+/* Die stehende erste Spalte. Ohne sie ist nach zwei Spalten Scrollen nicht mehr
+   erkennbar, zu welchem Tag oder Halt eine Zahl gehoert.
+   Die Kante lag bis zum 2026-09-20 auf --linie und damit bei 1,35:1 — im selben
+   Stylesheet als "ausschliesslich dekorativ" bezeichnet. Die eine Linie, die
+   sagt "hier laeuft die Tabelle weiter", war unsichtbar. --linie-stark liegt bei
+   3,34:1 / 3,57:1. */
+.tabelle--daten thead th:first-child,
+.tabelle--daten th[scope="row"] {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  box-shadow: 1px 0 0 var(--linie-stark);
+}
+.tabelle--daten thead th:first-child { background: var(--papier); }
 
-   Oben ist der Scrollkasten richtig: elf Spalten Zahlen passen auf kein
-   Telefon, und die Seite darf dafuer nicht waagerecht laufen. In einer
-   Randspalte von 18 bis 20 rem ist er falsch — die Belegtabelle auf /netz hat
-   drei Spalten, brauchte mit `nowrap` und `max-content` 533 px und versteckte
-   ihre dritte, "Gemessene Halte", hinter einem Scrollbalken, den auf einem
-   Zeigegeraet niemand sieht (gemessen 2026-08-31 bei 1920 px: 533 auf 360).
-   Ausgerechnet die Fallzahl war damit unsichtbar. Hier bricht sie stattdessen
-   um.
+/* Die erste Spalte bricht nie um. Sie wird gekuerzt.
+   43 Zeichen ist der laengste Haltestellenname im Bestand
+   ("Friedrichsfeld (MA), Elsa-Braendstroem-Strasse", gemessen 2026-09-20 ueber
+   alle -halte.json). Bei 14 px und gemessenen 0,52 em je Zeichen sind das rund
+   313 px — ab 24 rem Kappung wird also nichts mehr gekuerzt. Gekuerzt wird nur
+   auf dem Telefon und in der Randspalte, und dort ist ein "…" ruhiger als vier
+   umgebrochene Zeilen mit springender Zeilenhoehe. */
+.tabelle--daten th[scope="row"] {
+  max-inline-size: var(--spalte-erste, 24rem);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+@container (max-width: 30rem) { .tabelle--daten { --spalte-erste: 11rem; } }
+@container (min-width: 30.0625rem) and (max-width: 46rem) { .tabelle--daten { --spalte-erste: 16rem; } }
 
-   Das war bis zum 2026-09-20 eine Sonderfall-Familie ueber `.block-rand
-   .tabellenhuelle …`, weil eine Komponente den Bildschirm fragte, aber in
-   einem von drei Kaesten stand (Bd-2, ADR-025). Diese Messung ist jetzt die
-   Begruendung fuer den Tabellenmodus `paar` (TPULS-112): eine Tabelle mit
-   zwei bis drei Spalten bricht um und braucht keinen Scrollkasten, ganz
-   gleich in welchem Container sie steht — nicht mehr, weil sie zufaellig in
-   `.block-rand` liegt. */
+/* --- Modus `paar` -------------------------------------------------------- */
+
+/* Zwei bis drei Spalten passen in jede Randspalte. Kein Scrollkasten, keine
+   stehende Spalte, kein Schleier — und deshalb auch keine versteckte Fallzahl. */
+.tabelle--paar { width: 100%; }
+.tabelle--paar th, .tabelle--paar td { white-space: normal; }
+.block-rand .tabelle--paar th, .block-rand .tabelle--paar td { padding-inline: var(--r2); }
+.block-rand .tabelle--paar th:first-child,
+.block-rand .tabelle--paar td:first-child { padding-inline-start: 0; }
+.block-rand .tabelle--paar th:last-child,
+.block-rand .tabelle--paar td:last-child { padding-inline-end: 0; }
+
+/* --- Modus `text` -------------------------------------------------------- */
+
+.tabelle--text th, .tabelle--text td {
+  white-space: normal;
+  vertical-align: top;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
 details { margin-top: var(--r4); }
 summary {
   cursor: pointer;

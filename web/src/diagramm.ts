@@ -149,7 +149,15 @@ export function saeulen(
     viewBox: `0 0 ${breite} ${hoehe}`,
     class: "diagramm",
     "aria-hidden": "true",
-    preserveAspectRatio: "none",
+    // Von "none" auf "xMidYMid meet" (2026-09-20). Der Neuzeichner in
+    // haltAnBreite() greift erst ab 16 px Breiten- oder 4 px Hoehenunterschied;
+    // in dem Fenster davor streckte "none" das Bild und machte aus einer
+    // Haarlinie 1,1 px und aus einer Achsenziffer eine gequetschte. "meet"
+    // macht das Zwischenbild stattdessen eine Spur kleiner und mittig —
+    // sichtbar ist das kaum, verzerrt ist es nie. Genau dieser Fehler ist am
+    // 2026-08-31 in TPULS-095 schon einmal aufgetreten und damals nur an der
+    // Hoehe behoben worden, nicht an der Ursache.
+    preserveAspectRatio: "xMidYMid meet",
   });
 
   // Nur zwei Hilfslinien statt drei: die Grundlinie traegt die Nulllage und
@@ -213,7 +221,8 @@ export function saeulen(
  *
  * `hoehe` ist die Vorgabe fuer den Moment, in dem noch nichts gemessen ist;
  * steht das SVG erst im Dokument, gilt seine tatsaechliche Hoehe aus dem
- * Stylesheet.
+ * Stylesheet -- seit TPULS-114 eine von drei Containerstufen (11/15/18 rem),
+ * nicht mehr eine feste Konstante.
  */
 export function saeulenIn(ziel: Element, daten: Saeule[], hoehe = 176): void {
   haltAnBreite(ziel, (breite, gemessen) => saeulen(daten, breite, gemessen ?? hoehe));

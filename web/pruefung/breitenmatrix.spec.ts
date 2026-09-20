@@ -99,6 +99,22 @@ for (const breite of BREITEN) {
 
           // P5 — keine JavaScript- und keine Ladefehler.
           expect(fehler, "Konsolen- und Seitenfehler").toEqual([]);
+
+          // P6 — ein Diagramm mit role="img" (seit TPULS-115 statt aria-hidden)
+          // traegt ein gepflegtes aria-label. Ohne das waere ein SVG ohne
+          // aria-hidden und ohne Text fuer den Screenreader eine stumme Grafik --
+          // schlechter als der Bestand vor TPULS-115 (ADR-025).
+          const ohneLabel = await page.evaluate(() => {
+            const treffer: string[] = [];
+            for (const svg of document.querySelectorAll('svg[role="img"]')) {
+              const label = svg.getAttribute("aria-label");
+              if (!label || label.trim().length === 0) {
+                treffer.push(svg.getAttribute("class") ?? "svg");
+              }
+            }
+            return treffer;
+          });
+          expect(ohneLabel, "Diagramme ohne aria-label").toEqual([]);
         });
       }
     });

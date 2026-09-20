@@ -136,6 +136,13 @@ Fahrten.
 - Jede Auswahl steht in der Adresse und ist zitierbar
 - Keine Kennzahl entsteht im Browser
 - Jede neue oder geänderte Kennzahl wird **zeitgleich** auf `/methodik` dokumentiert
+- **Kein `style`-Attribut, kein `element.setAttribute("style", …)`.** Die CSP der
+  Auslieferung ist `style-src 'self'` — ein Inline-Stil wird stumm verworfen (ADR-025)
+- **Komponenten fragen ihren Container (`@container`), nicht den Bildschirm.**
+  Bildschirmabfragen bleiben dem Seitengerüst vorbehalten — Hülle, Randspalte,
+  Schriftgrad, Kopfleiste (ADR-025)
+- **Die erste Spalte einer Tabelle bricht nie um.** Sie wird bei Bedarf gekürzt
+  (`text-overflow: ellipsis`), nie umgebrochen (ADR-025)
 
 ---
 

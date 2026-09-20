@@ -6,6 +6,12 @@
 <meta name="theme-color" content="#faf9f6" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#121317" media="(prefers-color-scheme: dark)">
 <title>TramPuls — Wie pünktlich fahren Straßenbahn und Bus der RNV?</title>
+<!-- Ohne dieses Icon fordert Chrome automatisch /favicon.ico an, bekommt 404 und
+     meldet das als Konsolenfehler — das liess die Breitenmatrix (TPULS-109) auf
+     allen 144 Kombinationen an derselben Stelle scheitern, unabhaengig vom echten
+     Layout. "data:," ist ein leeres, aber gueltiges Icon; img-src 'self' data: in
+     der CSP erlaubt es. Gemessen 2026-09-20. -->
+<link rel="icon" href="data:,">
 <meta name="description" content="TramPuls schreibt die Echtzeitdaten von Straßenbahn und Bus der Rhein-Neckar-Verkehr mit und rechnet nach, wie pünktlich jede Linie tatsächlich war.">
 <!-- Nur die Groteske wird vorgeladen: sie traegt die erste Zahl. Die Serif
      traegt Ueberschriften und darf per font-display:swap nachkommen.

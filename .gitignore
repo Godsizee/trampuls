@@ -29,6 +29,11 @@ __pycache__/
 # Teil der Auslieferung (selbst gehostet statt CDN) und muessen ins Repo.
 /export/
 
+# Breitenmatrix (TPULS-109) — Laufprotokolle, keine Quelle
+/web/pruefung/bericht.json
+/web/test-results/
+/web/playwright-report/
+
 # Go
 /bin/
 *.exe

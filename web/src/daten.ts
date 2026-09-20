@@ -230,8 +230,27 @@ async function hole<T>(pfad: string): Promise<T> {
   return (await antwort.json()) as T;
 }
 
+/**
+ * Der Index so, wie der Exporter ihn schreibt — mit den Linien, zu denen keine
+ * einzige Ist-Meldung vorliegt.
+ *
+ * `/befunde` braucht genau die: dass ein Teil des Netzes gar nichts meldet, ist
+ * dort der Befund und nicht der Sonderfall, den man wegblendet.
+ */
+export const ladeIndexVollstaendig = () => hole<IndexDatei>("index.json");
+
+/**
+ * Der Index fuer Liste und Auswahl — ohne die Linien ohne gemessenen Halt.
+ *
+ * **Diese Funktion beantwortet keine Frage nach dem Bestand.** Wer wissen will,
+ * wie viele Linien es gibt oder welche schweigen, bekommt hier die falsche
+ * Antwort, und zwar eine, die wie eine richtige aussieht: `/befunde` hat von
+ * 2026-08-30 bis 2026-09-20 „zu jeder Linie liegt mindestens eine Meldung vor"
+ * behauptet, weil der Befund seine Gegenbeispiele durch diesen Filter bezogen
+ * hat. Fuer den Bestand gibt es `ladeIndexVollstaendig`.
+ */
 export async function ladeIndex(): Promise<IndexDatei> {
-  const index = await hole<IndexDatei>("index.json");
+  const index = await ladeIndexVollstaendig();
   // Eine Linie ohne gemessenen Halt hat nichts zu zeigen (Diagnose 2026-08-28:
   // der Live-Feed liefert fuer sie schlicht nichts) — sie bleibt im Datenmodell,
   // verschwindet aber aus Liste und Auswahl, statt eine leere Kennzahl zu zeigen.

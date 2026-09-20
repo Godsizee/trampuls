@@ -14,11 +14,22 @@
 // Voraussetzung und sagt, was ihm fehlt. Sie fuellt sich damit von selbst,
 // waehrend die Historie waechst, statt dass jemand in acht Wochen daran denken
 // muss.
+//
+// Was dieses Verfahren NICHT leistet, hat sich am 2026-09-20 gezeigt: aus 3
+// tragfaehigen Tagen wurden 21 (29.08. bis 20.09.), und zwei Befunde hielten
+// dem nicht stand. Der Verkehrsarten-Vergleich war auf einen Abstand hin
+// formuliert, der bei 0,64 Prozentpunkten angekommen war; der Bestandsbefund
+// zog seine Gegenbeispiele aus einer Liste, die genau sie herausfiltert, und
+// behauptete drei Wochen lang das Gegenteil des Gemessenen. Eine Voraussetzung
+// pruefen heisst hier also: pruefen, ob die Zahlen da sind -- nicht, ob der
+// Satz darueber noch stimmt. Das bleibt Handarbeit.
 
-import { ladeIndex, ladeNetz, ladeMethodik } from "./daten";
+// Der vollstaendige Index, nicht der fuer Liste und Auswahl gefilterte: zwei
+// Befunde dieser Seite handeln von den Linien, die dort herausfallen.
+import { ladeIndexVollstaendig, ladeNetz, ladeMethodik } from "./daten";
 import type { IndexDatei, MethodikDatei, NetzDatei, Verkehrsart } from "./daten";
-import { datum, prozent, quote, vonHundert, zahl, VERKEHRSART_NAME } from "./format";
-import { escape, fussnote, zeigeFehler } from "./seite";
+import { datum, prozent, prozentGenug, quote, vonHundert, zahl, VERKEHRSART_NAME } from "./format";
+import { escape, fussnote, tabelle, zeigeFehler } from "./seite";
 
 /**
  * Ein Betriebstag traegt einen Befund, wenn mindestens 40 % seiner geplanten
@@ -34,8 +45,6 @@ const TRAGFAEHIG = 0.4;
 /** Wie viele tragfaehige Tage ein Befund mindestens braucht. */
 const MINDESTTAGE = { vergleich: 3, bestand: 1 } as const;
 
-const SCHWELLE = 3;
-
 interface Lage {
   tage: string[];
   index: IndexDatei;
@@ -43,7 +52,11 @@ interface Lage {
 }
 
 async function start(): Promise<void> {
-  const [index, netz, methodik] = await Promise.all([ladeIndex(), ladeNetz(), ladeMethodik()]);
+  const [index, netz, methodik] = await Promise.all([
+    ladeIndexVollstaendig(),
+    ladeNetz(),
+    ladeMethodik(),
+  ]);
   fussnote(index);
 
   const tage = tragfaehigeTage(methodik);
@@ -59,6 +72,13 @@ async function start(): Promise<void> {
     befundZweiteQuelle(lage),
     befundAusfaelle(lage),
   ].join("");
+
+  // Die Schwellentabelle wird angehaengt statt mitserialisiert: `tabelle()`
+  // haengt einen ResizeObserver an den Scrollkasten (seite.ts), und der ginge
+  // beim Umweg ueber `outerHTML` verloren -- der Kasten wuerde dann nie wieder
+  // melden, dass er scrollt.
+  const platz = ziel.querySelector("[data-schwellen]");
+  if (platz) platz.appendChild(schwellenTabelle(lage));
 }
 
 function tragfaehigeTage(m: MethodikDatei): string[] {
@@ -103,57 +123,231 @@ function nochNicht(titel: string, frage: string, haben: number, brauchen: number
     </section>`;
 }
 
-/** Summiert die Netzzahlen einer Verkehrsart über die angegebenen Tage. */
+/**
+ * Summiert die Netzzahlen einer Verkehrsart über die angegebenen Tage.
+ *
+ * `puenktlich` kommt je Schwelle zurueck und nicht nur fuer eine einzige:
+ * welche Verkehrsart vorn liegt, haengt an der Schwelle, und das laesst sich
+ * nur sagen, wenn alle zugleich vorliegen.
+ */
 function netzSumme(netz: NetzDatei, art: Verkehrsart, tage: string[]) {
-  let bewertbar = 0, soll = 0, puenktlich = 0, ausfall = 0, fahrten = 0;
+  const schwellen = Object.keys(netz.puenktlich);
+  const puenktlich: Record<string, number> = {};
+  for (const s of schwellen) puenktlich[s] = 0;
+
+  let bewertbar = 0, soll = 0, ausfall = 0, fahrten = 0;
   for (let i = 0; i < netz.betriebstag.length; i++) {
     if (netz.verkehrsart[i] !== art || !tage.includes(netz.betriebstag[i] ?? "")) continue;
     bewertbar += netz.bewertbare_halte[i] ?? 0;
     soll += netz.soll_halte[i] ?? 0;
-    puenktlich += netz.puenktlich[String(SCHWELLE)]?.[i] ?? 0;
     ausfall += netz.halte_fahrt_ausgefallen[i] ?? 0;
     fahrten += netz.fahrten[i] ?? 0;
+    for (const s of schwellen) puenktlich[s] = (puenktlich[s] ?? 0) + (netz.puenktlich[s]?.[i] ?? 0);
   }
   return { bewertbar, soll, puenktlich, ausfall, fahrten };
+}
+
+const TITEL_VERKEHRSART = "Straßenbahn und Bus im Vergleich";
+const FRAGE_VERKEHRSART = "Unterscheidet sich die Pünktlichkeit zwischen Straßenbahn und Bus?";
+
+/**
+ * Unterhalb dieser Grenze gilt ein Abstand als keiner. 0,005 Prozentpunkte ist
+ * genau die Stelle, an der die Anzeige mit zwei Nachkommastellen rundet — ein
+ * Vorzeichen, das niemand sehen kann, darf auch keinen Satz tragen.
+ */
+const KEIN_ABSTAND = 0.005;
+
+/** Ein Punkt der Schwellenkurve: beide Quoten und ihr Abstand in Prozentpunkten. */
+interface Schwellenpunkt {
+  minuten: number;
+  tram: number;
+  bus: number;
+  /** Positiv heisst: die Straßenbahn liegt vorn. */
+  abstand: number;
+}
+
+/**
+ * Straßenbahn und Bus über alle exportierten Schwellen hinweg.
+ *
+ * Die Reihenfolge kommt aus `index.schwellen_min` und nicht aus den Schluesseln
+ * von `netz.puenktlich`: die sind Zeichenketten, und "15" stuende dort vor "3".
+ */
+function verkehrsartvergleich(l: Lage) {
+  const tram = netzSumme(l.netz, "tram", l.tage);
+  const bus = netzSumme(l.netz, "bus", l.tage);
+  const kurve: Schwellenpunkt[] = [];
+  for (const m of l.index.schwellen_min) {
+    const qt = quote(tram.puenktlich[String(m)] ?? 0, tram.bewertbar);
+    const qb = quote(bus.puenktlich[String(m)] ?? 0, bus.bewertbar);
+    if (qt === null || qb === null) continue;
+    kurve.push({ minuten: m, tram: qt, bus: qb, abstand: (qt - qb) * 100 });
+  }
+  return { tram, bus, kurve };
+}
+
+/** Eine Schwelle als Satzteil und als Zeilenkopf der Tabelle. */
+function grenze(minuten: number): string {
+  return `unter ${zahl(minuten)} ${minuten === 1 ? "Minute" : "Minuten"}`;
+}
+
+/**
+ * Ein Abstand in Prozentpunkten — zwei Nachkommastellen, nicht eine.
+ *
+ * Bei sechs Minuten liegen 0,08 Prozentpunkte zwischen den Verkehrsarten
+ * (gemessen 2026-09-20); auf eine Stelle gerundet waere daraus "0,1", also
+ * beinahe das Doppelte, und bei sechzig Minuten "0,0" — eine Null, die es
+ * nicht gibt.
+ */
+function abstandBetrag(pp: number): string {
+  return Math.abs(pp).toFixed(2).replace(".", ",");
+}
+
+/** Derselbe Wert mit Vorzeichen, fuer die Spalte, die in beide Richtungen zeigt. */
+function abstandText(pp: number): string {
+  return `${pp >= 0 ? "+" : "−"}${abstandBetrag(pp)}`;
 }
 
 /**
  * Befund 1 — Straßenbahn gegen Bus (T5).
  *
- * Die Aussage nennt keinen Gewinner, sondern zwei Zahlen und ihren Abstand. Was
- * den Abstand verursacht, sieht TramPuls nicht: eigener Bahnkoerper gegen
- * Mischverkehr ist die naheliegende Erklaerung, aber eine Vermutung.
+ * Hier stand bis zum 2026-09-20 ein Satz ueber *den* Abstand zwischen beiden
+ * Verkehrsarten, gebaut aus drei Betriebstagen und einer einzigen Schwelle. Ueber
+ * 21 tragfaehige Tage gibt es diesen einen Abstand nicht: bei einer Minute liegt
+ * die Straßenbahn 3,04 Prozentpunkte vorn, bei drei Minuten 0,64, ab sechs
+ * Minuten der Bus. Die alte Fassung rundete beide Quoten auf "rund 84 von 100"
+ * und setzte "vorn liegt die Straßenbahn" dahinter — zwei gleiche Zahlen und ein
+ * Sieger daneben.
+ *
+ * Der Befund nennt deshalb keinen Gewinner ohne die Grenze dazu, und welcher der
+ * drei Saetze unten faellt, entscheiden die Zahlen und nicht diese Datei.
  */
 function befundVerkehrsart(l: Lage): string {
-  const titel = "Straßenbahn und Bus fahren unter verschiedenen Bedingungen";
-  const frage = "Unterscheidet sich die Pünktlichkeit zwischen Straßenbahn und Bus?";
   if (l.tage.length < MINDESTTAGE.vergleich) {
-    return nochNicht(titel, frage, l.tage.length, MINDESTTAGE.vergleich);
+    return nochNicht(TITEL_VERKEHRSART, FRAGE_VERKEHRSART, l.tage.length, MINDESTTAGE.vergleich);
   }
 
-  const tram = netzSumme(l.netz, "tram", l.tage);
-  const bus = netzSumme(l.netz, "bus", l.tage);
-  const qt = quote(tram.puenktlich, tram.bewertbar);
-  const qb = quote(bus.puenktlich, bus.bewertbar);
-  if (qt === null || qb === null) return nochNicht(titel, frage, 0, MINDESTTAGE.vergleich);
+  const { tram, bus, kurve } = verkehrsartvergleich(l);
+  if (kurve.length === 0) {
+    return nochNicht(TITEL_VERKEHRSART, FRAGE_VERKEHRSART, 0, MINDESTTAGE.vergleich);
+  }
 
-  const punkte = Math.abs(qt - qb) * 100;
-  const vorn = qt > qb ? "Straßenbahn" : "Bus";
+  const deutlich = kurve.filter((p) => Math.abs(p.abstand) >= KEIN_ABSTAND);
+  const fuehrend = deutlich[0];
+  const kipppunkt = fuehrend
+    ? deutlich.find((p) => Math.sign(p.abstand) !== Math.sign(fuehrend.abstand))
+    : undefined;
 
   return `<section class="befund">
-      <h2>${escape(titel)}</h2>
-      <p class="aussage">Von 100 gemessenen Halten kamen bei der Straßenbahn
-         <strong>${escape(vonHundert(qt))}</strong> weniger als ${zahl(SCHWELLE)} Minuten
-         zu spät, beim Bus <strong>${escape(vonHundert(qb))}</strong>. Vorn liegt die
-         ${escape(vorn)}, mit ${escape(punkte.toFixed(1).replace(".", ","))}
-         Prozentpunkten Abstand.</p>
-      <p class="klein">Grundlage: ${zahl(tram.bewertbar)} gemessene Halte der Straßenbahn
-         und ${zahl(bus.bewertbar)} des Busses, ${escape(zeitraum(l.tage))}.</p>
-      <p class="vorbehalt">Warum der Abstand besteht, sagen diese Daten nicht. Die
+      <h2>${escape(ueberschriftVerkehrsart(fuehrend, kipppunkt))}</h2>
+      <p class="aussage">${aussageVerkehrsart(kurve, fuehrend, kipppunkt)}</p>
+      <div data-schwellen></div>
+      <p class="klein">Ein positiver Abstand heißt: die Straßenbahn liegt vorn.
+         Grundlage: ${zahl(tram.bewertbar)} gemessene Halte der Straßenbahn und
+         ${zahl(bus.bewertbar)} des Busses, ${escape(zeitraum(l.tage))}.</p>
+      <p class="vorbehalt">Woher die Abstände kommen, sagen diese Daten nicht. Die
          Straßenbahn fährt überwiegend auf eigenem Gleiskörper, der Bus im
          Straßenverkehr — das ist die naheliegende Erklärung, aber sie steht hier als
          Vermutung und nicht als Befund.</p>
+      <p class="vorbehalt">Verglichen werden außerdem zwei Netze und nicht zwei Fahrzeuge
+         auf derselben Strecke. Straßenbahn und Bus bedienen verschiedene Linien in
+         verschiedenen Gegenden zu verschiedenen Takten; der Abstand trägt das
+         mit.${zweiteQuelleVorbehalt(l)}</p>
     </section>`;
+}
+
+/** Die Überschrift sagt, was die Kurve zeigt — nicht, was sie zeigen sollte. */
+function ueberschriftVerkehrsart(
+  fuehrend: Schwellenpunkt | undefined,
+  kipppunkt: Schwellenpunkt | undefined,
+): string {
+  if (!fuehrend) return "Zwischen Straßenbahn und Bus ist kein Abstand messbar";
+  if (kipppunkt) return "Wer pünktlicher fährt, hängt davon ab, wo man die Grenze zieht";
+  return fuehrend.abstand > 0
+    ? "Die Straßenbahn liegt an jeder Grenze vorn"
+    : "Der Bus liegt an jeder Grenze vorn";
+}
+
+function aussageVerkehrsart(
+  kurve: Schwellenpunkt[],
+  fuehrend: Schwellenpunkt | undefined,
+  kipppunkt: Schwellenpunkt | undefined,
+): string {
+  const letzter = kurve[kurve.length - 1];
+  if (!fuehrend || !letzter) {
+    return `An keiner der ${zahl(kurve.length)} Grenzen unterscheiden sich Straßenbahn und
+       Bus um mehr als ein Hundertstel Prozentpunkt.`;
+  }
+
+  const kopf =
+    `Bei einer Grenze von <strong>${escape(grenze(fuehrend.minuten))}</strong> liegt
+     ${fuehrend.abstand > 0 ? "die <strong>Straßenbahn</strong>" : "der <strong>Bus</strong>"}
+     vorn: von den gemessenen Halten der Straßenbahn kamen
+     <strong>${escape(vonHundert(fuehrend.tram))}</strong> weniger als
+     ${zahl(fuehrend.minuten)} ${fuehrend.minuten === 1 ? "Minute" : "Minuten"} zu spät,
+     beim Bus <strong>${escape(vonHundert(fuehrend.bus))}</strong> — ein Abstand von
+     <strong>${escape(abstandBetrag(fuehrend.abstand))} Prozentpunkten</strong>.`;
+
+  if (!kipppunkt) {
+    return `${kopf} Auch an der gröbsten Grenze (${escape(grenze(letzter.minuten))}) bleibt
+       es dabei, dort mit <strong>${escape(abstandBetrag(letzter.abstand))}
+       Prozentpunkten</strong>.`;
+  }
+
+  return `${kopf} Ab <strong>${escape(grenze(kipppunkt.minuten))}</strong> kehrt sich das
+     um: dort liegt
+     ${kipppunkt.abstand > 0 ? "die <strong>Straßenbahn</strong>" : "der <strong>Bus</strong>"}
+     vorn, um <strong>${escape(abstandBetrag(kipppunkt.abstand))} Prozentpunkte</strong>.
+     Der Satz „X ist pünktlicher als Y" lässt sich für diesen Zeitraum also nicht bilden,
+     ohne die Grenze dazuzusagen.`;
+}
+
+/**
+ * Die Schwellenkurve als Tabelle.
+ *
+ * Sie steht hier, weil der Satz darueber ohne sie eine Behauptung waere: „haengt
+ * von der Grenze ab" laesst sich nur nachpruefen, wenn alle Grenzen danebenstehen.
+ */
+function schwellenTabelle(l: Lage): HTMLDivElement {
+  const { kurve } = verkehrsartvergleich(l);
+  return tabelle(
+    [
+      { name: "Grenze", typ: "text" },
+      { name: "Straßenbahn", typ: "zahl" },
+      { name: "Bus", typ: "zahl" },
+      { name: "Abstand in Prozentpunkten", typ: "zahl" },
+    ],
+    kurve.map((p) => [
+      grenze(p.minuten),
+      prozentGenug(p.tram),
+      prozentGenug(p.bus),
+      abstandText(p.abstand),
+    ]),
+    "daten",
+    "Pünktlichkeit von Straßenbahn und Bus je Grenze",
+  );
+}
+
+/** Erster Tag, ab dem Zahlen aus der zweiten Quelle einfliessen — "" wenn keine. */
+function zweiteQuelleAb(l: Lage): string {
+  return (
+    l.index.linien
+      .map((x) => x.openrnv_ab ?? "")
+      .filter((d) => d !== "")
+      .sort()[0] ?? ""
+  );
+}
+
+/**
+ * Ein Teil der Straßenbahnzahlen kommt seit dem Anlauftag aus dem Feed der rnv
+ * statt aus dem des Verbunds (ADR-023). Das gehoert an den Vergleich der
+ * Verkehrsarten und nicht nur an den Befund weiter unten: die Straßenbahn ist
+ * ueber den ganzen Zeitraum nicht aus einer Hand gemessen, der Bus schon.
+ */
+function zweiteQuelleVorbehalt(l: Lage): string {
+  const ab = zweiteQuelleAb(l);
+  if (ab === "") return "";
+  return ` Und ein Teil der Straßenbahnzahlen stammt seit dem ${escape(datum(ab))} aus einer
+     zweiten Quelle statt aus dem Verbund-Feed — welcher, steht im übernächsten Befund.`;
 }
 
 /**
@@ -163,6 +357,14 @@ function befundVerkehrsart(l: Lage): string {
  * einzige Ist-Meldung geliefert hat, ist eine Beobachtung ueber die Datenlage
  * und keine ueber die Puenktlichkeit. Ruftaxi bleibt aussen vor -- dort ist
  * Schweigen der Normalfall (ADR-011).
+ *
+ * Dieser Befund hat von 2026-08-30 bis 2026-09-20 das Gegenteil des Gemessenen
+ * behauptet ("zu jeder der 86 Linien liegt mindestens eine Meldung vor"), weil
+ * er seine Gegenbeispiele aus `ladeIndex` bezog — und die Funktion filtert
+ * `bewertbare_halte === 0` heraus, einen Tag bevor es diese Seite gab. Die
+ * Menge, die den Befund traegt, ist damit genau die, die dort fehlt. Deshalb
+ * laedt `start()` den vollstaendigen Index; ein Wechsel zurueck macht diesen
+ * Abschnitt still wieder falsch, ohne dass irgendwo etwas rot wird.
  */
 function befundStummeLinien(l: Lage): string {
   const titel = "Ein Teil des Netzes meldet gar nichts";
@@ -217,7 +419,7 @@ function befundStummeLinien(l: Lage): string {
 function hinweisZweiteQuelle(l: Lage): string {
   const n = l.index.linien.filter((x) => x.openrnv_ab).length;
   if (n === 0) return "";
-  return ` Für ${n} andere Linien ist es inzwischen entschieden — siehe den nächsten Befund.`;
+  return ` Für ${zahl(n)} andere Linien ist es inzwischen entschieden — siehe den nächsten Befund.`;
 }
 
 /**
@@ -235,7 +437,7 @@ function befundZweiteQuelle(l: Lage): string {
   const zweit = l.index.linien.filter((x) => x.openrnv_ab);
   if (zweit.length === 0) return "";
 
-  const ab = zweit.map((x) => x.openrnv_ab ?? "").sort()[0] ?? "";
+  const ab = zweiteQuelleAb(l);
   const soll = zweit.reduce((s, x) => s + x.soll_halte, 0);
   const gemessen = zweit.reduce((s, x) => s + x.bewertbare_halte, 0);
   const ausVerbund = zweit.reduce((s, x) => s + (x.bewertbare_halte_vrn ?? 0), 0);
@@ -300,7 +502,7 @@ function befundAusfaelle(l: Lage): string {
 
   return `<section class="befund">
       <h2>${escape(titel)}</h2>
-      <p class="aussage">Von 100 geplanten Halten trugen bei der Straßenbahn
+      <p class="aussage">Von den geplanten Halten trugen bei der Straßenbahn
          <strong>${escape(vonHundert(at))}</strong> die Kennzeichnung „ausgefallen",
          beim Bus <strong>${escape(vonHundert(ab))}</strong>.</p>
       <p class="klein">Grundlage: ${zahl(tram.soll)} geplante Halte der Straßenbahn und

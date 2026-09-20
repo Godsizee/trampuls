@@ -93,6 +93,33 @@ export function vonHundert(anteil: number | null): string {
 }
 
 /**
+ * Eine Quote fuer eine Zahlenspalte, mit so vielen Nachkommastellen, dass sie
+ * nicht auf 100 % oder 0 % gerundet wird, solange sie das nicht ist.
+ *
+ * `vonHundert` kennt dieselbe Falle und weicht im Fliesstext auf "fast alle"
+ * aus. In einer Spalte, die man untereinander liest, geht das nicht — dort muss
+ * eine Zahl stehen. Gemessen 2026-09-20: 99,96 % der Straßenbahnhalte lagen
+ * unter einer Stunde Verspaetung. Mit einer Nachkommastelle stuende dort
+ * "100,0 %", also kein einziger Halt darueber — es waren 312.
+ *
+ * Die uebrigen Zeilen bleiben bei einer Stelle. Eine Spalte mit ungleich vielen
+ * Nachkommastellen liest sich schlechter als eine gleichmaessige — sie ist aber
+ * die einzige, in der jede Zeile fuer sich stimmt.
+ */
+export function prozentGenug(anteil: number): string {
+  for (let stellen = 1; stellen <= 4; stellen++) {
+    const wert = Number((anteil * 100).toFixed(stellen));
+    if ((anteil < 1 && wert >= 100) || (anteil > 0 && wert <= 0)) continue;
+    return new Intl.NumberFormat("de-DE", {
+      style: "percent",
+      minimumFractionDigits: stellen,
+      maximumFractionDigits: stellen,
+    }).format(anteil);
+  }
+  return prozent(anteil);
+}
+
+/**
  * Die Schwelle als Satzteil. "unter 3 min" ist die Sprache des Datenmodells;
  * gelesen wird "weniger als 3 Minuten zu spaet".
  */

@@ -67,6 +67,8 @@ async function start(): Promise<void> {
       // gemessen hat (ADR-021).
       ohneSollrahmen(m, i),
     ]),
+    undefined,
+    "Datenqualität je Betriebstag",
   );
   // Zwoelf Spalten -- ab neun braucht die Seite auf sehr breiten Schirmen mehr
   // Huelle (TPULS-110). `tabelle()` vergibt diese Klasse erst automatisch ab

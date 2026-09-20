@@ -181,6 +181,8 @@ function zeigeVerlauf(netz: NetzDatei): void {
             zahl(p?.nebenwert ?? 0),
           ];
         }),
+        undefined,
+        "Pünktlichkeit je Betriebstag",
       ),
     );
     rand.appendChild(details);
@@ -283,6 +285,8 @@ function zeigeFerien(netz: NetzDatei, kalender: KalenderDatei): void {
             q === null ? "—" : prozent(q),
           ];
         }),
+        undefined,
+        "Ferien und Schulzeit",
       ),
     );
     ziel.appendChild(block);

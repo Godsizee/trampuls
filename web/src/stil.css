@@ -757,6 +757,19 @@ thead th {
   letter-spacing: 0;
 }
 
+/* Der Kasten ist per `haltScrollzustand()` (seite.ts) ein Tabulatorhalt, sobald
+   er wirklich scrollt -- der Fokusrahmen muss dafuer sichtbar sein. */
+.tabellenhuelle:focus-visible {
+  outline: 2px solid var(--akzent);
+  outline-offset: 2px;
+}
+
+/* Kein scroll-snap: bei Spalten sehr unterschiedlicher Breite -- "Betriebstag"
+   neben "Fahrten ohne Fahrplanbezug" -- springt die Rastung ueber schmale
+   Spalten hinweg oder bleibt vor breiten haengen. Freier Bildlauf ist hier
+   ruhiger. */
+.tabelle--daten { scroll-snap-type: none; }
+
 details { margin-top: var(--r4); }
 summary {
   cursor: pointer;

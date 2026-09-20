@@ -407,6 +407,8 @@ function tagesgang(
         const q = p?.wert;
         return [stunde(h), q === null || q === undefined ? "—" : prozent(q), zahl(p?.nebenwert ?? 0)];
       }),
+      undefined,
+      "Pünktlichkeit je Betriebsstunde",
     ),
   );
   rand.appendChild(details);
@@ -486,6 +488,8 @@ function profil(
         quoteText(r.puenktlich, r.bewertbar),
         zahl(r.bewertbar),
       ]),
+      undefined,
+      "Verspätungszuwachs je Halt",
     ),
   );
 }
@@ -560,6 +564,8 @@ function ausfaelle(
       ["Betriebstag", "Fahrten", "Ausgefallen", "Anteil", "Übersprungene Halte",
        "Fahrten ohne jede Rückmeldung"],
       zeilen,
+      undefined,
+      "Ausfälle je Betriebstag",
     ),
   );
   rand.appendChild(details);

@@ -364,21 +364,27 @@ func schreibeIndex(zielDir string, d *daten, slugs map[string]string) error {
 	out.SchwellenText = schwellenText
 	out.Attribution = attributionstext
 
-	// Der juengste *vollstaendig erhobene* Betriebstag ist die Zahl, die auf der
-	// Startseite steht — nicht der juengste ueberhaupt. Der laufende Tag ist per
-	// Definition unvollstaendig, und ihn als Tagesbilanz zu zeigen waere falsch.
+	// Der juengste *vollstaendig erhobene* Betriebstag. Er traegt die Fussleiste
+	// ("Zuletzt vollstaendig aufgezeichneter Tag") und den Vorbehalt unter den
+	// Kacheln, der daran erkennt, ob der gezeigte Tag schon fertig ist.
 	for _, q := range d.qualitaet {
 		if q.ErhebungVollstaendig && q.Betriebstag > out.JuengsterVollstaendigerBetriebstag {
 			out.JuengsterVollstaendigerBetriebstag = q.Betriebstag
 		}
 	}
 
-	anzeigetag := out.JuengsterVollstaendigerBetriebstag
-	if anzeigetag == "" {
-		anzeigetag = d.bis
-	}
+	// `netz_aktuell` traegt den juengsten Betriebstag — auch den, der noch laeuft
+	// (ADR-026). Hier stand der juengste *vollstaendige* Tag: als Tagesbilanz
+	// sauberer, aber beide Seiten beschriften ihre Kacheln mit
+	// `juengster_betriebstag` und nannten damit einen anderen Tag, als sie
+	// zeigten. Auf /netz stand darunter die Tagestabelle aus `netz.json` und wies
+	// denselben Tag mit anderen Zahlen aus.
+	//
+	// Der laufende Tag ist keine Tagesbilanz, und die Seite behauptet das auch
+	// nicht: der Vorbehalt nennt ihn einen Zwischenstand, die Fallzahl steht in
+	// der Kachel daneben, und der letzte fertige Tag steht in der Fussleiste.
 	for _, n := range d.netz {
-		if n.Betriebstag != anzeigetag {
+		if n.Betriebstag != d.bis {
 			continue
 		}
 		out.NetzAktuell = append(out.NetzAktuell, netzEintrag{

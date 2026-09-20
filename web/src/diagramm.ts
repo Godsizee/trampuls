@@ -98,15 +98,20 @@ function haltAnBreite(
   beobachter.observe(svg);
 }
 
+// Schnitt der Groteske ueber deutschen Haltestellennamen, gemessen 2026-08-29.
+// Traegt seit TPULS-116 zwei Stellen: die Kuerzung hier im SVG und die
+// Kappungswerte der stehenden ersten Tabellenspalte (`--spalte-erste` in
+// stil.css, Abschnitt "Tabellen") rechnen mit derselben Zahl.
+const EM_JE_ZEICHEN = 0.52;
+
 /**
  * Text auf eine Pixelbreite kuerzen. SVG kennt kein `text-overflow`, und ein
  * Haltestellenname wie "Heidelberg Betriebshof/Gaisbergstrasse" laeuft sonst
- * quer durch das Diagramm. Die 0,52 em je Zeichen sind der Schnitt der
- * Groteske ueber deutschen Haltestellennamen (gemessen 2026-08-29); genauer
- * ginge nur mit `getComputedTextLength`, und das kostet ein Layout je Zeile.
+ * quer durch das Diagramm. Genauer ginge nur mit `getComputedTextLength`, und
+ * das kostet ein Layout je Zeile.
  */
 function kuerze(inhalt: string, maxBreite: number, schriftgroesse: number): string {
-  const proZeichen = schriftgroesse * 0.52;
+  const proZeichen = schriftgroesse * EM_JE_ZEICHEN;
   const passt = Math.floor(maxBreite / proZeichen);
   if (inhalt.length <= passt) return inhalt;
   if (passt <= 1) return "";
@@ -358,11 +363,13 @@ export function balkenProfil(
   zeilenhoehe = 24,
 ): SVGSVGElement {
   const NAMENSGROESSE = 11;
-  // Unter dieser Breite bleibt fuer Name und Balken nebeneinander zu wenig
-  // uebrig; dann traegt die Tabelle die Namen allein.
-  const mitNamen = breite >= 460;
-  const namenBreite = mitNamen ? Math.min(breite * 0.4, 180) : 0;
-  const laufwegX = namenBreite + (mitNamen ? 10 : 6);
+  // Bis zum 2026-09-20 wurden Namen erst ab 460 px gezeichnet — auf dem
+  // Telefon stand damit eine Reihe unbeschrifteter Balken, und die Zuordnung
+  // lag allein in der Tabelle darunter. Jetzt bekommt der Name immer eine
+  // Spalte; wie breit, haengt an der verfuegbaren Breite (TPULS-116).
+  const namenAnteil = breite < 460 ? 0.45 : 0.4;
+  const namenBreite = Math.min(breite * namenAnteil, breite < 460 ? 150 : 240);
+  const laufwegX = namenBreite + 10;
   const feldX = laufwegX + 12;
   const feldBreite = Math.max(breite - feldX - 4, 40);
   const nullX = feldX + feldBreite / 2;
@@ -408,13 +415,22 @@ export function balkenProfil(
   daten.forEach((d, i) => {
     const mitte = 19 + i * zeilenhoehe + zeilenhoehe / 2;
 
-    svg.appendChild(el("circle", { cx: laufwegX, cy: mitte, r: 3, class: "haltpunkt" }));
-
-    if (mitNamen) {
-      svg.appendChild(text(kuerze(d.beschriftung, namenBreite - 6, NAMENSGROESSE), {
-        x: namenBreite, y: mitte + 4, class: "haltname rechts",
+    // Jede fuenfte Zeile bekommt eine schwache Fuehrungslinie ueber die volle
+    // Breite -- bei 73 Zeilen (der laengsten Linie im Bestand) ist die
+    // Zuordnung Name zu Balken sonst nicht zu halten (TPULS-116).
+    if (i % 5 === 0 && i > 0) {
+      svg.appendChild(el("line", {
+        x1: 0, y1: scharf(mitte - zeilenhoehe / 2),
+        x2: breite, y2: scharf(mitte - zeilenhoehe / 2),
+        class: "gitter",
       }));
     }
+
+    svg.appendChild(el("circle", { cx: laufwegX, cy: mitte, r: 3, class: "haltpunkt" }));
+
+    svg.appendChild(text(kuerze(d.beschriftung, namenBreite - 6, NAMENSGROESSE), {
+      x: namenBreite, y: mitte + 4, class: "haltname rechts",
+    }));
 
     if (d.wert === null) {
       // Dasselbe Zeichen wie im Saeulendiagramm: ein gestrichelter Strich auf
@@ -470,10 +486,22 @@ function zusammenfassungBalken(daten: Balken[]): string {
   return `${teile.join(", ")}.`;
 }
 
-/** Zeichnet das Haltestellenprofil in `ziel` und haelt es an dessen Breite. */
-export function balkenProfilIn(ziel: Element, daten: Balken[], zeilenhoehe = 24): void {
+/**
+ * Zeichnet das Haltestellenprofil in `ziel` und haelt es an dessen Breite.
+ *
+ * Die Zeilenhoehe haengt seit TPULS-116 an der gemessenen Breite statt an
+ * einem festen Vorgabewert. Bei 73 Halten — der laengsten Linie im Bestand,
+ * de-vrn-02005, gemessen 2026-09-20 — ergaben 24 px Zeilenhoehe auf jeder
+ * Breite ein 1766 px hohes Bild. Auf dem Telefon sind 20 px genug: der Balken
+ * bleibt 10 px hoch, der Name passt.
+ */
+export function balkenProfilIn(ziel: Element, daten: Balken[]): void {
   // Die Hoehe des Profils ergibt sich aus der Zahl der Halte, nicht aus dem
   // Stylesheet (`.profil { height: auto }`) — die gemessene bleibt hier also
   // ausdruecklich ungenutzt.
-  haltAnBreite(ziel, (breite) => balkenProfil(daten, breite ?? 320, zeilenhoehe));
+  haltAnBreite(ziel, (breite) => {
+    const b = breite ?? 320;
+    const zeilenhoehe = b < 460 ? 20 : b < 760 ? 22 : 26;
+    return balkenProfil(daten, b, zeilenhoehe);
+  });
 }

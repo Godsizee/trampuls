@@ -39,6 +39,20 @@
    dekorativ. Alles, was eine Bedienflaeche begrenzt — Auswahlfeld, Suchfeld,
    Knopf — benutzt --linie-stark: 3,34:1 hell, 3,55:1 dunkel, damit ueber der
    Grenze von 3:1 fuer Bedienelemente.
+
+   Zwei weitere Token, gerechnet und im gebauten Stand nachgemessen
+   (2026-09-20, TPULS-118 / ADR-025):
+
+     --zeile-aktiv (ueberfahrene/fokussierte Tabellenzeile)
+       1,17:1 hell / 1,19:1 dunkel gegen --papier
+     --gitter-stark (Hilfslinien im Diagramm)
+       1,79:1 hell / 1,93:1 dunkel gegen --papier
+
+   Zebra und die Kante der stehenden Tabellenspalte brauchten dagegen **kein**
+   neues Token: die Zeilenstreifen benutzen --flaeche (1,08:1 hell / 1,09:1
+   dunkel — genau die Staerke, die ein Streifen braucht), die Spaltenkante
+   --linie-stark statt --linie. Gedaempfter Text auf dem Zebrastreifen bleibt
+   bei 5,62:1 hell / 6,48:1 dunkel ueber AA.
    =========================================================================== */
 
 /* ---------------------------------------------------------------------------
@@ -126,6 +140,17 @@
   --gedaempft: light-dark(#5a5f6a, #9aa0aa);
   --linie: light-dark(#dcd8d0, #2c2f36);
   --linie-stark: light-dark(#8e887e, #676d79);
+  /* Ueberfahrene oder fokussierte Tabellenzeile. Liegt zwischen --flaeche
+     (Zebrastreifen) und --papier: 1,17:1 hell, 1,19:1 dunkel gegen --papier,
+     und 1,084:1 bzw. 1,095:1 gegen den Streifen — gerade genug, um den
+     Unterschied zu sehen, gerade wenig genug, um keine Auszeichnung zu sein.
+     Gerechnet 2026-09-20 (TPULS-118). */
+  --zeile-aktiv: light-dark(#eae7e0, #212429);
+  /* Hilfslinien im Diagramm. --linie liegt bei 1,35:1 und war dafuer zu schwach:
+     eine 50-%-Linie, die man suchen muss, hilft beim Ablesen nicht. 1,79:1 hell,
+     1,93:1 dunkel. Bleibt bewusst unter 3:1 — sie begrenzt keine Bedienflaeche
+     und soll die Saeulen nicht ueberstimmen. Gerechnet 2026-09-20 (TPULS-118). */
+  --gitter-stark: light-dark(#c3bcb0, #41454e);
   --akzent: light-dark(#12595e, #6fb9bd);
   --plus: light-dark(#9c4a21, #e09a6a);
   --minus: light-dark(#2f6b46, #7cc79c);

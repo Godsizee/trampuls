@@ -117,6 +117,9 @@ export interface Saeule {
   beschriftung: string;
   wert: number | null;
   nebenwert?: number;
+  /** Fertig formatiert vom Aufrufer, z. B. "82,9 %". Nur Anzeige — hier wird
+   *  nichts gerechnet, was nicht schon in quote() stand. */
+  anzeige?: string;
 }
 
 /**
@@ -148,7 +151,11 @@ export function saeulen(
   const svg = el("svg", {
     viewBox: `0 0 ${breite} ${hoehe}`,
     class: "diagramm",
-    "aria-hidden": "true",
+    // Verliert `aria-hidden` in TPULS-115: das `aria-label` setzt `saeulenIn()`
+    // nach dem Zeichnen, weil es die Zusammenfassung ueber alle Saeulen braucht.
+    // Die Tabellenentsprechung daneben bleibt Pflicht -- das Label ist nur die
+    // Kurzfassung.
+    role: "img",
     // Von "none" auf "xMidYMid meet" (2026-09-20). Der Neuzeichner in
     // haltAnBreite() greift erst ab 16 px Breiten- oder 4 px Hoehenunterschied;
     // in dem Fenster davor streckte "none" das Bild und machte aus einer
@@ -193,6 +200,7 @@ export function saeulen(
   daten.forEach((d, i) => {
     const x = rand.links + i * spalte;
     const mitte = x + spalte / 2;
+    let h = 0;
     if (d.wert === null) {
       // Das Luecken-Zeichen sitzt auf der Grundlinie und ist so breit wie eine
       // Saeule — es besetzt den Platz sichtbar, statt ihn leer zu lassen.
@@ -202,7 +210,7 @@ export function saeulen(
         class: "luecke",
       }));
     } else {
-      const h = Math.max(zeichenHoehe * d.wert, 1);
+      h = Math.max(zeichenHoehe * d.wert, 1);
       svg.appendChild(el("rect", {
         x: mitte - saeulenBreite / 2, y: grund - h,
         width: saeulenBreite, height: h, class: "saeule", rx: 1,
@@ -211,9 +219,38 @@ export function saeulen(
     if (i % schritt === 0) {
       svg.appendChild(text(d.beschriftung, { x: mitte, y: hoehe - 8, class: "achse mitte" }));
     }
+    // Zwei Ziffern brauchen bei 10 px Groteske rund 12 px. Unter 22 px Saeulenbreite
+    // klebten sie aneinander — dann traegt die Achse allein, und der genaue Wert
+    // steht im Ablesefeld darunter.
+    if (d.wert !== null && saeulenBreite >= 22) {
+      const kurz = Math.round(d.wert * 100);
+      svg.appendChild(text(String(kurz), {
+        x: mitte,
+        // Ueber der Saeule, ausser sie reicht fast bis an den oberen Rand —
+        // dann hinein. Sonst stuende die Ziffer ausserhalb der viewBox.
+        y: grund - h - 4 < rand.oben + 10 ? grund - h + 11 : grund - h - 4,
+        class: "saeulenwert mitte",
+      }));
+    }
+    // Trefferflaeche ueber die ganze Spaltenhoehe -- auch ueber einer Luecke,
+    // damit "nicht gemessen" beim Ueberfahren genauso im Ablesefeld steht.
+    svg.appendChild(treffer(x, spalte, hoehe, i));
   });
 
   return svg;
+}
+
+/**
+ * Unsichtbare Trefferflaeche je Saeule. `fill="none"` empfaengt keine Zeiger —
+ * das ist der Klassiker an dieser Stelle; es muss `transparent` sein, und
+ * `pointer-events` muss ausdruecklich `all` heissen.
+ */
+function treffer(x: number, breite: number, hoehe: number, i: number): SVGRectElement {
+  return el("rect", {
+    x, y: 0, width: breite, height: hoehe,
+    fill: "transparent", "pointer-events": "all",
+    "data-i": i,
+  });
 }
 
 /**
@@ -223,9 +260,71 @@ export function saeulen(
  * steht das SVG erst im Dokument, gilt seine tatsaechliche Hoehe aus dem
  * Stylesheet -- seit TPULS-114 eine von drei Containerstufen (11/15/18 rem),
  * nicht mehr eine feste Konstante.
+ *
+ * Traegt seit TPULS-115 zusaetzlich ein Ablesefeld unter dem Diagramm: es
+ * zeigt in Ruhe die Zusammenfassung, beim Ueberfahren einer Saeule deren
+ * genauen Wert. Vorher stand die einzelne Zahl nur in einem <details> in der
+ * Randspalte -- auf dem Schreibtisch neben dem Bild, auf dem Telefon darunter.
  */
-export function saeulenIn(ziel: Element, daten: Saeule[], hoehe = 176): void {
-  haltAnBreite(ziel, (breite, gemessen) => saeulen(daten, breite, gemessen ?? hoehe));
+export function saeulenIn(
+  ziel: Element,
+  daten: Saeule[],
+  hoehe = 176,
+  beschriftung = (d: Saeule): string =>
+    d.wert === null
+      ? `${d.beschriftung}: nicht gemessen`
+      : `${d.beschriftung}: ${d.anzeige ?? ""}${d.nebenwert === undefined ? "" : ` · ${d.nebenwert} gemessene Halte`}`,
+): void {
+  const feld = document.createElement("p");
+  feld.className = "ablesung";
+  // `polite` und nicht `assertive`: die Zahl unter dem Zeiger ist eine Beigabe,
+  // sie unterbricht nichts.
+  feld.setAttribute("aria-live", "polite");
+  feld.textContent = zusammenfassung(daten);
+
+  haltAnBreite(ziel, (breite, gemessen) => {
+    const svg = saeulen(daten, breite, gemessen ?? hoehe);
+    svg.setAttribute("aria-label", zusammenfassung(daten));
+    svg.addEventListener("pointermove", (e) => {
+      const ziel2 = e.target;
+      if (!(ziel2 instanceof SVGElement)) return;
+      const i = Number(ziel2.dataset.i);
+      const d = daten[i];
+      if (d) feld.textContent = beschriftung(d);
+    });
+    svg.addEventListener("pointerleave", () => {
+      feld.textContent = zusammenfassung(daten);
+    });
+    return svg;
+  });
+  ziel.appendChild(feld);
+}
+
+/**
+ * Die Zusammenfassung ist zweierlei: Ruhezustand des Ablesefelds und
+ * `aria-label` des SVG. Sie nennt Umfang, Hoechst- und Tiefstwert -- und die
+ * Zahl der ungemessenen Stellen, weil "nicht gemessen" hier nie unter den
+ * Tisch fallen darf (Regel 8 im Bild).
+ */
+function zusammenfassung(daten: Saeule[]): string {
+  const gemessen = daten.filter(
+    (d): d is Saeule & { wert: number } => d.wert !== null,
+  );
+  const ungemessen = daten.length - gemessen.length;
+  if (gemessen.length === 0) {
+    return `${daten.length} ${daten.length === 1 ? "Wert" : "Werte"}, keiner gemessen.`;
+  }
+  const hoechste = gemessen.reduce((a, b) => (b.wert > a.wert ? b : a));
+  const tiefste = gemessen.reduce((a, b) => (b.wert < a.wert ? b : a));
+  const teile = [
+    `${daten.length} ${daten.length === 1 ? "Wert" : "Werte"}`,
+    `höchster ${hoechste.anzeige ?? ""} bei ${hoechste.beschriftung}`,
+    `niedrigster ${tiefste.anzeige ?? ""} bei ${tiefste.beschriftung}`,
+  ];
+  if (ungemessen > 0) {
+    teile.push(`${ungemessen} nicht gemessen`);
+  }
+  return `${teile.join(", ")}.`;
 }
 
 export interface Balken {
@@ -269,20 +368,32 @@ export function balkenProfil(
   const nullX = feldX + feldBreite / 2;
   const maxLaenge = feldBreite / 2 - 4;
 
-  const hoehe = Math.max(daten.length * zeilenhoehe + 14, 40);
+  // +26 statt +14: die Legende ("− aufgeholt" / "+ dazugekommen") braucht 12 px
+  // zusaetzlich ueber der ersten Zeile (TPULS-115).
+  const hoehe = Math.max(daten.length * zeilenhoehe + 26, 52);
   const groesster = Math.max(1, ...daten.map((d) => (d.wert === null ? 0 : Math.abs(d.wert))));
 
   const svg = el("svg", {
     viewBox: `0 0 ${breite} ${hoehe}`,
     class: "profil",
-    "aria-hidden": "true",
+    // Verliert `aria-hidden` in TPULS-115, wie das Saeulendiagramm -- die
+    // Tabellenentsprechung darunter bleibt Pflicht, das Label die Kurzfassung.
+    role: "img",
+    "aria-label": zusammenfassungBalken(daten),
   });
+
+  // Links und rechts der Nulllinie steht, was die Richtung bedeutet. Bis zum
+  // 2026-09-20 stand das nur in der Randspalte — auf dem Schreibtisch neben
+  // dem Bild, auf dem Telefon darunter. Wer das Bild zuerst ansah, sah zwei
+  // Farben ohne Bedeutung.
+  svg.appendChild(text("− aufgeholt", { x: nullX - 6, y: 9, class: "achse rechts" }));
+  svg.appendChild(text("+ dazugekommen", { x: nullX + 6, y: 9, class: "achse" }));
 
   // Der Laufweg: eine durchgehende Linie mit einem Punkt je Halt, von der
   // ersten bis zur letzten Zeilenmitte. Sie macht aus einer Reihe von Balken
   // eine Strecke.
-  const ersteMitte = 7 + zeilenhoehe / 2;
-  const letzteMitte = 7 + (daten.length - 1) * zeilenhoehe + zeilenhoehe / 2;
+  const ersteMitte = 19 + zeilenhoehe / 2;
+  const letzteMitte = 19 + (daten.length - 1) * zeilenhoehe + zeilenhoehe / 2;
   if (daten.length > 1) {
     svg.appendChild(el("line", {
       x1: scharf(laufwegX), y1: ersteMitte,
@@ -295,7 +406,7 @@ export function balkenProfil(
   }));
 
   daten.forEach((d, i) => {
-    const mitte = 7 + i * zeilenhoehe + zeilenhoehe / 2;
+    const mitte = 19 + i * zeilenhoehe + zeilenhoehe / 2;
 
     svg.appendChild(el("circle", { cx: laufwegX, cy: mitte, r: 3, class: "haltpunkt" }));
 
@@ -331,6 +442,32 @@ export function balkenProfil(
   });
 
   return svg;
+}
+
+/**
+ * Kurzfassung des Profils fuers `aria-label` -- Umfang, staerkster Zuwachs,
+ * staerkster Aufholer, und die Zahl der Halte ohne gemessenen Abschnitt
+ * (Regel 8: "nicht gemessen" faellt nie unter den Tisch).
+ */
+function zusammenfassungBalken(daten: Balken[]): string {
+  const gemessen = daten.filter(
+    (d): d is Balken & { wert: number } => d.wert !== null,
+  );
+  const ungemessen = daten.length - gemessen.length;
+  if (gemessen.length === 0) {
+    return `${daten.length} ${daten.length === 1 ? "Halt" : "Halte"}, keiner gemessen.`;
+  }
+  const groesster = gemessen.reduce((a, b) => (b.wert > a.wert ? b : a));
+  const aufholer = gemessen.reduce((a, b) => (b.wert < a.wert ? b : a));
+  const teile = [
+    `${daten.length} ${daten.length === 1 ? "Halt" : "Halte"}`,
+    `staerkster Zuwachs bei ${groesster.beschriftung}`,
+    `staerkster Aufholer ${aufholer.beschriftung}`,
+  ];
+  if (ungemessen > 0) {
+    teile.push(`${ungemessen} ohne gemessenen Abschnitt`);
+  }
+  return `${teile.join(", ")}.`;
 }
 
 /** Zeichnet das Haltestellenprofil in `ziel` und haelt es an dessen Breite. */

@@ -145,10 +145,12 @@ function zeigeVerlauf(netz: NetzDatei): void {
           puenktlich += netz.puenktlich[String(SCHWELLE)]?.[i] ?? 0;
         }
       }
+      const wert = bewertbar > 0 ? puenktlich / bewertbar : null;
       return {
         beschriftung: (tag ?? "").slice(8),
-        wert: bewertbar > 0 ? puenktlich / bewertbar : null,
+        wert,
         nebenwert: bewertbar,
+        anzeige: wert === null ? "nicht gemessen" : prozent(wert),
       };
     });
 

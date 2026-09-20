@@ -808,6 +808,20 @@ summary {
 text.mitte { text-anchor: middle; }
 text.rechts { text-anchor: end; }
 .saeule { fill: var(--akzent); }
+/* Die Wertbeschriftung sitzt auf der Saeule und muss auf beiden Untergruenden
+   lesbar sein — auf --papier ueber der Saeule, auf --akzent darin. Deshalb
+   `paint-order: stroke` mit einem Rand in Papierfarbe: das ist kein Schatten,
+   sondern ein Freisteller, und er kostet keine zweite Farbe. */
+.saeulenwert {
+  fill: var(--tinte);
+  stroke: var(--papier);
+  stroke-width: 2.5px;
+  paint-order: stroke fill;
+  font-family: var(--schrift-grotesk);
+  font-size: 10px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums lining-nums;
+}
 /* "Nicht gemessen" ist etwas anderes als "nichts war puenktlich". Vorher war
    an dieser Stelle schlicht nichts zu sehen, und das war von einem sehr
    kleinen Wert nicht zu unterscheiden. Jetzt steht dort ein eigenes Zeichen. */
@@ -821,6 +835,17 @@ text.rechts { text-anchor: end; }
   fill: var(--tinte);
   font-family: var(--schrift-grotesk);
   font-size: 11px;
+}
+
+/* Das Ablesefeld steht immer da, auch ohne Zeiger — dann traegt es die
+   Zusammenfassung. Ein Feld, das erst beim Ueberfahren erscheint, verschiebt
+   das Layout und ist auf einem Telefon nie zu sehen. */
+.ablesung {
+  margin: calc(var(--r4) * -1) 0 var(--r4);
+  font-size: var(--t-klein);
+  color: var(--gedaempft);
+  font-variant-numeric: tabular-nums lining-nums;
+  min-height: 1.6em;
 }
 
 /* ---------------------------------------------------------------------------

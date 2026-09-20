@@ -377,10 +377,12 @@ function tagesgang(
 
   const punkte = stunden.map((h) => {
     const e = je.get(h)!;
+    const q = quote(e.puenktlich, e.bewertbar);
     return {
       beschriftung: String(h).padStart(2, "0"),
-      wert: quote(e.puenktlich, e.bewertbar),
+      wert: q,
       nebenwert: e.bewertbar,
+      anzeige: q === null ? "nicht gemessen" : prozent(q),
     };
   });
 

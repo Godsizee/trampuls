@@ -229,9 +229,16 @@ svg, img { max-width: 100%; }
   padding: var(--r5) var(--r4) var(--r8);
 }
 
+/* Das Lesemass ist die Vorgabe fuer Fliesstext. Alles, was Daten traegt, sagt
+   selbst, welches Mass es braucht — vorher entschied darueber, ob jemand daran
+   gedacht hatte, `.breit` zu setzen. */
 main.huelle > * { max-width: var(--breite-text); }
+main.huelle > .block,
 main.huelle > .breit,
-main.huelle > .block { max-width: none; }
+main.huelle > .kennzahlen,
+main.huelle > .vergleich,
+main.huelle > .regler,
+main.huelle > .linienliste { max-width: none; }
 
 /* Der Abstand zwischen zwei Abschnitten haengt am Abschnitt, nicht an seiner
    Ueberschrift: die traegt `margin-top: 0`, weil sie ganz oben im Hauptteil
@@ -1203,4 +1210,17 @@ h1 .nummer { font-size: 1.35rem; min-width: 3.2rem; padding: 0.15rem 0.5rem; }
     --breite-seite: 74rem;
     --breite-rand: 20rem;
   }
+}
+
+/* Dritte Stufe, ab 1800 px. Sie gilt ausschliesslich Seiten, die eine Tabelle mit
+   mehr als acht Spalten tragen — auf /methodik sind es zwoelf, und die stand bis
+   zum 2026-09-20 in einem 640-px-Kasten, waehrend rechts rund 1000 px leer blieben.
+   Fliesstextseiten bleiben unberuehrt: ihnen wuerde die zusaetzliche Breite nur
+   groessere Leere danebenstellen (siehe den Block ab 87,5 rem).
+   Erkannt am `data-weite-tabelle`-Attribut auf `<main>`, nicht an `.tabelle--weit`:
+   die Klasse setzt `tabelle()` erst per JavaScript beim Rendern der Tabelle — waere
+   sie das Merkmal, spraenge die Seitenbreite beim Nachladen der Zahlen. Das
+   Attribut steht dagegen schon in der ausgelieferten HTML. */
+@media (min-width: 112.5rem) {
+  body:has(main[data-weite-tabelle]) { --breite-seite: 82rem; }
 }

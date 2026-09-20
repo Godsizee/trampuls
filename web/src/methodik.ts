@@ -38,38 +38,42 @@ async function start(): Promise<void> {
     .map((_, i) => i)
     .sort((a, b) => (m.betriebstag[b] ?? "").localeCompare(m.betriebstag[a] ?? ""));
 
-  ziel.appendChild(
-    tabelle(
-      // Die Spaltennamen sind die Begriffe aus der Tabelle darunter, wortgleich.
-      // "Gemessen" stand hier und "Gemessene Halte" im Glossar -- zwei Namen fuer
-      // dieselbe Zahl auf derselben Seite (gefunden im Abgleich 2026-08-30).
-      ["Betriebstag", "Durchgehend", "Anteil gemessen", "Geplante Halte",
-       "Gemessene Halte", "Halte ohne Rückmeldung", "Nicht aufgezeichnet", "Fahrten",
-       "Linien",
-       "Aufgezeichnete Stunden", "Stunden ohne Aufzeichnung",
-       // ADR-021: die einzige Spalte, die Fahrten zeigt, die in keiner anderen
-       // Spalte dieser Zeile stecken. Sie steht auch dann da, wenn sie ueberall
-       // 0 ist -- dass geprueft wird, gehoert zur Aussage.
-       "Fahrten ohne Fahrplanbezug"],
-      reihenfolge.map((i) => [
-        datum(m.betriebstag[i] ?? ""),
-        m.erhebung_vollstaendig[i] ? "ja" : "nein",
-        prozent(m.deckung[i] ?? 0),
-        zahl(m.soll_halte[i] ?? 0),
-        zahl(m.bewertbare_halte[i] ?? 0),
-        zahl(m.halte_ohne_meldung[i] ?? 0),
-        zahl(m.halte_nicht_erhoben[i] ?? 0),
-        zahl(m.fahrten[i] ?? 0),
-        zahl(m.linien[i] ?? 0),
-        zahl(m.belegte_stunden[i] ?? 0),
-        zahl(m.erhebungsluecken_stunden[i] ?? 0),
-        // null heisst "fuer diesen Tag noch nicht erhoben" und muss ein Strich
-        // bleiben: als 0 gelesen waere es eine gute Nachricht, die niemand
-        // gemessen hat (ADR-021).
-        ohneSollrahmen(m, i),
-      ]),
-    ),
+  const t = tabelle(
+    // Die Spaltennamen sind die Begriffe aus der Tabelle darunter, wortgleich.
+    // "Gemessen" stand hier und "Gemessene Halte" im Glossar -- zwei Namen fuer
+    // dieselbe Zahl auf derselben Seite (gefunden im Abgleich 2026-08-30).
+    ["Betriebstag", "Durchgehend", "Anteil gemessen", "Geplante Halte",
+     "Gemessene Halte", "Halte ohne Rückmeldung", "Nicht aufgezeichnet", "Fahrten",
+     "Linien",
+     "Aufgezeichnete Stunden", "Stunden ohne Aufzeichnung",
+     // ADR-021: die einzige Spalte, die Fahrten zeigt, die in keiner anderen
+     // Spalte dieser Zeile stecken. Sie steht auch dann da, wenn sie ueberall
+     // 0 ist -- dass geprueft wird, gehoert zur Aussage.
+     "Fahrten ohne Fahrplanbezug"],
+    reihenfolge.map((i) => [
+      datum(m.betriebstag[i] ?? ""),
+      m.erhebung_vollstaendig[i] ? "ja" : "nein",
+      prozent(m.deckung[i] ?? 0),
+      zahl(m.soll_halte[i] ?? 0),
+      zahl(m.bewertbare_halte[i] ?? 0),
+      zahl(m.halte_ohne_meldung[i] ?? 0),
+      zahl(m.halte_nicht_erhoben[i] ?? 0),
+      zahl(m.fahrten[i] ?? 0),
+      zahl(m.linien[i] ?? 0),
+      zahl(m.belegte_stunden[i] ?? 0),
+      zahl(m.erhebungsluecken_stunden[i] ?? 0),
+      // null heisst "fuer diesen Tag noch nicht erhoben" und muss ein Strich
+      // bleiben: als 0 gelesen waere es eine gute Nachricht, die niemand
+      // gemessen hat (ADR-021).
+      ohneSollrahmen(m, i),
+    ]),
   );
+  // Zwoelf Spalten -- ab neun braucht die Seite auf sehr breiten Schirmen mehr
+  // Huelle (TPULS-110). `tabelle()` vergibt diese Klasse erst automatisch ab
+  // TPULS-112; die Breitenstufe selbst haengt nicht an ihr, sondern am
+  // `data-weite-tabelle`-Attribut auf <main> (stil.css).
+  t.classList.add("tabelle--weit");
+  ziel.appendChild(t);
 }
 
 start().catch(zeigeFehler);

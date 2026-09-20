@@ -229,6 +229,18 @@ svg, img { max-width: 100%; }
   padding: var(--r5) var(--r4) var(--r8);
 }
 
+/* Container statt Bildschirmbreite (ADR-025).
+   Dieselbe Tabelle steht in drei sehr verschiedenen Kaesten: Hauptspalte 44–48 rem,
+   Randspalte 16–20 rem, volle Huelle. Solange sie den Bildschirm fragte, brauchte
+   jeder Kasten eine eigene Ausnahme — und zwei davon brachen um, obwohl Zahlen
+   nicht umbrechen duerfen.
+   Container-Abfragen liegen innerhalb der Untergrenze, die `light-dark()` ohnehin
+   setzt (Chrome 123 / Safari 17.5 / Firefox 120 gegen Chrome 105 / Safari 16 /
+   Firefox 110) — es braucht also keinen Rueckfallweg. */
+main.huelle { container: seite / inline-size; }
+.block > .block-haupt { container: haupt / inline-size; }
+.block > .block-rand  { container: rand  / inline-size; }
+
 /* Das Lesemass ist die Vorgabe fuer Fliesstext. Alles, was Daten traegt, sagt
    selbst, welches Mass es braucht — vorher entschied darueber, ob jemand daran
    gedacht hatte, `.breit` zu setzen. */
@@ -688,31 +700,13 @@ td { font-variant-numeric: tabular-nums lining-nums; }
    Ausgerechnet die Fallzahl war damit unsichtbar. Hier bricht sie stattdessen
    um.
 
-   Aussen sitzt kein Innenabstand: sonst steht die Tabelle um zwoelf Pixel
-   eingerueckt gegen die Ueberschrift der Randspalte darueber. */
-/* `overflow-x` bleibt `auto`: bricht die Tabelle in einer sehr engen
-   Randspalte trotz Umbruch nicht klein genug, scrollt sie lieber in ihrem
-   Kasten, als ueber ihn hinauszulaufen — die Seite darf auf keiner Breite
-   waagerecht scrollen. Der Schleier an der Kante entfaellt hier: er liegt
-   sonst dauerhaft ueber der ersten und letzten Spalte. */
-.block-rand .tabellenhuelle { background: none; }
-.block-rand .tabellenhuelle > table { width: 100%; min-width: 0; }
-.block-rand .tabellenhuelle th,
-.block-rand .tabellenhuelle td {
-  white-space: normal;
-  padding-inline: var(--r2);
-}
-.block-rand .tabellenhuelle th:first-child,
-.block-rand .tabellenhuelle td:first-child { padding-inline-start: 0; }
-.block-rand .tabellenhuelle th:last-child,
-.block-rand .tabellenhuelle td:last-child { padding-inline-end: 0; }
-.block-rand .tabellenhuelle thead th:first-child,
-.block-rand .tabellenhuelle th[scope="row"] {
-  position: static;
-  background: none;
-  box-shadow: none;
-}
-
+   Das war bis zum 2026-09-20 eine Sonderfall-Familie ueber `.block-rand
+   .tabellenhuelle …`, weil eine Komponente den Bildschirm fragte, aber in
+   einem von drei Kaesten stand (Bd-2, ADR-025). Diese Messung ist jetzt die
+   Begruendung fuer den Tabellenmodus `paar` (TPULS-112): eine Tabelle mit
+   zwei bis drei Spalten bricht um und braucht keinen Scrollkasten, ganz
+   gleich in welchem Container sie steht — nicht mehr, weil sie zufaellig in
+   `.block-rand` liegt. */
 details { margin-top: var(--r4); }
 summary {
   cursor: pointer;
@@ -786,6 +780,14 @@ text.rechts { text-anchor: end; }
   flex: 1 1 12rem;
   min-width: 0;
   max-width: 22rem;
+}
+
+/* Auf einem schmalen Kasten steht jedes Feld untereinander statt nebeneinander
+   gequetscht — vorher fragte das den Bildschirm, obwohl der Regler auf /linie
+   in der Hauptspalte (44–48 rem) steht, nicht in voller Bildschirmbreite. */
+@container (max-width: 34rem) {
+  .regler label { flex-basis: 100%; max-width: none; }
+  button[data-merken] { width: 100%; }
 }
 
 select, input[type="search"], button {
@@ -1065,6 +1067,19 @@ h1 .nummer { font-size: 1.35rem; min-width: 3.2rem; padding: 0.15rem 0.5rem; }
 }
 .glossar th[scope="row"] { width: 13rem; font-weight: 600; color: var(--tinte); }
 
+/* Die Begriffstabelle darf umbrechen — hier stehen Saetze, keine Ziffern. Sie
+   loest sich aber nicht mehr in Bloecke auf: mit `display: block` auf `table`,
+   `tr`, `th` und `td` war sie fuer den Screenreader keine Tabelle mehr, und die
+   Zuordnung Begriff → Erklaerung hing allein an der Reihenfolge. Ein einspaltiges
+   Raster leistet dasselbe und behaelt die Auszeichnung (ADR-025). */
+@container (max-width: 34rem) {
+  .glossar, .glossar tbody { display: grid; }
+  .glossar tr { display: grid; gap: var(--r1); padding: var(--r2) 0;
+                border-bottom: 1px solid var(--linie); }
+  .glossar th[scope="row"] { width: auto; border-bottom: 0; padding: 0; }
+  .glossar td { border-bottom: 0; padding: 0; color: var(--gedaempft); }
+}
+
 /* ---------------------------------------------------------------------------
    Breiten
 
@@ -1075,9 +1090,6 @@ h1 .nummer { font-size: 1.35rem; min-width: 3.2rem; padding: 0.15rem 0.5rem; }
 /* Telefon, einschliesslich Frontdisplay eines Fold: was nebeneinander stand,
    steht untereinander. */
 @media (max-width: 34rem) {
-  .regler label { flex-basis: 100%; max-width: none; }
-  button[data-merken] { width: 100%; }
-
   /* Wortmarke oben, Navigation in der zweiten Zeile. Auf 344 px passen
      Wortmarke und fuenf Eintraege zusammen nicht in eine Zeile; getrennt
      passen sie beide. */
@@ -1101,15 +1113,6 @@ h1 .nummer { font-size: 1.35rem; min-width: 3.2rem; padding: 0.15rem 0.5rem; }
     text-align: left;
   }
 
-  /* Die stehende erste Spalte darf nicht die ganze Breite fuellen: sonst sieht
-     man auf dem Telefon nur Haltestellennamen und keine einzige Zahl. */
-  .tabellenhuelle th[scope="row"] {
-    max-width: 9rem;
-    white-space: normal;
-    /* Umbrechen ja, aber an Wortgrenzen: "Handschuhshei/m Nord" liest niemand. */
-    overflow-wrap: normal;
-  }
-
   .huelle { padding: var(--r4) var(--r4) var(--r7); }
 
   /* Auf dem Telefon steht die Erklaerung unten am Rand statt in der Mitte:
@@ -1123,13 +1126,6 @@ h1 .nummer { font-size: 1.35rem; min-width: 3.2rem; padding: 0.15rem 0.5rem; }
 
   /* Ein Knopf neben dem anderen wird auf 320 px zu schmal zum Lesen. */
   .wege .knopf { flex: 1 1 100%; }
-
-  /* Zwei Spalten mit je einem Satz ergeben auf 320 px zwei unlesbar schmale
-     Saeulen. Untereinander gelesen bleibt der Zusammenhang erhalten. */
-  .glossar, .glossar tbody, .glossar tr, .glossar th, .glossar td { display: block; }
-  .glossar tr { border-bottom: 1px solid var(--linie); padding: var(--r2) 0; }
-  .glossar th[scope="row"] { width: auto; border-bottom: 0; padding: 0 0 var(--r1); }
-  .glossar td { border-bottom: 0; padding: 0; color: var(--gedaempft); }
 }
 
 @media (min-width: 34.0625rem) {

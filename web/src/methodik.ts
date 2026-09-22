@@ -70,11 +70,21 @@ async function start(): Promise<void> {
   // mart_prognosequalitaet ist neu (T7) und liefert erst nach dem ersten
   // Rebuild nach diesem Deploy eine Datei. Ein 404 in dieser einen Kennzahl
   // darf die Datenqualitaets-Tabelle darunter nicht mitreissen (derselbe
-  // Grundsatz wie bei nurFussleiste() in seite.ts).
+  // Grundsatz wie bei nurFussleiste() in seite.ts) -- aber "folgenlos" heisst
+  // hier nicht "leer": ein still leeres [data-prognose] liess die Hauptspalte
+  // neben ihrer gefuellten Randspalte zusammenfallen (gesehen 2026-09-22, erste
+  // Stunde nach dem Deploy, bevor der erste Rebuild prognose.json anlegte).
+  // Derselbe Hinweistext wie bei "noch kein Tag ausgewertet" haelt die Spalte
+  // gefuellt, bis die Datei da ist.
+  const prognoseZiel = document.querySelector("[data-prognose]");
   await ladePrognose()
     .then(zeigePrognose)
     .catch(() => {
-      /* bewusst folgenlos, siehe oben */
+      if (prognoseZiel) {
+        prognoseZiel.innerHTML =
+          '<p class="hinweis">Noch keine Prognosequalität ausgewertet. Sobald der ' +
+          'erste Durchlauf fertig ist, steht sie hier.</p>';
+      }
     });
 
   const ziel = document.querySelector("[data-qualitaet]");

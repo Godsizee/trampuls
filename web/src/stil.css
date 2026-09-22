@@ -193,6 +193,12 @@
   --breite-text: 40rem;
   --breite-rand: 16rem;
 
+  /* Aussenabstand der randlosen Huelle ab 87,5 rem. Unterhalb ungenutzt: dort
+     zentriert --breite-seite, und der Innenabstand kommt aus .huelle selbst.
+     clamp statt fester Wert, damit der Abstand bei 1400 px nicht so breit
+     wirkt wie bei 3440 px. */
+  --rand-aussen: clamp(1.5rem, 2.2vw, 3.5rem);
+
   /* Fingerbreite. Alles, was angetippt wird, ist mindestens so hoch. */
   --tippziel: 2.75rem;
 }
@@ -285,6 +291,13 @@ main.huelle { container: seite / inline-size; }
 .block > .block-haupt { container: haupt / inline-size; }
 .block > .block-rand  { container: rand  / inline-size; }
 
+/* Jedes direkte Kind der Huelle ist ein Rasterplatz und damit der Container,
+   den die Komponenten darin abfragen. Das gilt auf jeder Breite, nicht erst im
+   Raster: unterhalb von 87,5 rem ist der Platz einfach so breit wie die Huelle,
+   und die Abfragen unten treffen dieselbe Entscheidung wie vorher die
+   Bildschirmabfrage. */
+main.huelle > * { container: platz / inline-size; }
+
 /* Das Lesemass ist die Vorgabe fuer Fliesstext. Alles, was Daten traegt, sagt
    selbst, welches Mass es braucht — vorher entschied darueber, ob jemand daran
    gedacht hatte, `.breit` zu setzen. */
@@ -294,7 +307,43 @@ main.huelle > .breit,
 main.huelle > .kennzahlen,
 main.huelle > .vergleich,
 main.huelle > .regler,
-main.huelle > .linienliste { max-width: none; }
+main.huelle > .linienliste,
+/* Die Traeger der Bloecke auf /linie. Sie haben seit ADR-028 keine Klasse mehr
+   (sie sind nur noch Rasterplatz und Container), tragen aber Daten und duerfen
+   deshalb nicht auf das Lesemass eingeschnuert werden. */
+main.huelle > [data-kopf],
+main.huelle > [data-verlauf],
+main.huelle > [data-tagesgang],
+main.huelle > [data-profil],
+main.huelle > [data-ausfaelle],
+main.huelle > [data-kennzahl],
+/* Container, die selbst ein Raster aufbauen (Kachelwand /linien, Befunde
+   /befunde) und deshalb nicht auf 40 rem eingeschnuert werden duerfen. */
+main.huelle > [data-linien],
+main.huelle > [data-befunde] { max-width: none; }
+
+/* Randspalte im Block. Der Hauptteil behaelt sein Lesemass, die Nebensachen —
+   Legende, lange Erlaeuterung, "Zahlen dazu" — ruecken daneben und beginnen
+   oben. Darunter faellt alles in die Flussreihenfolge zurueck, damit die
+   Tabellenentsprechung direkt beim Diagramm bleibt.
+   59rem und nicht 62rem: die Schwelle stand vorher am Bildschirm, jetzt am
+   Kasten. Bei 992 px Bildschirm (62 rem) ist die Huelle 992 px breit, abzueglich
+   2 x var(--r5) Innenabstand bleiben 944 px = 59 rem Inhalt. Wer die 62 stehen
+   laesst, nimmt jedem Laptop zwischen 992 und 1040 px die Randspalte weg.
+   Gerechnet 2026-09-22. */
+@container platz (min-width: 59rem) {
+  .block {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) var(--breite-rand);
+    column-gap: var(--r7);
+    align-items: start;
+  }
+  .block-rand {
+    margin-top: 0;
+    padding-top: var(--r2);
+    border-top: 2px solid var(--linie);
+  }
+}
 
 /* Der Abstand zwischen zwei Abschnitten haengt am Abschnitt, nicht an seiner
    Ueberschrift: die traegt `margin-top: 0`, weil sie ganz oben im Hauptteil
@@ -418,6 +467,32 @@ code {
    --------------------------------------------------------------------------- */
 
 header.kopfleiste { border-bottom: 1px solid var(--linie); }
+
+/* Klebend erst ab Schreibtischbreite. Auf dem Telefon kostet eine klebende
+   Leiste dauerhaft Hoehe, und dort ist der Weg nach oben kurz — die Seite ist
+   eine Spalte. Ab 87,5 rem steht der Inhalt im Raster und die Seite ist
+   breiter als hoch; der Weg zurueck zur Navigation waere sonst der ganze
+   Scrollweg.
+   --kopf-hoehe gibt die Hoehe an den klebenden Regler weiter (TPULS-134).
+   Der Wert ist gemessen, nicht geraten: `header.kopfleiste`
+   .getBoundingClientRect().height im gebauten Stand (Chrome), 2026-09-22 —
+   68,8 px bei 1440 px Breite (1,0625rem Wurzelschrift, macht 4,05rem) und
+   71,5 px bei 2560 px (1,125rem Wurzelschrift, macht 3,97rem). Beide runden
+   auf denselben Wert; ein zweiter Wert im 112,5-rem-Block war deshalb
+   nicht noetig. */
+@media (min-width: 87.5rem) {
+  :root { --kopf-hoehe: 4rem; }
+  header.kopfleiste {
+    position: sticky;
+    top: 0;
+    z-index: 6;
+    background: var(--papier);
+  }
+
+  /* Die Sprungmarken aus der Inhaltsspalte (TPULS-132) duerfen nicht hinter
+     der jetzt klebenden Kopfleiste landen. */
+  main.huelle h2, main.huelle h3 { scroll-margin-top: calc(var(--kopf-hoehe) + var(--r4)); }
+}
 
 header.kopfleiste .huelle {
   padding-block: var(--r2);
@@ -1059,6 +1134,32 @@ h1 .nummer { font-size: 1.35rem; min-width: 3.2rem; padding: 0.15rem 0.5rem; }
    immer auf eine eigene, volle Zeile — unabhaengig von der Breite von .werte. */
 .richtungen { flex: 1 1 100%; text-align: left; }
 
+/* Der Balken zeigt dieselbe Quote wie die Zahl in .werte daneben, als
+   zusaetzliche Zeile unter dem Eintrag (Markup-Reihenfolge siehe
+   linien.ts::eintrag). `flex: 1 1 100%` ist derselbe Kniff wie bei
+   .richtungen oben: er zwingt das Element im Flex-Layout des <li> auf eine
+   eigene volle Zeile, unabhaengig von seiner Breite.
+   Als SVG mit Praesentationsattributen aufgebaut, nicht per Inline-Stil: die
+   CSP der Auslieferung ist `style-src 'self'`, ein `style`-Attribut wuerde
+   stumm verworfen (ADR-025) und der Balken zeigte immer 0 %.
+   --gitter-stark als Bett (1,79:1 / 1,93:1 gegen --papier, gemessen
+   2026-09-20): sichtbar genug, um die Laenge des Balkens einordnen zu
+   koennen, leise genug, um nicht selbst als Wert gelesen zu werden. */
+.quotenbalken {
+  flex: 1 1 100%;
+  block-size: 4px;
+  margin: var(--r2) 0;
+}
+.quotenbalken-bett { fill: var(--gitter-stark); }
+.quotenbalken-wert { fill: var(--akzent); }
+/* Ohne Messung kein Balken, sondern eine gestrichelte Grundlinie — dasselbe
+   Zeichen wie in den Diagrammen fuer "hier wurde nichts gemessen". */
+.quotenbalken-ohne {
+  stroke: var(--linie-stark);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+
 /* Der Kopf der Linienseite: Schild links, Ueberschrift und Verlauf daneben.
    Das Schild ist `aria-hidden` — die Ueberschrift sagt Verkehrsart und Nummer
    ohnehin in Worten, und zweimal dieselbe Zahl vorgelesen zu bekommen hilft
@@ -1312,91 +1413,256 @@ h1 .nummer { font-size: 1.35rem; min-width: 3.2rem; padding: 0.15rem 0.5rem; }
   .huelle { padding: var(--r6) var(--r5) var(--r8); }
 }
 
-/* Ab Laptopbreite: Randspalte. Der Hauptteil behaelt sein Lesemass, die
-   Nebensachen — Legende, lange Erlaeuterung, "Zahlen dazu" — ruecken daneben
-   und beginnen oben. Darunter faellt alles in die Flussreihenfolge zurueck,
-   damit die Tabellenentsprechung direkt beim Diagramm bleibt. */
-@media (min-width: 62rem) {
-  .block {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) var(--breite-rand);
-    column-gap: var(--r7);
-    align-items: start;
-  }
-  .block-rand {
-    margin-top: 0;
-    padding-top: var(--r2);
-    border-top: 2px solid var(--linie);
-  }
-}
-
-/* Ab Schreibtischbreite: die Seite darf mehr vom Schirm belegen.
-
-   Zwei Stellschrauben, und nur eine davon ist die Huelle. Auf einer reinen
-   Textseite — /lizenz, /impressum — haette es nichts gebracht, allein die
-   Huelle zu weiten: der Lesetext haelt sein Mass von 40 rem, die gewonnene
-   Breite waere daneben leer geblieben und die Leere damit groesser statt
-   kleiner. Deshalb waechst zusaetzlich die Schrift. Die Zeile wird dadurch
-   breiter, ohne mehr Zeichen zu tragen — 40 rem sind bei 16 px 640 px und
-   bei 18 px 720 px, in beiden Faellen dieselben rund 80 Anschlaege. Das Mass
-   selbst bleibt also unangetastet.
-
-   Die Huelle waechst nur so weit mit, wie das Raster mit Randspalte es
-   ausfuellen kann: 74 rem abzueglich Innenabstand, Randspalte und Rinne
-   lassen dem Hauptteil 48 rem statt 44 — davon leben Tabellen und Diagramme,
-   nicht der Fliesstext.
-
-   `rem` und nicht `px` fuer den Schriftgrad: auf dem Wurzelelement bezieht
-   sich rem auf die *voreingestellte* Groesse des Browsers. Wer sie dort auf
-   20 px gestellt hat, bekommt hier 21,25 px und nicht 17 — eine px-Angabe
-   haette diese Einstellung stillschweigend ueberschrieben. Aus demselben
-   Grund verschieben sich die Haltepunkte nicht mit: in einer Medienabfrage
-   meint rem immer die Voreinstellung, nie den hier gesetzten Wert.
-
+/* Ab Schreibtischbreite: die Seite gibt die zentrierte Spalte auf (ADR-028).
+   `max-width: none` ueber das Token, damit Kopf, Inhalt und Fuss in einem Zug
+   umschalten — alle drei sind .huelle.
+   Die Wurzelschrift steigt wie bisher: die Zeile wird dadurch breiter, ohne
+   mehr Zeichen zu tragen. Das Lesemass von 40 rem bleibt unangetastet.
    Unterhalb von 87,5 rem (1400 px) aendert sich nichts — Telefon und Tablet
    behalten jeden Wert, den sie vorher hatten. */
 @media (min-width: 87.5rem) {
   :root {
     font-size: 1.0625rem;
-    --breite-seite: 70rem;
+    --breite-seite: none;
     --breite-rand: 18rem;
   }
+  .huelle { padding-inline: var(--rand-aussen); }
 
-  /* Eine Seite, die nur aus Lesetext besteht — /lizenz, /impressum, /befunde —
-     hat nichts, was die zusaetzliche Huellenbreite fuellen koennte. Bekaeme
-     sie sie trotzdem, stuende die Navigation am aeusseren Rand, waehrend der
-     Text 300 px weiter innen aufhoert: die Leere daneben faellt dann staerker
-     auf als vorher, nicht weniger. Solche Seiten behalten deshalb eine engere
-     Huelle — die groessere Schrift oben gilt fuer sie weiterhin, ihr Textblock
-     waechst also trotzdem.
-
-     Erkannt am Inhalt statt an einer Klasse je Seite: die Merkmale unten
-     stehen alle schon in der ausgelieferten HTML, nicht erst nach dem Laden
-     der Zahlen — sonst spraenge die Seitenbreite beim Nachladen. */
-  body:not(:has(main .block, main .breit, main .kennzahlen, main .vergleich,
-                main .regler, main .linienliste, main .tabellenhuelle,
-                main .diagramm, main table)) {
-    --breite-seite: 62rem;
+  /* Das Raster. auto-fit + minmax bestimmt die Spaltenzahl aus der Breite:
+     bei 1440 px zwei Spalten, bei 2560 px drei bis vier. 28rem ist die Breite,
+     unter der ein Diagramm mit Achsenbeschriftung nicht mehr abzulesen ist
+     (gemessen an .diagramm, Containerstufe 1 endet bei 46rem — darunter
+     bleibt das kleine Format, das auf dem Telefon geprueft ist).
+     align-items: start, damit eine kurze Zelle nicht auf die Hoehe der
+     laengsten in ihrer Zeile gezogen wird. */
+  main.huelle {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(28rem, 100%), 1fr));
+    gap: var(--r7);
+    align-items: start;
   }
+
+  /* Was den Einstieg in die Seite traegt, laeuft ueber die ganze Zeile: sonst
+     stuende die Ueberschrift in einer 28-rem-Spalte, waehrend daneben ein
+     Diagramm beginnt. Dasselbe gilt fuer Kaesten, die selbst ein Raster oder
+     einen Mehrspalten-Text aufbauen (.kennzahlen, .vergleich) und fuer
+     Textkaesten, die sonst mit leerer Flaeche neben sich stehen bleiben, weil
+     kein zweites Element ihre Zeile teilt (.abgrenzung, .fragen, .schritte,
+     TPULS-131) — ebenso der Seitenkopf auf /linie ([data-kopf]), der die
+     Ueberschrift der Seite traegt. Gemessen 2026-09-22: ohne das liessen
+     /, /methodik und /linie sichtbare Luecken neben diesen Kaesten stehen,
+     weil das Raster ihre Spur grid-weit ohnehin anlegt (siehe die
+     ueberspannenden Ueberschriften), sie selbst aber nur eine Spalte fuellen. */
+  main.huelle > h1,
+  main.huelle > h2,
+  main.huelle > .lead,
+  main.huelle > .zeitwahl,
+  main.huelle > .wege,
+  main.huelle > .vorbehalt,
+  main.huelle > .kennzahlen,
+  main.huelle > .vergleich,
+  main.huelle > .abgrenzung,
+  main.huelle > .fragen,
+  main.huelle > .schritte,
+  main.huelle > .weiter,
+  main.huelle > .voll,
+  main.huelle > [data-kopf] { grid-column: 1 / -1; }
+
+  /* Der Abstand kommt jetzt aus `gap`. Bleibt der Aussenabstand stehen,
+     addiert er sich darauf — die erste Rasterzeile saesse 3 rem tiefer als
+     die zweite. */
+  main.huelle > section,
+  main.huelle > .block,
+  main.huelle > .breit { margin-top: 0; }
+
+  /* Im Raster stehen bis zu vier Diagramme gleichzeitig im Bild, und alle
+     zeigen denselben Zeitraum und dieselbe Schwelle. Eine Einstellung, die
+     vier sichtbare Bilder steuert und selbst aus dem Bild gescrollt ist, ist
+     eine Einstellung, die man vergisst.
+     `z-index: 4` liegt unter der Kopfleiste (6) und der Sprungmarke (10) und
+     ueber dem normalen Fluss. Das `popover` der Begriffserklaerungen liegt im
+     Top-Layer und ist von Stapelkontexten ohnehin unberuehrt. */
+  main.huelle > .regler,
+  main.huelle > [data-regler] {
+    grid-column: 1 / -1;
+    position: sticky;
+    top: var(--kopf-hoehe, 0px);
+    z-index: 4;
+    background: var(--papier);
+    margin-top: 0;
+  }
+
+  /* Die Kennzahlen laufen ueber die ganze Rasterzeile und duerfen dafuer ihre
+     52-rem-Deckelung ablegen: bei 2560 px stehen dann vier bis fuenf Zahlen
+     nebeneinander statt drei mit Leere daneben. */
+  .kennzahlen { max-width: none; }
+
+  /* Die Kaesten fuellen ihre Zelle. Das Lesemass gilt der Zeile, nicht dem
+     Kasten — ein 38-rem-Kasten in einer 40-rem-Zelle laesst rechts einen
+     Streifen stehen, der wie ein Fehler aussieht.
+     `main.huelle > .abgrenzung` und nicht nur `.abgrenzung`: als direktes
+     Kind der Huelle traegt es sonst noch immer `main.huelle > * { max-width:
+     var(--breite-text) }` von weiter oben (Spezifitaet 0-1-1 gegen 0-1-0 bei
+     einem einzelnen Klassenselektor) — gemessen 2026-09-22, ohne den Praefix
+     blieb die Box bei 40 rem, egal was hier stand. .hinweis/.fehler/.aussage
+     stehen dagegen nie als direktes Kind der Huelle (immer in einem eigenen
+     Container verschachtelt), dort reicht der einfache Klassenselektor. */
+  main.huelle > .abgrenzung,
+  main.huelle > .fragen,
+  main.huelle > .schritte,
+  .hinweis, .fehler, .aussage { max-width: none; }
+
+  /* Ein Befund ist ein zitierbarer Satz mit Fallzahl darunter — kurz genug,
+     dass zwei bis drei nebeneinander passen. Untereinander waren es auf einem
+     grossen Schirm bis zu vier Bildschirmhoehen fuer ein Dutzend Saetze. */
+  main.huelle > [data-befunde] {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(24rem, 100%), 1fr));
+    gap: var(--r6) var(--r7);
+    align-items: start;
+  }
+  main.huelle > [data-befunde] > .befund { margin-top: 0; }
+
+  /* Der Container der Linienliste (/linien) muss selbst ein Raster aus
+     Kacheln tragen koennen und darf dafuer weder auf 40 rem eingeschnuert
+     noch auf eine einzelne Rasterzelle beschraenkt bleiben. */
+  main.huelle > [data-linien] { grid-column: 1 / -1; max-width: none; }
+
+  /* Kachelwand. auto-fill und nicht auto-fit: bei einer gefilterten Suche mit
+     zwei Treffern sollen die Kacheln ihre Breite behalten und nicht auf je
+     1200 px auseinandergezogen werden.
+     19rem ist die Breite, ab der Liniennummer und Verlauf in einer Zeile
+     nebeneinander stehen (.linienliste a hat flex-basis: 16rem). */
+  .linienliste {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(19rem, 100%), 1fr));
+    gap: 0 var(--r6);
+  }
+  /* In der Kachel steht alles untereinander: Schild und Verlauf, Balken,
+     Zahl. Nebeneinander waere bei 19rem die Zahl an den rechten Rand
+     gedrueckt und der Verlauf abgeschnitten. Die `order`-Werte holen den
+     Balken aus seiner Position ganz am Ende (siehe linien.ts::eintrag) an
+     seinen vorgesehenen Platz zwischen Schild und Zahl. */
+  .linienliste li { flex-direction: column; align-items: stretch; gap: var(--r1); }
+  .linienliste a { flex: 0 0 auto; align-items: flex-start; order: 1; }
+  /* .quotenbalken erbt sonst `flex: 1 1 100%` von der Grundregel oben — dort
+     fuer die Zeilenrichtung gedacht (Hauptachse = Breite). Hier steht das
+     <li> auf `flex-direction: column`, die Hauptachse ist jetzt die Hoehe,
+     und dieselbe Regel liesse den Balken in der Hoehe wachsen. Ein SVG mit
+     viewBox, aber ohne eigene width/height-Attribute traegt ein intrinsisches
+     Seitenverhaeltnis (hier 100:4 = 25:1) — waechst die Hoehe ungebremst,
+     rechnet der Browser die Breite ueber dieses Verhaeltnis mit und sprengte
+     gemessen 2026-09-22 die Seite um 700 bis 830 px nach rechts.
+     `flex: 0 0 auto` haelt die Hoehe bei den festen 4px aus `block-size`,
+     `inline-size: 100%` setzt die Breite explizit statt sie ueber das
+     Seitenverhaeltnis herzuleiten. */
+  .linienliste .quotenbalken { order: 2; flex: 0 0 auto; inline-size: 100%; }
+  .linienliste .werte {
+    order: 3;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0 var(--r3);
+    text-align: left;
+  }
+  .linienliste .richtungen { display: none; }
 }
 
 @media (min-width: 112.5rem) {
   :root {
     font-size: 1.125rem;
-    --breite-seite: 74rem;
     --breite-rand: 20rem;
+  }
+
+  /* Ab 1800 px ist eine Rasterzelle breit genug fuer zwei Spalten. `columns`
+     und nicht Grid: die Eintraege sind unterschiedlich lang, und der
+     Spaltenumbruch soll sie ausgleichen statt sie in Zeilen zu zwingen.
+     `break-inside: avoid` haelt einen Eintrag zusammen — ein
+     Aufzaehlungspunkt, der mitten im Satz die Spalte wechselt, ist schlechter
+     zu lesen als eine ungleich hohe Spalte.
+     Nur Aufzaehlungen, kein Fliesstext: ein Absatz, der unten aus der einen
+     Spalte laeuft und oben in der naechsten weitergeht, zwingt das Auge zum
+     Sprung ueber die ganze Kastenhoehe. */
+  .abgrenzung ul,
+  .fragen,
+  .schritte {
+    columns: 2;
+    column-gap: var(--r7);
+  }
+  .abgrenzung li, .fragen li, .schritte li {
+    break-inside: avoid;
+    margin-bottom: var(--r4);
   }
 }
 
-/* Dritte Stufe, ab 1800 px. Sie gilt ausschliesslich Seiten, die eine Tabelle mit
-   mehr als acht Spalten tragen — auf /methodik sind es zwoelf, und die stand bis
-   zum 2026-09-20 in einem 640-px-Kasten, waehrend rechts rund 1000 px leer blieben.
-   Fliesstextseiten bleiben unberuehrt: ihnen wuerde die zusaetzliche Breite nur
-   groessere Leere danebenstellen (siehe den Block ab 87,5 rem).
-   Erkannt am `data-weite-tabelle`-Attribut auf `<main>`, nicht an `.tabelle--weit`:
-   die Klasse setzt `tabelle()` erst per JavaScript beim Rendern der Tabelle — waere
-   sie das Merkmal, spraenge die Seitenbreite beim Nachladen der Zahlen. Das
-   Attribut steht dagegen schon in der ausgelieferten HTML. */
-@media (min-width: 112.5rem) {
-  body:has(main[data-weite-tabelle]) { --breite-seite: 82rem; }
+/* ---------------------------------------------------------------------------
+   Inhaltsspalte der Textseiten (ADR-028)
+
+   Unterhalb von 87,5 rem steht sie nicht im Weg, sondern gar nicht da: auf dem
+   Telefon ist eine Sprungliste vor dem Text eine Huerde, kein Dienst — der
+   Daumen scrollt schneller, als die Liste gelesen ist.
+
+   Dieser Abschnitt steht bewusst NACH dem Panel-Raster oben: `main.huelle:has(
+   .inhaltsspalte)` setzt `display: grid` mit einem eigenen Spaltenraster und
+   ueberschreibt damit das Panel-Raster einer Kachelseite — eine Textseite
+   bekommt Text + Uebersicht, kein Kachelraster. Die hoehere Spezifitaet von
+   `:has()` traegt das zwar auch bei vertauschter Reihenfolge, aber die
+   Reihenfolge soll das schon beim Lesen zeigen, nicht erst die Spezifitaet.
+   --------------------------------------------------------------------------- */
+
+.inhaltsspalte { display: none; }
+
+@media (min-width: 87.5rem) {
+  main.huelle:has(.inhaltsspalte) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) var(--breite-rand);
+    column-gap: var(--r8);
+    align-items: start;
+  }
+  /* Der Text bleibt in Spalte 1, die Uebersicht steht in Spalte 2 und beginnt
+     oben. `grid-row: 1 / -1` haelt sie ueber die volle Hoehe, damit `sticky`
+     ueberhaupt einen Weg hat, an dem es kleben kann.
+     `top` rechnet die Hoehe der ab derselben Breite klebenden Kopfleiste mit
+     (TPULS-135) — ohne das klebte die Uebersicht bei var(--r5) und verschwaende
+     zur Haelfte hinter der Kopfleiste, sobald beide gleichzeitig aktiv sind. */
+  .inhaltsspalte {
+    display: block;
+    grid-column: 2;
+    grid-row: 1 / -1;
+    position: sticky;
+    top: calc(var(--kopf-hoehe, 0px) + var(--r5));
+    max-width: none;
+    font-size: var(--t-klein);
+    border-top: 2px solid var(--linie);
+    padding-top: var(--r3);
+  }
+  .inhaltsspalte-titel {
+    font-family: var(--schrift-grotesk);
+    font-size: var(--t-mikro);
+    font-weight: 600;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--gedaempft);
+    margin: 0 0 var(--r3);
+  }
+  .inhaltsspalte ol {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  /* Fingerbreite, weil es ein Tippziel ist — die Breitenmatrix prueft das
+     nicht, weil der Selektor in P3 nicht gelistet ist; siehe
+     breitenmatrix.spec.ts. */
+  .inhaltsspalte a {
+    display: flex;
+    align-items: center;
+    min-height: var(--tippziel);
+    color: var(--gedaempft);
+    text-decoration: none;
+    border-bottom: 1px solid var(--linie);
+  }
+  .inhaltsspalte a:hover { color: var(--akzent); }
 }

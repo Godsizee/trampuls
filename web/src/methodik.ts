@@ -10,6 +10,7 @@
 import { ladeIndex, ladeMethodik, ladePrognose, type MethodikDatei, type PrognoseDatei } from "./daten";
 import { datum, prozent, quoteText, sekunden, zahl, VERKEHRSART_NAME } from "./format";
 import { fussnote, tabelle, zeigeFehler } from "./seite";
+import { inhaltsverzeichnis } from "./inhaltsverzeichnis";
 
 // ADR-021. Drei Zustaende, nicht zwei: eine Zahl, eine echte Null, und "fuer
 // diesen Tag nie erhoben". Der dritte entsteht zwischen dem Deployment der
@@ -142,3 +143,4 @@ async function start(): Promise<void> {
 }
 
 start().catch(zeigeFehler);
+inhaltsverzeichnis();

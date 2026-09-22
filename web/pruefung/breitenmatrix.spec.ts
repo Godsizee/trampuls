@@ -18,7 +18,11 @@ const SEITEN = [
 
 // 344 und 360 decken das Frontdisplay eines Galaxy Z Fold ab. 320 ist der
 // praktische Boden; darunter existiert kein nennenswertes Geraet mehr.
-const BREITEN = [320, 344, 360, 390, 768, 1024, 1440, 1920] as const;
+// 2240 liegt zwischen den beiden Stufen (1400 / 1800) und faengt Fehler, die
+// genau dort entstehen; 2560 ist der verbreitetste grosse Schreibtischschirm
+// (WQHD). Ohne diese beiden Breiten prueft die Matrix das Vollbreiten-Layout
+// ueberhaupt nicht — 1920 liegt noch in der zweiten Stufe.
+const BREITEN = [320, 344, 360, 390, 768, 1024, 1440, 1920, 2240, 2560] as const;
 const SCHEMATA = ["hell", "dunkel"] as const;
 
 // Fingerbreite aus stil.css: --tippziel: 2.75rem. Bei 16px Wurzelschrift 44px.
@@ -72,7 +76,7 @@ for (const breite of BREITEN) {
             const treffer: string[] = [];
             const auswahl = 'header nav a, .knopf, .regler select, .regler button, ' +
               '.regler input, .linienliste a, summary, .zeitwahl label, .farbschalter, ' +
-              '.fragen a';
+              '.fragen a, .inhaltsspalte a';
             for (const el of document.querySelectorAll(auswahl)) {
               const r = el.getBoundingClientRect();
               if (r.width === 0 && r.height === 0) continue;

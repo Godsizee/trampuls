@@ -63,10 +63,19 @@ function aktuelleAuswahl(): {
  * Verschachtelung: nur so liegen Haupt- und Randteil ab Laptopbreite in
  * derselben Rasterzeile, statt dass der Rand an Zeile 1 gebunden ist und in
  * der Hauptspalte eine Luecke aufreisst (siehe stil.css, "Geruest").
+ *
+ * Der aeussere Kasten traegt den Container, .block liegt darin (ADR-028).
+ * Ein Element kann seinen eigenen Container nicht abfragen: stuende .block
+ * wie vorher direkt auf `ziel`, suchte `@container platz` den naechsten
+ * Vorfahren — und faende im Vollbreiten-Raster die Huelle mit rund 2400 px
+ * statt der Rasterzelle mit 28 rem.
  */
 function block(ziel: Element, haupt: string, rand: string): { haupt: HTMLElement; rand: HTMLElement } {
-  ziel.className = "block";
+  ziel.className = "";
   ziel.innerHTML = "";
+
+  const b = document.createElement("div");
+  b.className = "block";
 
   const h = document.createElement("div");
   h.className = "block-haupt";
@@ -76,7 +85,8 @@ function block(ziel: Element, haupt: string, rand: string): { haupt: HTMLElement
   r.className = "block-rand";
   r.innerHTML = rand;
 
-  ziel.append(h, r);
+  b.append(h, r);
+  ziel.append(b);
   return { haupt: h, rand: r };
 }
 

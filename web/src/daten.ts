@@ -42,6 +42,9 @@ export interface LinieKopf {
   /** Gemessene Halte aus dem Verbund-Feed. Nur gesetzt, wo es eine zweite
    *  Quelle gibt; dort ist gerade die Null die Aussage. */
   bewertbare_halte_vrn?: number;
+  /** Haltestellennamen entlang des Laufwegs, entdoppelt und alphabetisch --
+   *  keine Kennzahl, nur wofuer das Suchfeld auf /linien schon immer wirbt. */
+  halte?: string[];
 }
 
 export interface NetzEintrag {
@@ -170,6 +173,23 @@ export interface MethodikDatei {
   halte_ohne_sollrahmen?: (number | null)[];
 }
 
+/**
+ * T7 -- Prognosequalitaet je Betriebstag und Verkehrsart: wie nah lag die
+ * Prognose 15 Minuten vor dem letzten beobachteten Stand an ihm. VRN-only,
+ * netzweit -- kein M2-Ziel (TramPuls_Analysen), deshalb eine eigene, kleine
+ * Datei statt eines Platzes in index.json.
+ */
+export interface PrognoseDatei {
+  betriebstag: string[];
+  verkehrsart: Verkehrsart[];
+  faelle: number[];
+  /** null heisst: zu wenige Faelle fuer eine belastbare Zahl, nicht 0 Sekunden. */
+  abweichung_median_sek: (number | null)[];
+  abweichung_schnitt_sek: (number | null)[];
+  abweichung_unter_1min: number[];
+  abweichung_unter_3min: number[];
+}
+
 /** Ein Land, in dem die rnv faehrt, mit seinem gemessenen Anteil am Netz. */
 export interface LandAnteil {
   kuerzel: string;
@@ -259,5 +279,6 @@ export async function ladeIndex(): Promise<IndexDatei> {
 export const ladeNetz = () => hole<NetzDatei>("netz.json");
 export const ladeKalender = () => hole<KalenderDatei>("kalender.json");
 export const ladeMethodik = () => hole<MethodikDatei>("methodik.json");
+export const ladePrognose = () => hole<PrognoseDatei>("prognose.json");
 export const ladeLinie = (datei: string) => hole<LinieDatei>(`linie/${datei}.json`);
 export const ladeLinieHalte = (datei: string) => hole<HalteDatei>(`linie/${datei}-halte.json`);

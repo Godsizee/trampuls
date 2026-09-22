@@ -7,8 +7,8 @@
 // Umbenennungen — eine Bezeichnung, die in der Oberflaeche steht, gehoert in
 // die Begriffstabelle im aufklappbaren Block dieser Seite.
 
-import { ladeIndex, ladeMethodik, type MethodikDatei } from "./daten";
-import { datum, prozent, zahl } from "./format";
+import { ladeIndex, ladeMethodik, ladePrognose, type MethodikDatei, type PrognoseDatei } from "./daten";
+import { datum, prozent, quoteText, sekunden, zahl, VERKEHRSART_NAME } from "./format";
 import { fussnote, tabelle, zeigeFehler } from "./seite";
 
 // ADR-021. Drei Zustaende, nicht zwei: eine Zahl, eine echte Null, und "fuer
@@ -20,9 +20,62 @@ function ohneSollrahmen(m: MethodikDatei, i: number): string {
   return wert === undefined || wert === null ? "—" : zahl(wert);
 }
 
+/**
+ * T7 -- Prognosequalitaet. Eigene Funktion und eigener Abschnitt statt einer
+ * Zeile in der Datenqualitaets-Tabelle: andere Fallzahl (nur Halte mit
+ * mindestens 15 Minuten Prognosevorlauf), anderer Nenner, andere Frage. Kein
+ * M2-Ziel (TramPuls_Analysen) -- der Abschnitt sagt das auch so.
+ */
+function zeigePrognose(p: PrognoseDatei): void {
+  const ziel = document.querySelector("[data-prognose]");
+  if (!ziel) return;
+
+  if (p.betriebstag.length === 0) {
+    ziel.innerHTML =
+      '<p class="hinweis">Noch liegt kein Halt mit ausreichendem Prognosevorlauf vor.</p>';
+    return;
+  }
+
+  const reihenfolge = p.betriebstag
+    .map((_, i) => i)
+    .sort((a, b) => (p.betriebstag[b] ?? "").localeCompare(p.betriebstag[a] ?? "") ||
+      (p.verkehrsart[a] ?? "").localeCompare(p.verkehrsart[b] ?? ""));
+
+  const t = tabelle(
+    ["Betriebstag", "Verkehrsart", "Gemessene Halte", "Abweichung im Median",
+     "Abweichung unter 1 Minute", "Abweichung unter 3 Minuten"],
+    reihenfolge.map((i) => {
+      const faelle = p.faelle[i] ?? 0;
+      const median = p.abweichung_median_sek[i];
+      return [
+        datum(p.betriebstag[i] ?? ""),
+        VERKEHRSART_NAME[p.verkehrsart[i] ?? "sonstige"] ?? p.verkehrsart[i] ?? "",
+        zahl(faelle),
+        median === null || median === undefined ? "—" : sekunden(median),
+        quoteText(p.abweichung_unter_1min[i] ?? 0, faelle),
+        quoteText(p.abweichung_unter_3min[i] ?? 0, faelle),
+      ];
+    }),
+    undefined,
+    "Prognosequalität je Betriebstag und Verkehrsart",
+  );
+  ziel.appendChild(t);
+}
+
 async function start(): Promise<void> {
   const [index, m] = await Promise.all([ladeIndex(), ladeMethodik()]);
   fussnote(index);
+
+  // Eigener Ladepfad und eigener Fehlerfang, nicht Teil des Promise.all oben:
+  // mart_prognosequalitaet ist neu (T7) und liefert erst nach dem ersten
+  // Rebuild nach diesem Deploy eine Datei. Ein 404 in dieser einen Kennzahl
+  // darf die Datenqualitaets-Tabelle darunter nicht mitreissen (derselbe
+  // Grundsatz wie bei nurFussleiste() in seite.ts).
+  await ladePrognose()
+    .then(zeigePrognose)
+    .catch(() => {
+      /* bewusst folgenlos, siehe oben */
+    });
 
   const ziel = document.querySelector("[data-qualitaet]");
   if (!ziel) return;

@@ -21,10 +21,27 @@ async function start(): Promise<void> {
     const begriff = filter.trim().toLowerCase();
     ziel.innerHTML = "";
 
+    // Das Suchfeld verspricht seit TPULS-092 "Liniennummer oder Haltestelle" --
+    // bis hierher wurde nur in Nummer und Kurzbeschreibung gesucht. `halte`
+    // (Exporter, aus mart_linie_halt) traegt die tatsaechlichen Stationsnamen
+    // entlang des Laufwegs.
     const passt = (l: LinieKopf): boolean =>
       begriff === "" ||
       l.linie.toLowerCase().includes(begriff) ||
-      l.verlauf.toLowerCase().includes(begriff);
+      l.verlauf.toLowerCase().includes(begriff) ||
+      (l.halte?.some((h) => h.toLowerCase().includes(begriff)) ?? false);
+
+    // Welcher Haltename genau getroffen hat -- nur wenn der Treffer
+    // ausschliesslich ueber die Haltestelle kam. Passen Nummer oder Verlauf
+    // schon, steht der Grund sichtbar in der Zeile selbst und eine zweite
+    // Nennung waere Redundanz statt Beleg.
+    const halteTreffer = (l: LinieKopf): string | undefined => {
+      if (begriff === "") return undefined;
+      if (l.linie.toLowerCase().includes(begriff) || l.verlauf.toLowerCase().includes(begriff)) {
+        return undefined;
+      }
+      return l.halte?.find((h) => h.toLowerCase().includes(begriff));
+    };
 
     for (const art of ["tram", "bus", "sonstige"] as const) {
       const linien = index.linien.filter(
@@ -32,7 +49,12 @@ async function start(): Promise<void> {
       );
       if (linien.length === 0) continue;
       ziel.appendChild(
-        blockBauen(`${VERKEHRSART_NAME[art]} <span class="klein">${zahl(linien.length)}</span>`, linien),
+        blockBauen(
+          `${VERKEHRSART_NAME[art]} <span class="klein">${zahl(linien.length)}</span>`,
+          linien,
+          undefined,
+          halteTreffer,
+        ),
       );
     }
 
@@ -45,6 +67,7 @@ async function start(): Promise<void> {
           "und deshalb nicht fährt, ist kein Ausfall — eine Pünktlichkeitsquote misst " +
           "hier also etwas anderes als bei einer Linie im festen Takt. Deshalb stehen " +
           "sie getrennt und zählen nicht in die Zahlen fürs ganze Netz.",
+        halteTreffer,
       );
       ziel.appendChild(block);
     }
@@ -52,7 +75,8 @@ async function start(): Promise<void> {
     if (ziel.children.length === 0) {
       ziel.innerHTML =
         `<p class="hinweis">Keine Linie passt zu „${escape(filter)}". ` +
-        `Gesucht wird in der Liniennummer und im Streckenverlauf.</p>`;
+        `Gesucht wird in der Liniennummer, im Streckenverlauf und entlang der ` +
+        `Haltestellen der Linie.</p>`;
     }
   };
 
@@ -62,18 +86,23 @@ async function start(): Promise<void> {
   suche?.addEventListener("input", () => zeichne(suche.value));
 }
 
-function blockBauen(ueberschrift: string, linien: LinieKopf[], erklaerung?: string): HTMLElement {
+function blockBauen(
+  ueberschrift: string,
+  linien: LinieKopf[],
+  erklaerung?: string,
+  halteTreffer?: (l: LinieKopf) => string | undefined,
+): HTMLElement {
   const block = document.createElement("section");
   block.innerHTML = `<h2>${ueberschrift}</h2>` +
     (erklaerung ? `<p class="hinweis">${escape(erklaerung)}</p>` : "");
   const liste = document.createElement("ul");
   liste.className = "linienliste";
-  for (const l of linien) liste.appendChild(eintrag(l));
+  for (const l of linien) liste.appendChild(eintrag(l, halteTreffer?.(l)));
   block.appendChild(liste);
   return block;
 }
 
-function eintrag(l: LinieKopf): HTMLLIElement {
+function eintrag(l: LinieKopf, halt?: string): HTMLLIElement {
   const li = document.createElement("li");
   const richtungen = l.richtungen.map((r) => escape(r.name)).join(" · ");
   // Das Schild traegt nur die Nummer. Welche Verkehrsart dazugehoert, sagt die
@@ -91,7 +120,13 @@ function eintrag(l: LinieKopf): HTMLLIElement {
       <span class="klein">weniger als 3 Min zu spät</span>
       <span class="klein">${zahl(l.bewertbare_halte)} gemessene Halte</span>
     </span>
-    ${richtungen ? `<span class="klein richtungen">${richtungen}</span>` : ""}`;
+    ${richtungen ? `<span class="klein richtungen">${richtungen}</span>` : ""}
+    ${
+      // Nur wenn der Treffer ausschliesslich ueber die Haltestelle kam: bei
+      // Nummer oder Verlauf steht der Grund schon sichtbar in der Zeile
+      // darueber, eine zweite Nennung waere Redundanz statt Beleg.
+      halt ? `<span class="klein haltetreffer">Hält an: ${escape(halt)}</span>` : ""
+    }`;
   return li;
 }
 

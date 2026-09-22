@@ -257,6 +257,7 @@ function zeichne(linie: LinieDatei, halte: HalteDatei): void {
   const { richtung, schwelle, imZeitraum } = aktuelleAuswahl();
   kopf(linie, richtung);
   kennzahl(linie, richtung, schwelle, imZeitraum);
+  verlauf(linie, richtung, schwelle);
   tagesgang(linie, richtung, schwelle, imZeitraum);
   profil(halte, richtung, imZeitraum);
   ausfaelle(linie, richtung, imZeitraum);
@@ -397,6 +398,94 @@ function kennzahl(
        Verspätung von null in der Rechnung und würde sie schöner machen. Beides steht
        weiter unten unter „Ausfälle".</p>`,
   );
+}
+
+/**
+ * Tagesverlauf je Richtung (Ergaenzung zu T1/T2): dieselbe Frage wie
+ * netz.ts::zeigeVerlauf, nur je Linie statt netzweit — "ist die 5 gerade
+ * schlechter geworden?" ist auf /netz nicht beantwortbar, hier schon. Die
+ * Zaehler stehen fertig in linie.tage (T1-Mart, Korn Betriebstag x Richtung),
+ * es wird nichts neu berechnet.
+ *
+ * Bewusst unabhaengig vom Zeitraum-Regler: der Regler waehlt "ganzer
+ * Zeitraum" oder genau einen Tag zur Vertiefung der uebrigen Abschnitte — mit
+ * einem einzelnen Tag gefiltert bliebe von diesem Diagramm eine einzelne
+ * Saeule. Dieselbe Trennung trifft netz.ts fuer seinen Verlaufsabschnitt
+ * gegenueber der Tag/Gesamt-Auswahl dort.
+ */
+function verlauf(linie: LinieDatei, richtung: number, schwelle: number): void {
+  const ziel = document.querySelector("[data-verlauf]");
+  if (!ziel) return;
+  const t = linie.tage;
+
+  const tage = [...new Set(
+    t.betriebstag.filter((_, i) => t.richtung[i] === richtung),
+  )].sort().slice(-30);
+
+  if (tage.length === 0) {
+    ziel.className = "";
+    ziel.innerHTML = "";
+    return;
+  }
+
+  const punkte = tage.map((tag) => {
+    let bewertbar = 0;
+    let puenktlich = 0;
+    for (let i = 0; i < t.betriebstag.length; i++) {
+      if (t.betriebstag[i] === tag && t.richtung[i] === richtung) {
+        bewertbar += t.bewertbare_halte[i] ?? 0;
+        puenktlich += t.puenktlich[String(schwelle)]?.[i] ?? 0;
+      }
+    }
+    const wert = bewertbar > 0 ? puenktlich / bewertbar : null;
+    return {
+      beschriftung: (tag ?? "").slice(8),
+      wert,
+      nebenwert: bewertbar,
+      anzeige: wert === null ? "nicht gemessen" : prozent(wert),
+    };
+  });
+
+  // Keine Saeule mit Fallzahl: dieselbe Richtung wurde noch an keinem Tag
+  // einzeln gemessen (z. B. frisch aus openRNV uebernommene Linie).
+  if (punkte.every((p) => p.wert === null)) {
+    ziel.className = "";
+    ziel.innerHTML = "";
+    return;
+  }
+
+  const spanne =
+    tage.length === 1 ? "Der bisher einzige Tag" : `Die letzten ${zahl(tage.length)} Tage`;
+
+  const { haupt, rand } = block(
+    ziel,
+    `<h2>${spanne}</h2>`,
+    `<p>Je Säule ein Betriebstag: der Anteil der gemessenen Halte, die weniger
+     als ${schwelle} Minuten zu spät waren, in der oben gewählten Richtung. Wo
+     ein gestrichelter Strich auf der Grundlinie steht, wurde an diesem Tag
+     nichts gemessen — das ist etwas anderes als „nichts war pünktlich".</p>`,
+  );
+
+  saeulenIn(haupt, punkte);
+
+  const details = document.createElement("details");
+  details.innerHTML = "<summary>Zahlen dazu</summary>";
+  details.appendChild(
+    tabelle(
+      ["Betriebstag", `Weniger als ${schwelle} Min zu spät`, "Gemessene Halte"],
+      tage.map((tag, i) => {
+        const p = punkte[i];
+        return [
+          datum(tag ?? ""),
+          p?.wert === null || p?.wert === undefined ? "—" : prozent(p.wert),
+          zahl(p?.nebenwert ?? 0),
+        ];
+      }),
+      undefined,
+      "Pünktlichkeit je Betriebstag",
+    ),
+  );
+  rand.appendChild(details);
 }
 
 function tagesgang(

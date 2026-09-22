@@ -210,3 +210,30 @@ models:
           - not_null
           - accepted_values:
               values: ['gemessen', 'nur_abfahrt', 'ausgelassen', 'fahrt_ausgefallen', 'ohne_meldung', 'nicht_erhoben']
+
+  - name: int_prognoseverlauf
+    description: >
+      T7 -- Prognoseverlauf je Halt: letzter beobachteter Stand und die
+      Prognose 15 Minuten davor, VRN-only (siehe Modellkommentar). Keine
+      Fakttabelle im OCP-Sinn -- braucht die Beobachtungshistorie, die
+      fct_halt_events bewusst auf die letzte Zeile eindampft.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [betriebstag, trip_id, stop_id]
+    columns:
+      - name: prognose_15min_vorher
+        description: "Ankunftsverspaetung, wie sie mindestens 15 Minuten vor dem Endstand galt."
+        data_tests: [not_null]
+      - name: delay_endgueltig
+        description: "Letzte beobachtete Ankunftsverspaetung -- Ersatz fuer eine Bestaetigung, die GTFS-RT nicht liefert."
+        data_tests: [not_null]
+      - name: abweichung_sek
+        description: "abs(delay_endgueltig - prognose_15min_vorher). Je kleiner, desto stabiler war die Prognose."
+        data_tests:
+          - not_null
+          - dbt_utils.accepted_range: {min_value: 0}
+      - name: beobachtungen_gesamt
+        description: "Anzahl unterschiedlicher gemeldeter Zustaende zu diesem Halt (Dedup-Ereignisse, nicht Polls)."
+        data_tests:
+          - not_null
+          - dbt_utils.accepted_range: {min_value: 1}

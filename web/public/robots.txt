@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://trampuls.dasdann.jetzt/sitemap.xml

@@ -71,6 +71,9 @@ func run(martsDir, zielDir string) error {
 	if err := schreibeKalender(zielDir, d); err != nil {
 		return err
 	}
+	if err := schreibePrognose(zielDir, d); err != nil {
+		return err
+	}
 
 	geschrieben := 0
 	for _, l := range d.linien {
@@ -101,6 +104,7 @@ type daten struct {
 	netz       []marts.Netz
 	qualitaet  []marts.Datenqualitaet
 	kalender   []marts.Kalender
+	prognose   []marts.Prognosequalitaet
 
 	von, bis string
 }
@@ -135,6 +139,9 @@ func lade(dir string) (*daten, error) {
 		return nil, err
 	}
 	if d.kalender, err = marts.Lies[marts.Kalender](p("mart_kalender.parquet")); err != nil {
+		return nil, err
+	}
+	if d.prognose, err = marts.Lies[marts.Prognosequalitaet](p("mart_prognosequalitaet.parquet")); err != nil {
 		return nil, err
 	}
 
@@ -341,6 +348,12 @@ type linieKopf struct {
 	// "der Verbund-Feed hat zu dieser Linie nichts beigetragen" laesst sich mit
 	// omitempty auf einem Zahlwert nicht ausdruecken.
 	BewertbareHalteVRN *int64 `json:"bewertbare_halte_vrn,omitempty"`
+
+	// Stationsnamen entlang des Laufwegs, einmal je Station (nicht je Steig),
+	// sortiert nach Position im Laufweg. Traegt keine Kennzahl -- nur die Namen,
+	// damit die Linienuebersicht auch nach der Haltestelle suchen kann, die sie
+	// schon immer verspricht (linien.html-Suchfeld, Placeholder seit TPULS-092).
+	Halte []string `json:"halte,omitempty"`
 }
 
 // attributionstext steht im Wortlaut aus TramPuls_Recht_und_Lizenz. Er wandert
@@ -416,6 +429,19 @@ func schreibeIndex(zielDir string, d *daten, slugs map[string]string) error {
 		})
 	}
 
+	// Haltestellennamen je Linie, ueber alle Richtungen und Betriebstage hinweg
+	// entdoppelt. Kommt aus mart_linie_halt (T3), traegt aber keine ihrer
+	// Kennzahlen -- nur die Namen, fuers Suchfeld auf /linien.
+	halteJeLinie := map[string]map[string]struct{}{}
+	for _, h := range d.halte {
+		je := halteJeLinie[h.RouteID]
+		if je == nil {
+			je = map[string]struct{}{}
+			halteJeLinie[h.RouteID] = je
+		}
+		je[h.HaltName] = struct{}{}
+	}
+
 	summe := map[string]*linieKopf{}
 	for _, r := range d.linieTag {
 		k := summe[r.RouteID]
@@ -450,6 +476,14 @@ func schreibeIndex(zielDir string, d *daten, slugs map[string]string) error {
 			Verlauf:     l.Verlauf,
 			Verkehrsart: l.Verkehrsart,
 			Richtungen:  richtungen[l.RouteID],
+		}
+		if je := halteJeLinie[l.RouteID]; len(je) > 0 {
+			namen := make([]string, 0, len(je))
+			for n := range je {
+				namen = append(namen, n)
+			}
+			sort.Strings(namen)
+			k.Halte = namen
 		}
 		if s := summe[l.RouteID]; s != nil {
 			k.SollHalte = s.SollHalte
@@ -703,6 +737,51 @@ func schreibeKalender(zielDir string, d *daten) error {
 		out.Ferienlage = append(out.Ferienlage, k.Ferienlage)
 	}
 	return schreibeJSON(filepath.Join(zielDir, "kalender.json"), out)
+}
+
+// ---------------------------------------------------------------------------
+// prognose.json — T7, Prognosequalitaet je Betriebstag und Verkehrsart
+// ---------------------------------------------------------------------------
+
+// Eigene Datei aus demselben Grund wie kalender.json: index.json liegt auf dem
+// kritischen Pfad jeder Seite, T7 ist noch kein M2-Ziel und hat vorerst keinen
+// Platz dort (TramPuls_Analysen).
+type prognoseDatei struct {
+	Betriebstag []string `json:"betriebstag"`
+	Verkehrsart []string `json:"verkehrsart"`
+
+	Faelle []int64 `json:"faelle"`
+
+	// Zeiger: bei zu wenigen Faellen liefert median()/avg() in SQL bereits
+	// NULL, und das soll auch als `null` in der JSON-Datei ankommen, nicht als
+	// eine unbeabsichtigte 0 Sekunden Abweichung.
+	AbweichungMedianSek  []*float64 `json:"abweichung_median_sek"`
+	AbweichungSchnittSek []*float64 `json:"abweichung_schnitt_sek"`
+
+	AbweichungUnter1Min []int64 `json:"abweichung_unter_1min"`
+	AbweichungUnter3Min []int64 `json:"abweichung_unter_3min"`
+}
+
+func schreibePrognose(zielDir string, d *daten) error {
+	zeilen := append([]marts.Prognosequalitaet(nil), d.prognose...)
+	sort.Slice(zeilen, func(i, j int) bool {
+		if zeilen[i].Betriebstag != zeilen[j].Betriebstag {
+			return zeilen[i].Betriebstag < zeilen[j].Betriebstag
+		}
+		return zeilen[i].Verkehrsart < zeilen[j].Verkehrsart
+	})
+
+	var out prognoseDatei
+	for _, p := range zeilen {
+		out.Betriebstag = append(out.Betriebstag, p.Betriebstag)
+		out.Verkehrsart = append(out.Verkehrsart, p.Verkehrsart)
+		out.Faelle = append(out.Faelle, p.Faelle)
+		out.AbweichungMedianSek = append(out.AbweichungMedianSek, p.AbweichungMedianSek)
+		out.AbweichungSchnittSek = append(out.AbweichungSchnittSek, p.AbweichungSchnittSek)
+		out.AbweichungUnter1Min = append(out.AbweichungUnter1Min, p.AbweichungUnter1Min)
+		out.AbweichungUnter3Min = append(out.AbweichungUnter3Min, p.AbweichungUnter3Min)
+	}
+	return schreibeJSON(filepath.Join(zielDir, "prognose.json"), out)
 }
 
 // ---------------------------------------------------------------------------

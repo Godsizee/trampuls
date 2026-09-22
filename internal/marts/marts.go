@@ -196,6 +196,23 @@ type Kalender struct {
 	Ferienlage *string `parquet:"ferienlage"`
 }
 
+// Prognosequalitaet ist eine Zeile aus mart_prognosequalitaet (T7): wie nah
+// lag die Prognose 15 Minuten vor dem letzten beobachteten Stand an ihm.
+// Korn Betriebstag x Verkehrsart, VRN-only (siehe Modellkommentar in
+// int_prognoseverlauf.sql) — kein M2-Ziel, deshalb netzweit statt je Linie.
+type Prognosequalitaet struct {
+	Betriebstag string `parquet:"betriebstag"`
+	Verkehrsart string `parquet:"verkehrsart"`
+
+	Faelle int64 `parquet:"faelle"`
+
+	AbweichungMedianSek  *float64 `parquet:"abweichung_median_sek"`
+	AbweichungSchnittSek *float64 `parquet:"abweichung_schnitt_sek"`
+
+	AbweichungUnter1Min int64 `parquet:"abweichung_unter_1min"`
+	AbweichungUnter3Min int64 `parquet:"abweichung_unter_3min"`
+}
+
 // Linie sind die Stammdaten einer Linie aus dem Sollfahrplan.
 type Linie struct {
 	RouteID         string `parquet:"route_id"`

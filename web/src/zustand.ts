@@ -97,25 +97,34 @@ export function leseVergleich(): Vergleichszeitraum {
  *
  * "zeitraum" ist die urspruengliche Form: zwei frei gewaehlte Spannen. "ferien"
  * stellt stattdessen zwei *Tagesmengen* gegenueber — alle Schultage gegen alle
- * Ferientage im Bestand. Beides sind Praedikate ueber dem Betriebstag; deshalb
- * teilen sie sich denselben Rechenweg und unterscheiden sich nur darin, welche
- * Tage sie durchlassen.
+ * Ferientage im Bestand. "wochentag" stellt eine dritte Tagesmenge gegenueber:
+ * Werktag gegen Wochenende. Alle drei sind Praedikate ueber dem Betriebstag;
+ * deshalb teilen sie sich denselben Rechenweg und unterscheiden sich nur darin,
+ * welche Tage sie durchlassen.
+ *
+ * "wochentag" braucht anders als "ferien" keinen Seed und keinen Mart-Join: der
+ * Wochentag eines Betriebstags steht schon im Datum selbst (siehe
+ * vergleich.ts::istWochenende). Das ist keine im Browser errechnete Kennzahl
+ * (Regel "keine Kennzahl entsteht im Browser") — es wird nichts gemessen, nur
+ * ein vorhandenes Datum in einen Kalendertyp eingeordnet, genau wie
+ * `wochentage()` das fuer die Einordnungstabelle schon immer tut.
  *
  * Eigener Parameter und keine dritte Bedeutung fuer a_von/a_bis: eine Tagesmenge
  * ist keine Spanne. Sie hat Loecher — Ferien sind nicht zusammenhaengend, und
  * genau das ist der Grund, warum die Seite sie ueberhaupt braucht.
  */
-export type Vergleichsmodus = "zeitraum" | "ferien";
+export type Vergleichsmodus = "zeitraum" | "ferien" | "wochentag";
 
 export function leseModus(): Vergleichsmodus {
-  return new URLSearchParams(location.search).get("modus") === "ferien" ? "ferien" : "zeitraum";
+  const wert = new URLSearchParams(location.search).get("modus");
+  return wert === "ferien" || wert === "wochentag" ? wert : "zeitraum";
 }
 
 /** Der Vorgabewert steht nicht in der Adresse — eine leere Adresse ist zitierbar. */
 export function schreibeModus(modus: Vergleichsmodus): void {
   const p = new URLSearchParams(location.search);
-  if (modus === "ferien") p.set("modus", "ferien");
-  else p.delete("modus");
+  if (modus === "zeitraum") p.delete("modus");
+  else p.set("modus", modus);
   const frage = p.toString();
   history.replaceState(null, "", frage === "" ? location.pathname : `${location.pathname}?${frage}`);
 }

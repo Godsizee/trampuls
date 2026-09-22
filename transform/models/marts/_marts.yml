@@ -159,3 +159,22 @@ models:
         description: "'keine' | 'teilweise' | 'alle' — wie viele der drei Laender an diesem Tag Ferien hatten. NULL, sobald eines unbekannt ist."
         data_tests:
           - accepted_values: {values: ['keine', 'teilweise', 'alle']}
+
+  - name: mart_prognosequalitaet
+    description: >
+      T7 -- wie nah lag die Prognose 15 Minuten vor dem letzten beobachteten
+      Stand an ihm. Betriebstag x Verkehrsart, netzweit -- kein M2-Ziel, erste
+      Stufe vor einer Kennzahl je Linie (TramPuls_Analysen). VRN-only.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [betriebstag, verkehrsart]
+    columns:
+      - name: verkehrsart
+        data_tests:
+          - not_null
+          - accepted_values: {values: ['tram', 'bus', 'sonstige']}
+      - name: faelle
+        description: "Fallzahl -- Halte mit einer Prognose mindestens 15 Minuten vor ihrem Endstand."
+        data_tests: [not_null]
+      - name: abweichung_median_sek
+        data_tests: [not_null]

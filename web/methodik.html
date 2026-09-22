@@ -9,6 +9,13 @@
 <!-- Begruendung: index.html, gleiche Stelle (TPULS-109). -->
 <link rel="icon" href="data:,">
 <meta name="description" content="Wie TramPuls Pünktlichkeit misst, was dabei nicht mitzählt und wie vollständig jeder einzelne Tag aufgezeichnet wurde.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="TramPuls">
+<meta property="og:locale" content="de_DE">
+<meta property="og:url" content="https://trampuls.dasdann.jetzt/methodik.html">
+<meta property="og:title" content="Wie diese Zahlen entstehen — TramPuls">
+<meta property="og:description" content="Wie TramPuls Pünktlichkeit misst, was dabei nicht mitzählt und wie vollständig jeder einzelne Tag aufgezeichnet wurde.">
+<meta name="twitter:card" content="summary">
 <!-- Nur die Groteske wird vorgeladen: sie traegt die erste Zahl. Die Serif
      traegt Ueberschriften und darf per font-display:swap nachkommen.
      crossorigin ist auch bei gleicher Herkunft Pflicht — Schriften werden
@@ -171,9 +178,10 @@
 
   <h2>Was ein Vergleich aussagt</h2>
   <p>Auf <a href="/vergleich.html">Vergleich</a> stehen dieselben Kennzahlen zweimal
-     nebeneinander — entweder für zwei frei gewählte Zeiträume oder für Schulzeit und
-     Ferien. Neu gerechnet wird dabei nichts; es sind dieselben Zahlen wie auf der
-     Linienseite, nur getrennt aufaddiert.</p>
+     nebeneinander — für zwei frei gewählte Zeiträume, für Schulzeit und Ferien oder für
+     Werktag und Wochenende. Neu gerechnet wird dabei nichts; es sind dieselben Zahlen
+     wie auf der Linienseite, nur getrennt aufaddiert. Werktag und Wochenende brauchen
+     dabei keine Ferienliste: der Wochentag steht schon im Betriebstag selbst.</p>
   <p>Der Unterschied darunter ist deshalb <strong>kein Befund über den Betrieb</strong>.
      TramPuls sieht Verspätung, nicht ihren Grund: eine Baustelle, eine Umleitung oder
      ein Fahrplanwechsel erscheinen in diesen Zahlen nicht als solche. Genauso kann ein
@@ -289,6 +297,29 @@
     </aside>
   </section>
 
+  <h2>Wie stabil die Prognose war, bevor die Fahrt ankam</h2>
+  <section class="block">
+    <div class="block-haupt" data-prognose></div>
+    <aside class="block-rand">
+      <p>Der Echtzeitstrom meldet für jeden kommenden Halt eine Ankunftsprognose, und
+         diese Prognose ändert sich, während die Fahrt sich nähert. TramPuls archiviert
+         jede Änderung — ein Nebeneffekt der laufenden Aufzeichnung, den keine Auskunft
+         ohne eigenes Archiv nachträglich rekonstruieren kann.</p>
+      <p>Verglichen wird hier die Prognose, wie sie <strong>mindestens 15 Minuten
+         vor</strong> dem letzten gemeldeten Stand galt, gegen genau diesen letzten
+         Stand. „Abweichung" ist der Betrag der Differenz zwischen beiden — eine kleine
+         Abweichung heißt: die Prognose 15 Minuten vorher war schon verlässlich.</p>
+      <p>Gezählt werden nur Halte, zu denen überhaupt eine Beobachtung mit diesem
+         Vorlauf vorliegt. Ein Halt, der erst kurz vor der Ankunft erstmals gemeldet
+         wurde, taucht hier nicht auf.</p>
+      <p><strong>Erste Messung, kein abgeschlossenes Ergebnis:</strong> die Auswertung
+         läuft netzweit statt je Linie und deckt nur die Linien ab, die der
+         VRN-Verbundfeed meldet — die vier Linien aus dem openRNV-Feed (siehe oben)
+         fehlen hier. TramPuls sieht auch bei dieser Kennzahl nur die gemeldete
+         Verspätung, nicht ihren Grund.</p>
+    </aside>
+  </section>
+
   <details>
     <summary>Technische Einzelheiten und Begriffe</summary>
 
@@ -401,6 +432,18 @@
           <th scope="row">Stunden ohne Aufzeichnung</th>
           <td>Betriebsstunden eines Tages, für die keine einzige Beobachtung vorliegt —
               Lücken der Erhebung selbst, nicht des Verkehrs.</td>
+        </tr>
+        <tr>
+          <th scope="row">Prognose 15 Minuten vorher</th>
+          <td>Die zuletzt gemeldete Ankunftsverspätung eines Halts, mindestens 15 Minuten
+              bevor die letzte Meldung zu diesem Halt kam. Im Datenmodell:
+              <code>prognose_15min_vorher</code>.</td>
+        </tr>
+        <tr>
+          <th scope="row">Abweichung</th>
+          <td>Betrag der Differenz zwischen der Prognose 15 Minuten vorher und dem
+              letzten gemeldeten Stand desselben Halts. Im Datenmodell:
+              <code>abweichung_sek</code>.</td>
         </tr>
         <tr>
           <th scope="row">Ferientag / Schultag</th>

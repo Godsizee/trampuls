@@ -241,6 +241,8 @@ function zeichne(linie: LinieDatei, methodik: MethodikDatei, kalender: KalenderD
   const mengen = tagesmengen(kalender);
   const [a, b] = modus === "ferien"
     ? ferienSeiten(rechne, mengen)
+    : modus === "wochentag"
+    ? wochentagSeiten(rechne)
     : zeitraumSeiten(rechne, grenzen(tage));
 
   // Die dritte Zahl, nach der jeder als Erstes fragt: wie steht die Linie
@@ -297,6 +299,42 @@ function ferienSeiten(
       name: "In den Ferien",
       unter: "Ferientage in Baden-Württemberg",
       bilanz: rechne(inMenge("ferien")),
+    },
+  ];
+}
+
+/**
+ * Werktag links, Wochenende rechts.
+ *
+ * Anders als bei "ferien" braucht diese Aufteilung keinen Seed und keinen
+ * Mart-Join (siehe zustand.ts::Vergleichsmodus) — der Wochentag steht schon
+ * im Betriebstag selbst. `istWochenende` ist dieselbe Rechnung wie
+ * `wochentage()` weiter unten, nur als Praedikat statt als Zaehlung.
+ *
+ * Sonn- und Samstag werden gemeinsam als "Wochenende" gefasst statt als dritte
+ * Spalte: die Seite vergleicht zwei Seiten, keine drei, und Samstag ist dem
+ * Sonntagsbetrieb naeher als dem Werktag. Der Unterschied zwischen beiden
+ * steht trotzdem nicht verloren -- er ist einer der Vorbehalte in
+ * `einordnung()`.
+ */
+function istWochenende(tag: string): boolean {
+  const wochentag = new Date(`${tag}T12:00:00`).getDay();
+  return wochentag === 0 || wochentag === 6;
+}
+
+function wochentagSeiten(
+  rechne: (gilt: (tag: string) => boolean) => Bilanz,
+): [Seite, Seite] {
+  return [
+    {
+      name: "Werktag",
+      unter: "Montag bis Freitag",
+      bilanz: rechne((tag) => !istWochenende(tag)),
+    },
+    {
+      name: "Wochenende",
+      unter: "Samstag und Sonntag",
+      bilanz: rechne(istWochenende),
     },
   ];
 }
@@ -358,6 +396,8 @@ function spalten(a: Seite, b: Seite, gesamt: Bilanz, modus: Vergleichsmodus,
           `Prozentpunkte</strong> ${
             modus === "ferien"
               ? "in den Ferien gegenüber der Schulzeit"
+              : modus === "wochentag"
+              ? "am Wochenende gegenüber dem Werktag"
               : "in Zeitraum B gegenüber A"
           }.`
     }${
@@ -473,9 +513,13 @@ function einordnung(a: Seite, b: Seite, m: MethodikDatei, k: KalenderDatei,
   const warnungen: string[] = [];
   const mischungA = wochentage(a.bilanz.tage);
   const mischungB = wochentage(b.bilanz.tage);
+  // Im Wochentag-Modus (ADR-024-Erweiterung) ist der Unterschied in der
+  // Wochentagsmischung die Absicht der Seite, kein Vorbehalt dagegen — sonst
+  // wiederholte die Seite als Warnung, was sie selbst gerade gegenueberstellt.
   if (
-    (mischungA.werktag > 0) !== (mischungB.werktag > 0) ||
-    (mischungA.sonntag > 0) !== (mischungB.sonntag > 0)
+    modus !== "wochentag" &&
+    ((mischungA.werktag > 0) !== (mischungB.werktag > 0) ||
+      (mischungA.sonntag > 0) !== (mischungB.sonntag > 0))
   ) {
     warnungen.push(
       "Die beiden Seiten enthalten unterschiedliche Wochentage. Sonntagsverkehr und " +
@@ -537,6 +581,28 @@ function einordnung(a: Seite, b: Seite, m: MethodikDatei, k: KalenderDatei,
           "beiden Quoten ein.",
       );
     }
+    for (const s of [a, b]) {
+      if (s.bilanz.tage.length === 0) {
+        warnungen.push(
+          `Für „${s.name}" liegt noch kein aufgezeichneter Betriebstag vor. ` +
+            "Der Vergleich wird erst möglich, wenn die Aufzeichnung beide Seiten " +
+            "abdeckt.",
+        );
+      }
+    }
+  }
+
+  if (modus === "wochentag") {
+    warnungen.push(
+      "„Werktag“ zählt hier auch Werktage in den Schulferien mit — diese Aufteilung " +
+        "unterscheidet nicht danach, ob an dem Tag Ferien waren. Wer beides "  +
+        "trennen will, findet die Ferien-Aufteilung unter „Schulzeit und Ferien“.",
+    );
+    warnungen.push(
+      "„Wochenende“ fasst Samstag und Sonntag zusammen. Beide können sich selbst " +
+        "unterscheiden — der Sonntagsbetrieb ist auf vielen Linien dünner als der " +
+        "Samstagsbetrieb; die Tabelle oben zeigt die Wochentage einzeln.",
+    );
     for (const s of [a, b]) {
       if (s.bilanz.tage.length === 0) {
         warnungen.push(

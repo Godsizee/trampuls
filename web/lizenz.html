@@ -29,32 +29,7 @@
 <script src="/farbschema.js"></script>
 </head>
 <body>
-<!-- Sechs Navigationseintraege sind mit der Tastatur sonst sechs Tabulatorschritte
-     vor jedem Inhalt. Sichtbar erst im Fokus -- siehe stil.css, ".sprung". -->
-<a class="sprung" href="#inhalt">Zum Inhalt springen</a>
-<header class="kopfleiste">
-  <div class="huelle">
-    <a class="marke" href="/">TramPuls</a>
-    <nav aria-label="Hauptnavigation">
-      <a href="/">Start</a>
-      <a href="/netz.html">Netz</a>
-      <a href="/linien.html">Linien</a>
-      <a href="/befunde.html">Befunde</a>
-      <a href="/methodik.html">Methodik</a>
-      <a href="/lizenz.html" aria-current="page">Lizenz</a>
-    </nav>
-    <button type="button" class="farbschalter" data-farbschalter
-            aria-label="Farbschema wechseln">
-      <!-- Halb gefuellte Scheibe: das uebliche Zeichen fuer Kontrast. Sie
-           steht in beiden Schemata gleich — was der Druck bewirkt, sagt
-           die Beschriftung, und die setzt src/farbschema.ts. -->
-      <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false">
-        <circle cx="8" cy="8" r="6.4" fill="none" stroke="currentColor" stroke-width="1.4"/>
-        <path d="M8 1.6a6.4 6.4 0 0 0 0 12.8z" fill="currentColor"/>
-      </svg>
-    </button>
-  </div>
-</header>
+<!-- teil:kopf -->
 <main class="huelle" id="inhalt" tabindex="-1">
   <h1>Lizenz und Attribution</h1>
 
@@ -132,11 +107,6 @@
      Verkehrsunternehmen nicht allein in der Hand hat: Baustellen, Straßenverkehr,
      Wetter, Andrang. Diese Seite misst das Ergebnis, nicht die Schuld.</p>
 </main>
-<footer class="fuss huelle">
-  <p data-stand></p>
-  <p data-attribution></p>
-  <p>Ein privates Projekt. Keine Verbindung zum Verkehrsverbund Rhein-Neckar oder zur
-     Rhein-Neckar-Verkehr GmbH. <a href="/impressum.html">Impressum</a>.</p>
-</footer>
+<!-- teil:fuss -->
 <script type="module" src="/src/lizenz.ts"></script>
 </body></html>

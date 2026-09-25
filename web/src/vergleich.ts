@@ -172,6 +172,7 @@ function baueRegler(index: IndexDatei, datei: string, linie: LinieDatei, tage: s
       <select data-feld="modus">
         <option value="zeitraum"${modus === "zeitraum" ? " selected" : ""}>zwei Zeiträume</option>
         <option value="ferien"${modus === "ferien" ? " selected" : ""}>Schulzeit und Ferien</option>
+        <option value="wochentag"${modus === "wochentag" ? " selected" : ""}>Werktag und Wochenende</option>
       </select>
     </label>
     <label data-nur="zeitraum">Zeitraum A von
@@ -186,7 +187,7 @@ function baueRegler(index: IndexDatei, datei: string, linie: LinieDatei, tage: s
     <label data-nur="zeitraum">bis
       <select data-feld="b_bis">${tagOptionen(g.bBis)}</select>
     </label>
-    <label>Ab wann gilt „zu spät"?
+    <label>Ab wann gilt „zu spät“?
       <select data-feld="schwelle">${schwelleOptionen}</select>
     </label>`;
 
@@ -213,7 +214,11 @@ function baueRegler(index: IndexDatei, datei: string, linie: LinieDatei, tage: s
     schreibeAuswahl({ schwelle: Number((e.target as HTMLSelectElement).value) });
   });
   ziel.querySelector('[data-feld="modus"]')?.addEventListener("change", (e) => {
-    const wahl = (e.target as HTMLSelectElement).value === "ferien" ? "ferien" : "zeitraum";
+    // Alle drei Arten aus zustand.ts::Vergleichsmodus. "wochentag" (TPULS-123)
+    // war gerechnet und dokumentiert, aber bis TPULS-137 nur ueber die Adresse
+    // erreichbar: dieses Feld kannte nur zwei Werte.
+    const wert = (e.target as HTMLSelectElement).value;
+    const wahl: Vergleichsmodus = wert === "ferien" || wert === "wochentag" ? wert : "zeitraum";
     schreibeModus(wahl);
     zeitraumfelder(wahl);
   });
@@ -390,7 +395,7 @@ function spalten(a: Seite, b: Seite, gesamt: Bilanz, modus: Vergleichsmodus,
     spalte(b) +
     `<p class="unterschied">${
       punkte === null
-        ? `Ein Vergleich ist hier nicht möglich: für „${escape(leer?.name ?? "eine Seite")}" ` +
+        ? `Ein Vergleich ist hier nicht möglich: für „${escape(leer?.name ?? "eine Seite")}“ ` +
           "liegt kein gemessener Halt vor."
         : `Unterschied: <strong>${punkte > 0 ? "+" : ""}${punkte.toFixed(1).replace(".", ",")} ` +
           `Prozentpunkte</strong> ${
@@ -584,7 +589,7 @@ function einordnung(a: Seite, b: Seite, m: MethodikDatei, k: KalenderDatei,
     for (const s of [a, b]) {
       if (s.bilanz.tage.length === 0) {
         warnungen.push(
-          `Für „${s.name}" liegt noch kein aufgezeichneter Betriebstag vor. ` +
+          `Für „${s.name}“ liegt noch kein aufgezeichneter Betriebstag vor. ` +
             "Der Vergleich wird erst möglich, wenn die Aufzeichnung beide Seiten " +
             "abdeckt.",
         );
@@ -606,7 +611,7 @@ function einordnung(a: Seite, b: Seite, m: MethodikDatei, k: KalenderDatei,
     for (const s of [a, b]) {
       if (s.bilanz.tage.length === 0) {
         warnungen.push(
-          `Für „${s.name}" liegt noch kein aufgezeichneter Betriebstag vor. ` +
+          `Für „${s.name}“ liegt noch kein aufgezeichneter Betriebstag vor. ` +
             "Der Vergleich wird erst möglich, wenn die Aufzeichnung beide Seiten " +
             "abdeckt.",
         );

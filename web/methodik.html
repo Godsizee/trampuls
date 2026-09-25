@@ -104,7 +104,7 @@
      eben im eigenen Datenstrom. Beide Quellen stehen unter derselben Lizenz und sind
      auf <a href="/lizenz.html">Lizenz</a> genannt.</p>
 
-  <h2>Was „pünktlich" hier heißt</h2>
+  <h2>Was „pünktlich“ hier heißt</h2>
   <p>Pünktlich ist ein Halt, an dem die Bahn oder der Bus weniger als die eingestellte
      Zahl an Minuten zu spät ankam. Die Prozentzahl ist der Anteil solcher Halte an
      allen <strong>gemessenen</strong> Halten — also an denen, zu denen überhaupt eine
@@ -114,16 +114,16 @@
   <h2>Warum es fünf Schwellen gibt und nicht eine</h2>
   <p>Auf der Linienseite lässt sich einstellen, ab wann eine Fahrt als zu spät gilt:
      ab 1, 3, 6, 15 oder 60 Minuten. Eine einzige, amtlich wirkende Zahl wäre bequemer,
-     aber irreführend. Bei einem 5-Minuten-Takt sagt „unter 6 Minuten" fast nichts —
-     dort kann eine ausgefallene Bahn rechnerisch als „die nächste kam ja pünktlich"
+     aber irreführend. Bei einem 5-Minuten-Takt sagt „unter 6 Minuten“ fast nichts —
+     dort kann eine ausgefallene Bahn rechnerisch als „die nächste kam ja pünktlich“
      durchgehen. Wer wissen will, wie verlässlich eine Linie wirklich ist, schaltet
      die Schwellen einmal durch.</p>
 
   <h2>Warum ein Ausfall nicht als pünktlich zählt</h2>
   <p>Fahrten, die abgesagt wurden, und Halte, an denen ein Fahrzeug vorbeifuhr, gehen
-     <strong>nicht</strong> in die Pünktlichkeit ein. Sie als „null Minuten Verspätung"
+     <strong>nicht</strong> in die Pünktlichkeit ein. Sie als „null Minuten Verspätung“
      zu zählen, würde jede Quote schöner machen, obwohl gar nichts gefahren ist. Sie
-     stehen stattdessen auf jeder Linienseite in einem eigenen Abschnitt „Ausfälle" —
+     stehen stattdessen auf jeder Linienseite in einem eigenen Abschnitt „Ausfälle“ —
      sichtbar, aber getrennt.</p>
 
   <h2>Woher die Richtungsangabe kommt</h2>
@@ -149,9 +149,9 @@
      Block und zählen <strong>nicht</strong> in die Zahlen für das ganze Netz. Ihre
      eigenen Zahlen werden trotzdem gerechnet und angezeigt — sie verschwinden nicht, sie
      werden nur nicht mit dem Rest verrechnet.</p>
-  <p>Welche Linien das sind, steht nicht in einer Regel wie „Nummer über 1000", sondern in
+  <p>Welche Linien das sind, steht nicht in einer Regel wie „Nummer über 1000“, sondern in
      einer gepflegten Liste. Der Unterschied ist nicht theoretisch: die Linie
-     <strong>RNV 85</strong> heißt „Ruftaxi: LU Oppau – LU Oppau West" und wäre jeder
+     <strong>RNV 85</strong> heißt „Ruftaxi: LU Oppau – LU Oppau West“ und wäre jeder
      solchen Nummernregel entgangen.</p>
 
   <h2>Aktueller Tag oder gesamter Zeitraum</h2>
@@ -190,7 +190,7 @@
      Angaben stehen deshalb unter jedem Vergleich, und wo sie deutlich auseinandergehen,
      steht ein ausdrücklicher Vorbehalt daneben.</p>
 
-  <h2>Was „in den Ferien" hier heißt</h2>
+  <h2>Was „in den Ferien“ hier heißt</h2>
   <p>Ein Betriebstag gilt als Ferientag, wenn an diesem Tag in
      <strong>Baden-Württemberg</strong> Schulferien waren. Das Land ist nicht beliebig
      gewählt: dort liegen <strong>84,2 %</strong> der geplanten Halte des RNV-Netzes
@@ -286,18 +286,27 @@
      Zwischenstand, und das steht auch dort, wo die Zahl steht.</p>
 
   <h2>Wie vollständig jeder Tag aufgezeichnet wurde</h2>
+  <!-- Der Kasten um .block ist sein Container (ADR-028): ein Element kann
+       seinen eigenen nicht abfragen. Ohne ihn stand die Randspalte hier seit
+       TPULS-129 auf keiner Breite neben dem Hauptteil (TPULS-137). -->
+  <div class="breit">
   <section class="block">
     <div class="block-haupt" data-qualitaet></div>
     <aside class="block-rand">
-      <p>„Anteil gemessen" ist der Anteil der geplanten Halte, zu denen etwas ankam.
+      <p>„Anteil gemessen“ ist der Anteil der geplanten Halte, zu denen etwas ankam.
          Ein Tag gilt als durchgehend aufgezeichnet, wenn mindestens 24 Stunden belegt
          sind.</p>
       <p>Diese Tabelle ist die unbequemste auf der ganzen Seite: sie zeigt, wo die
          Messung selbst schwach war.</p>
     </aside>
   </section>
+  </div>
 
   <h2>Wie stabil die Prognose war, bevor die Fahrt ankam</h2>
+  <!-- Der Kasten um .block ist sein Container (ADR-028): ein Element kann
+       seinen eigenen nicht abfragen. Ohne ihn stand die Randspalte hier seit
+       TPULS-129 auf keiner Breite neben dem Hauptteil (TPULS-137). -->
+  <div class="breit">
   <section class="block">
     <div class="block-haupt" data-prognose></div>
     <aside class="block-rand">
@@ -307,7 +316,7 @@
          ohne eigenes Archiv nachträglich rekonstruieren kann.</p>
       <p>Verglichen wird hier die Prognose, wie sie <strong>mindestens 15 Minuten
          vor</strong> dem letzten gemeldeten Stand galt, gegen genau diesen letzten
-         Stand. „Abweichung" ist der Betrag der Differenz zwischen beiden — eine kleine
+         Stand. „Abweichung“ ist der Betrag der Differenz zwischen beiden — eine kleine
          Abweichung heißt: die Prognose 15 Minuten vorher war schon verlässlich.</p>
       <p>Gezählt werden nur Halte, zu denen überhaupt eine Beobachtung mit diesem
          Vorlauf vorliegt. Ein Halt, der erst kurz vor der Ankunft erstmals gemeldet
@@ -319,6 +328,7 @@
          Verspätung, nicht ihren Grund.</p>
     </aside>
   </section>
+  </div>
 
   <details>
     <summary>Technische Einzelheiten und Begriffe</summary>
@@ -350,7 +360,7 @@
         <tr>
           <th scope="row">Halte ohne Rückmeldung</th>
           <td>Geplante Halte, zu denen in einer <strong>aufgezeichneten</strong> Stunde
-              nichts gemeldet wurde. Nicht dasselbe wie „Fahrten ohne jede Rückmeldung"
+              nichts gemeldet wurde. Nicht dasselbe wie „Fahrten ohne jede Rückmeldung“
               darunter: dort geht es um ganze Fahrten, hier um einzelne Halte. Im
               Datenmodell: <code>halte_ohne_meldung</code>.</td>
         </tr>
@@ -366,8 +376,8 @@
           <td>Fahrten, zu denen Meldungen ankamen, deren Kennung aber in der für diesen
               Betriebstag gewählten Fahrplanfassung fehlt — meist beim Wechsel zwischen
               zwei Fahrplanperioden. Sie gehen in keine Kennzahl ein und sind
-              ausdrücklich <strong>nicht</strong> in „Halte ohne Rückmeldung" oder
-              „Nicht aufgezeichnet" enthalten; sie fallen früher heraus. Im Datenmodell:
+              ausdrücklich <strong>nicht</strong> in „Halte ohne Rückmeldung“ oder
+              „Nicht aufgezeichnet“ enthalten; sie fallen früher heraus. Im Datenmodell:
               <code>fahrten_ohne_sollrahmen</code>.</td>
         </tr>
         <tr>
@@ -408,8 +418,8 @@
         </tr>
         <tr>
           <th scope="row">Durchgehend</th>
-          <td>„ja", wenn für jede Betriebsstunde dieses Tages mindestens eine Beobachtung
-              vorliegt. Ein „nein" heißt nicht, dass der Tag unbrauchbar ist — nur, dass
+          <td>„ja“, wenn für jede Betriebsstunde dieses Tages mindestens eine Beobachtung
+              vorliegt. Ein „nein“ heißt nicht, dass der Tag unbrauchbar ist — nur, dass
               eine Lücke darin steckt. Im Datenmodell:
               <code>erhebung_vollstaendig</code>.</td>
         </tr>
@@ -456,7 +466,7 @@
           <th scope="row">Nicht eingeordnet</th>
           <td>Ein Betriebstag, der jenseits der hinterlegten Ferienliste liegt. Er zählt
               <strong>weder</strong> als Ferientag <strong>noch</strong> als Schultag.
-              Der Unterschied ist wichtig: als „Schultag" gezählt würde ein solcher Tag
+              Der Unterschied ist wichtig: als „Schultag“ gezählt würde ein solcher Tag
               eine veröffentlichte Quote verschieben, ohne dass es auffiele. Im
               Datenmodell: <code>NULL</code>, nicht <code>false</code>.</td>
         </tr>

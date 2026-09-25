@@ -94,7 +94,7 @@ export function ausZeitraum(netz: NetzDatei, schwelle: number): NetzZahlen[] {
     .sort(nachVerkehrsart);
 }
 
-/** „vom 28.08.2026 bis 31.08.2026", oder der einzelne Tag. */
+/** „vom 28.08.2026 bis 31.08.2026“, oder der einzelne Tag. */
 export function spanne(tage: string[]): { von: string; bis: string; anzahl: number } {
   return {
     von: tage[0] ?? "",

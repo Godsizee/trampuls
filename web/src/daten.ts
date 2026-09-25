@@ -204,7 +204,7 @@ export interface LandAnteil {
 export interface KalenderDatei {
   betriebstag: string[];
   /** Leitland Baden-Wuerttemberg. `null` heisst **nicht eingeordnet**, nicht
-   *  „Schulzeit" — der Tag liegt jenseits der gepflegten Ferienliste und faellt
+   *  „Schulzeit“ — der Tag liegt jenseits der gepflegten Ferienliste und faellt
    *  aus beiden Mengen, statt still einen Nenner zu fuellen. */
   ferien_bw: (boolean | null)[];
   ferien_rp: (boolean | null)[];
@@ -224,8 +224,8 @@ export type Tagesmenge = "ferien" | "schule" | "unbekannt";
  * Ordnet jeden aufgezeichneten Betriebstag einer Menge zu — ueber das Leitland
  * Baden-Wuerttemberg, in dem 84,2 % der Soll-Halte liegen.
  *
- * „unbekannt" ist keine Restkategorie, sondern der eigentliche Schutz: laeuft
- * die gepflegte Ferienliste aus, landen neue Tage hier und nicht bei „Schulzeit".
+ * „unbekannt“ ist keine Restkategorie, sondern der eigentliche Schutz: laeuft
+ * die gepflegte Ferienliste aus, landen neue Tage hier und nicht bei „Schulzeit“.
  * Eine Quote, die still einen falschen Nenner bekommt, waere von aussen nicht
  * von einer echten Veraenderung zu unterscheiden.
  */
@@ -265,7 +265,7 @@ export const ladeIndexVollstaendig = () => hole<IndexDatei>("index.json");
  * **Diese Funktion beantwortet keine Frage nach dem Bestand.** Wer wissen will,
  * wie viele Linien es gibt oder welche schweigen, bekommt hier die falsche
  * Antwort, und zwar eine, die wie eine richtige aussieht: `/befunde` hat von
- * 2026-08-30 bis 2026-09-20 „zu jeder Linie liegt mindestens eine Meldung vor"
+ * 2026-08-30 bis 2026-09-20 „zu jeder Linie liegt mindestens eine Meldung vor“
  * behauptet, weil der Befund seine Gegenbeispiele durch diesen Filter bezogen
  * hat. Fuer den Bestand gibt es `ladeIndexVollstaendig`.
  */

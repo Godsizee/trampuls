@@ -80,7 +80,7 @@ function zeigeNetz(index: IndexDatei, zahlen: NetzZahlen[]): void {
 }
 
 const HALTE_ERKLAERUNG =
-  ` „Geplante Halte" zählt auch die, die ausgefallen sind; „gemessene Halte" nur die, ` +
+  ` „Geplante Halte“ zählt auch die, die ausgefallen sind; „gemessene Halte“ nur die, ` +
   `zu denen eine Ist-Zeit gemeldet wurde. Der Unterschied ist genau das, was nicht ` +
   `gemessen werden konnte.`;
 
@@ -133,7 +133,7 @@ function zeigeVerlauf(netz: NetzDatei): void {
      <p class="klein legende">Je Säule ein Tag: der Anteil der gemessenen Halte, die
      weniger als ${SCHWELLE} Minuten zu spät waren. Wo ein gestrichelter Strich auf der
      Grundlinie steht, wurde an diesem Tag nichts gemessen — das ist etwas anderes als
-     „nichts war pünktlich".</p>`;
+     „nichts war pünktlich“.</p>`;
 
   for (const art of ["tram", "bus"] as const) {
     const punkte = tage.map((tag) => {
@@ -266,7 +266,7 @@ function zeigeFerien(netz: NetzDatei, kalender: KalenderDatei): void {
     `<h2>In den Ferien und außerhalb</h2>
      <p class="klein legende">Dieselben Zahlen wie oben, aufgeteilt danach, ob an dem
      Betriebstag in ${escape(leitland?.name ?? "Baden-Württemberg")} Schulferien
-     waren. Die Zeile „alle Betriebstage" enthält beide und ist die Zahl, die sonst
+     waren. Die Zeile „alle Betriebstage“ enthält beide und ist die Zahl, die sonst
      überall auf dieser Seite steht.</p>`;
 
   for (const art of ["tram", "bus"] as const) {
@@ -297,7 +297,7 @@ function zeigeFerien(netz: NetzDatei, kalender: KalenderDatei): void {
   const vorbehalte: string[] = [];
   if (leitland) {
     vorbehalte.push(
-      `„Ferien" heißt Schulferien in ${leitland.name}. Dort liegen ` +
+      `„Ferien“ heißt Schulferien in ${leitland.name}. Dort liegen ` +
         `${prozent(leitland.anteil_soll_halte)} der geplanten Halte des Netzes ` +
         `(${zahl(leitland.soll_halte)} von ` +
         `${zahl(kalender.laender.reduce((s, l) => s + l.soll_halte, 0))}, gemessen ` +
@@ -320,7 +320,7 @@ function zeigeFerien(netz: NetzDatei, kalender: KalenderDatei): void {
       [...eimer.values()].every((je) => (je.get(menge)?.tage.size ?? 0) === 0));
   for (const [kopf] of ohneTage) {
     vorbehalte.push(
-      `Für „${kopf.toLowerCase()}" liegt noch kein aufgezeichneter Betriebstag vor. ` +
+      `Für „${kopf.toLowerCase()}“ liegt noch kein aufgezeichneter Betriebstag vor. ` +
         "Die Gegenüberstellung wird erst aussagekräftig, wenn beide Zeilen gefüllt sind.",
     );
   }

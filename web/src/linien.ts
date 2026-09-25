@@ -74,7 +74,7 @@ async function start(): Promise<void> {
 
     if (ziel.children.length === 0) {
       ziel.innerHTML =
-        `<p class="hinweis">Keine Linie passt zu „${escape(filter)}". ` +
+        `<p class="hinweis">Keine Linie passt zu „${escape(filter)}“. ` +
         `Gesucht wird in der Liniennummer, im Streckenverlauf und entlang der ` +
         `Haltestellen der Linie.</p>`;
     }

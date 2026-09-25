@@ -202,7 +202,7 @@ function baueRegler(index: IndexDatei, datei: string, linie: LinieDatei): void {
         <label>Zeitraum
           <select data-feld="zeitraum">${zeitraumOptionen}</select>
         </label>
-        <label>Ab wann gilt „zu spät"?
+        <label>Ab wann gilt „zu spät“?
           <select data-feld="schwelle">${schwelleOptionen}</select>
         </label>
         <button type="button" data-merken>Diese Linie merken</button>
@@ -406,7 +406,7 @@ function kennzahl(
     `<p>Ausgefallene und übersprungene Halte zählen hier <strong>nicht</strong> mit.
        Eine Fahrt, die gar nicht kam, war nicht pünktlich — sie stünde sonst als
        Verspätung von null in der Rechnung und würde sie schöner machen. Beides steht
-       weiter unten unter „Ausfälle".</p>`,
+       weiter unten unter „Ausfälle“.</p>`,
   );
 }
 
@@ -473,7 +473,7 @@ function verlauf(linie: LinieDatei, richtung: number, schwelle: number): void {
     `<p>Je Säule ein Betriebstag: der Anteil der gemessenen Halte, die weniger
      als ${schwelle} Minuten zu spät waren, in der oben gewählten Richtung. Wo
      ein gestrichelter Strich auf der Grundlinie steht, wurde an diesem Tag
-     nichts gemessen — das ist etwas anderes als „nichts war pünktlich".</p>`,
+     nichts gemessen — das ist etwas anderes als „nichts war pünktlich“.</p>`,
   );
 
   saeulenIn(haupt, punkte);
@@ -701,7 +701,7 @@ function ausfaelle(
        <dd>${zahl(ausgelassen)} von ${zahl(soll)}</dd>
        <dt>Fahrten ohne jede Rückmeldung</dt><dd>${zahl(unbedient)}</dd>
      </dl>`,
-    `<p>„Ohne jede Rückmeldung" heißt: die Fahrt steht im Fahrplan, aber zu keinem ihrer
+    `<p>„Ohne jede Rückmeldung“ heißt: die Fahrt steht im Fahrplan, aber zu keinem ihrer
        Halte wurde je etwas gemeldet — und als ausgefallen war sie auch nicht
        gekennzeichnet. Ob sie wirklich ausgefallen ist oder ob TramPuls in dieser Zeit
        nichts aufzeichnen konnte, lässt sich nicht sagen. Deshalb steht die Zahl getrennt

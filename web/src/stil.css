@@ -213,6 +213,13 @@
 
 * { box-sizing: border-box; }
 
+/* `hidden` muss verstecken, auch wo eine Regel `display` setzt. Die vier
+   Datumsfelder auf /vergleich blieben im Modus "Schulzeit und Ferien"
+   sichtbar und mit der Tastatur erreichbar: `.regler label { display: flex }`
+   ueberstimmte das hidden-Attribut, das vergleich.ts setzt (gemessen
+   2026-09-24 im gebauten Stand: hidden=true, display=flex; TPULS-137). */
+[hidden] { display: none !important; }
+
 html {
   /* iOS vergroessert im Querformat sonst eigenmaechtig die Schrift und bringt
      die gemessenen Spaltenbreiten der Diagramme durcheinander. */

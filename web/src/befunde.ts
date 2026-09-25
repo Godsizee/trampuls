@@ -297,7 +297,7 @@ function aussageVerkehrsart(
      um: dort liegt
      ${kipppunkt.abstand > 0 ? "die <strong>Straßenbahn</strong>" : "der <strong>Bus</strong>"}
      vorn, um <strong>${escape(abstandBetrag(kipppunkt.abstand))} Prozentpunkte</strong>.
-     Der Satz „X ist pünktlicher als Y" lässt sich für diesen Zeitraum also nicht bilden,
+     Der Satz „X ist pünktlicher als Y“ lässt sich für diesen Zeitraum also nicht bilden,
      ohne die Grenze dazuzusagen.`;
 }
 
@@ -503,13 +503,13 @@ function befundAusfaelle(l: Lage): string {
   return `<section class="befund">
       <h2>${escape(titel)}</h2>
       <p class="aussage">Von den geplanten Halten trugen bei der Straßenbahn
-         <strong>${escape(vonHundert(at))}</strong> die Kennzeichnung „ausgefallen",
+         <strong>${escape(vonHundert(at))}</strong> die Kennzeichnung „ausgefallen“,
          beim Bus <strong>${escape(vonHundert(ab))}</strong>.</p>
       <p class="klein">Grundlage: ${zahl(tram.soll)} geplante Halte der Straßenbahn und
          ${zahl(bus.soll)} des Busses, ${escape(zeitraum(l.tage))}.</p>
       <p class="vorbehalt">Gezählt ist, was der Datenstrom als abgesagt meldet. Eine
          Fahrt, die schlicht nicht fuhr, ohne dass es gemeldet wurde, steckt hier nicht
-         drin — sie steht auf der Linienseite unter „Fahrten ohne jede Rückmeldung".
+         drin — sie steht auf der Linienseite unter „Fahrten ohne jede Rückmeldung“.
          Die Zahl ist deshalb eine Untergrenze und keine Ausfallquote.</p>
     </section>`;
 }

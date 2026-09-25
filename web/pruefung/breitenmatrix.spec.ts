@@ -40,6 +40,13 @@ for (const breite of BREITEN) {
           page.on("console", (m) => {
             if (m.type() === "error") fehler.push(`console: ${m.text()}`);
           });
+          // Die Konsole nennt bei einer abgewiesenen Anfrage keine Adresse
+          // ("Failed to load resource: net::ERR_CONNECTION_REFUSED", zweimal
+          // gesehen 2026-09-24 in rund 900 Laeufen, nicht nachstellbar). Mit
+          // der Adresse ist beim naechsten Mal klar, ob es die Seite war oder
+          // der Vorschauserver.
+          page.on("requestfailed", (r) =>
+            fehler.push(`requestfailed: ${r.url()} (${r.failure()?.errorText ?? "?"})`));
 
           await page.setViewportSize({ width: breite, height: 900 });
           await page.emulateMedia({ colorScheme: schema === "dunkel" ? "dark" : "light" });

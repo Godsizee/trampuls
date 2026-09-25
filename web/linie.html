@@ -3,11 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#faf9f6" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#121317" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f3f5f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0b0e13" media="(prefers-color-scheme: dark)">
 <title>Linie — TramPuls</title>
-<!-- Begruendung: index.html, gleiche Stelle (TPULS-109). -->
-<link rel="icon" href="data:,">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <meta name="description" content="Eine Linie im Detail: wie pünktlich sie war, wann am Tag sie kippt, wo unterwegs die Verspätung entsteht und was ausfiel.">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="TramPuls">
@@ -16,12 +15,12 @@
 <meta property="og:title" content="Linie — TramPuls">
 <meta property="og:description" content="Eine Linie im Detail: wie pünktlich sie war, wann am Tag sie kippt, wo unterwegs die Verspätung entsteht und was ausfiel.">
 <meta name="twitter:card" content="summary">
-<!-- Nur die Groteske wird vorgeladen: sie traegt die erste Zahl. Die Serif
-     traegt Ueberschriften und darf per font-display:swap nachkommen.
+<!-- Nur die schmale Instanz wird vorgeladen: sie traegt die erste Zahl auf
+     der Tafel. Der Lesetext darf per font-display:swap nachkommen.
      crossorigin ist auch bei gleicher Herkunft Pflicht — Schriften werden
      im CORS-Modus geholt, und ohne das Attribut laedt der Browser die
      Datei ein zweites Mal. -->
-<link rel="preload" href="/schrift/archivo-var-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/schrift/instrument-sans-schmal-var-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/src/stil.css">
 <!-- Blockierend und ohne `type="module"`: eine gemerkte Farbwahl muss
      stehen, bevor das erste Bild der Seite gezeichnet wird. Begruendung
@@ -34,10 +33,13 @@
   <div data-kopf></div>
   <div class="breit" data-regler></div>
   <section data-kennzahl></section>
+  <!-- Ausfaelle direkt nach der Kennzahl: sie stehen neben der Quote, nie
+       darin (Regel 8) — und das Profil mit bis zu 73 Halten ganz am Ende, wo
+       es niemanden vom Rest der Seite trennt. -->
+  <section data-ausfaelle></section>
   <section data-verlauf></section>
   <section data-tagesgang></section>
   <section data-profil></section>
-  <section data-ausfaelle></section>
 </main>
 <!-- teil:fuss -->
 <script type="module" src="/src/linie.ts"></script>

@@ -3,11 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#faf9f6" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#121317" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f3f5f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0b0e13" media="(prefers-color-scheme: dark)">
 <title>Zeiträume, Ferien und Wochentag vergleichen — TramPuls</title>
-<!-- Begruendung: index.html, gleiche Stelle (TPULS-109). -->
-<link rel="icon" href="data:,">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <meta name="description" content="Dieselbe Linie in zwei Zeiträumen, in Schulzeit und Ferien oder in Werktag und Wochenende nebeneinander — mit den Angaben, worauf ein Unterschied beruhen kann.">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="TramPuls">
@@ -16,12 +15,12 @@
 <meta property="og:title" content="Zeiträume, Ferien und Wochentag vergleichen — TramPuls">
 <meta property="og:description" content="Dieselbe Linie in zwei Zeiträumen, in Schulzeit und Ferien oder in Werktag und Wochenende nebeneinander — mit den Angaben, worauf ein Unterschied beruhen kann.">
 <meta name="twitter:card" content="summary">
-<!-- Nur die Groteske wird vorgeladen: sie traegt die erste Zahl. Die Serif
-     traegt Ueberschriften und darf per font-display:swap nachkommen.
+<!-- Nur die schmale Instanz wird vorgeladen: sie traegt die erste Zahl auf
+     der Tafel. Der Lesetext darf per font-display:swap nachkommen.
      crossorigin ist auch bei gleicher Herkunft Pflicht — Schriften werden
      im CORS-Modus geholt, und ohne das Attribut laedt der Browser die
      Datei ein zweites Mal. -->
-<link rel="preload" href="/schrift/archivo-var-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/schrift/instrument-sans-schmal-var-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/src/stil.css">
 <!-- Blockierend und ohne `type="module"`: eine gemerkte Farbwahl muss
      stehen, bevor das erste Bild der Seite gezeichnet wird. Begruendung

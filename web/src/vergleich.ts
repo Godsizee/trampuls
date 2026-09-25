@@ -136,11 +136,11 @@ function baueRegler(index: IndexDatei, datei: string, linie: LinieDatei, tage: s
   const richtungen = linie.richtungen.length > 0
     ? linie.richtungen
     : [{ richtung: 0, name: "Richtung 0" }, { richtung: 1, name: "Richtung 1" }];
-  const richtungOptionen = richtungen
+  const richtungKnoepfe = richtungen
     .map(
       (r) =>
-        `<option value="${r.richtung}"${r.richtung === a.richtung ? " selected" : ""}>` +
-        `${escape(r.name)}</option>`,
+        `<label><input type="radio" name="richtung" value="${r.richtung}"` +
+        `${r.richtung === a.richtung ? " checked" : ""}> ${escape(r.name)}</label>`,
     )
     .join("");
 
@@ -153,43 +153,62 @@ function baueRegler(index: IndexDatei, datei: string, linie: LinieDatei, tage: s
       )
       .join("");
 
-  const schwelleOptionen = SCHWELLEN.map(
+  const schwelleKnoepfe = SCHWELLEN.map(
     (s) =>
-      `<option value="${s}"${s === a.schwelle ? " selected" : ""}>` +
-      `ab ${s} ${s === 1 ? "Minute" : "Minuten"}</option>`,
+      `<label><input type="radio" name="schwelle" value="${s}"` +
+      `${s === a.schwelle ? " checked" : ""}> ${s} min</label>`,
   ).join("");
 
   const modus = leseModus();
+  // Alle drei Vergleichsarten aus zustand.ts::Vergleichsmodus. Bis Gestaltung
+  // v4 bot das Auswahlfeld nur zwei davon an: "wochentag" (TPULS-123) war
+  // gerechnet, beschriftet und auf /methodik dokumentiert, aber nur ueber die
+  // Adresse erreichbar (gefunden 2026-09-24).
+  const modusKnoepfe = ([
+    ["zeitraum", "Zwei Zeiträume"],
+    ["ferien", "Schulzeit und Ferien"],
+    ["wochentag", "Werktag und Wochenende"],
+  ] as const)
+    .map(
+      ([wert, name]) =>
+        `<label><input type="radio" name="modus" value="${wert}"` +
+        `${modus === wert ? " checked" : ""}> ${name}</label>`,
+    )
+    .join("");
 
   ziel.innerHTML = `
-    <label>Linie
+    <label class="feld feld--breit"><span class="feld-name">Linie</span>
       <select data-feld="linie">${linienOptionen}</select>
     </label>
-    <label>Richtung
-      <select data-feld="richtung">${richtungOptionen}</select>
-    </label>
-    <label>Verglichen wird
-      <select data-feld="modus">
-        <option value="zeitraum"${modus === "zeitraum" ? " selected" : ""}>zwei Zeiträume</option>
-        <option value="ferien"${modus === "ferien" ? " selected" : ""}>Schulzeit und Ferien</option>
-        <option value="wochentag"${modus === "wochentag" ? " selected" : ""}>Werktag und Wochenende</option>
-      </select>
-    </label>
-    <label data-nur="zeitraum">Zeitraum A von
-      <select data-feld="a_von">${tagOptionen(g.aVon)}</select>
-    </label>
-    <label data-nur="zeitraum">bis
-      <select data-feld="a_bis">${tagOptionen(g.aBis)}</select>
-    </label>
-    <label data-nur="zeitraum">Zeitraum B von
-      <select data-feld="b_von">${tagOptionen(g.bVon)}</select>
-    </label>
-    <label data-nur="zeitraum">bis
-      <select data-feld="b_bis">${tagOptionen(g.bBis)}</select>
-    </label>
-    <label>Ab wann gilt „zu spät“?
-      <select data-feld="schwelle">${schwelleOptionen}</select>
-    </label>`;
+    <div class="feld feld--segmente">
+      <span class="feld-name" id="feld-richtung">Richtung</span>
+      <div class="segmente" role="radiogroup" aria-labelledby="feld-richtung"
+           data-feld="richtung">${richtungKnoepfe}</div>
+    </div>
+    <div class="feld feld--segmente">
+      <span class="feld-name" id="feld-modus">Verglichen wird</span>
+      <div class="segmente" role="radiogroup" aria-labelledby="feld-modus"
+           data-feld="modus">${modusKnoepfe}</div>
+    </div>
+    <div class="feld feld--segmente">
+      <span class="feld-name" id="feld-schwelle">Ab wann gilt „zu spät“?</span>
+      <div class="segmente" role="radiogroup" aria-labelledby="feld-schwelle"
+           data-feld="schwelle">${schwelleKnoepfe}</div>
+    </div>
+    <div class="feldgruppe" data-nur="zeitraum">
+      <label class="feld"><span class="feld-name">Zeitraum A von</span>
+        <select data-feld="a_von">${tagOptionen(g.aVon)}</select>
+      </label>
+      <label class="feld"><span class="feld-name">bis</span>
+        <select data-feld="a_bis">${tagOptionen(g.aBis)}</select>
+      </label>
+      <label class="feld"><span class="feld-name">Zeitraum B von</span>
+        <select data-feld="b_von">${tagOptionen(g.bVon)}</select>
+      </label>
+      <label class="feld"><span class="feld-name">bis</span>
+        <select data-feld="b_bis">${tagOptionen(g.bBis)}</select>
+      </label>
+    </div>`;
 
   // Die vier Datumsfelder gehoeren nur zum Zeitraum-Vergleich. Sie bleiben im
   // Baum und werden mit `hidden` versteckt statt entfernt: ein Wechsel hin und
@@ -208,16 +227,13 @@ function baueRegler(index: IndexDatei, datei: string, linie: LinieDatei, tage: s
     location.search = p.toString();
   });
   ziel.querySelector('[data-feld="richtung"]')?.addEventListener("change", (e) => {
-    schreibeAuswahl({ richtung: Number((e.target as HTMLSelectElement).value) });
+    schreibeAuswahl({ richtung: Number((e.target as HTMLInputElement).value) });
   });
   ziel.querySelector('[data-feld="schwelle"]')?.addEventListener("change", (e) => {
-    schreibeAuswahl({ schwelle: Number((e.target as HTMLSelectElement).value) });
+    schreibeAuswahl({ schwelle: Number((e.target as HTMLInputElement).value) });
   });
   ziel.querySelector('[data-feld="modus"]')?.addEventListener("change", (e) => {
-    // Alle drei Arten aus zustand.ts::Vergleichsmodus. "wochentag" (TPULS-123)
-    // war gerechnet und dokumentiert, aber bis TPULS-137 nur ueber die Adresse
-    // erreichbar: dieses Feld kannte nur zwei Werte.
-    const wert = (e.target as HTMLSelectElement).value;
+    const wert = (e.target as HTMLInputElement).value;
     const wahl: Vergleichsmodus = wert === "ferien" || wert === "wochentag" ? wert : "zeitraum";
     schreibeModus(wahl);
     zeitraumfelder(wahl);

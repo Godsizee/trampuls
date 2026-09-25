@@ -13,15 +13,15 @@
 // die Aussage selbst und nie ein Vorbehalt, der neben seiner Zahl stehen muss.
 
 import { ladeIndex, ladeLinie, ladeLinieHalte } from "./daten";
-import type { HalteDatei, IndexDatei, LinieDatei } from "./daten";
+import type { HalteDatei, IndexDatei, LinieDatei, LinieKopf } from "./daten";
 import {
   datum, liniennummer, prozent, quote, quoteText, sekunden, stunde, vonHundert, zahl,
   LINIENART_NAME, VERKEHRSART_NAME,
 } from "./format";
 import {
-  BETRIEBSTAG_ERKLAERUNG, begriff, escape, fussnote, grosseZahl, tabelle, zeigeFehler,
+  BETRIEBSTAG_ERKLAERUNG, begriff, escape, fussnote, grosseZahl, schild, tabelle, zeigeFehler,
 } from "./seite";
-import { balkenProfilIn, saeulenIn } from "./diagramm";
+import { saeulenIn, zuwachsbalken } from "./diagramm";
 import {
   SCHWELLEN, gemerkteLinie, leseAuswahl, merkeLinie, schreibeAuswahl, zeitraumFilter,
 } from "./zustand";
@@ -40,6 +40,10 @@ async function start(): Promise<void> {
   schreibeAuswahl({ linie: datei });
 
   const [linie, halte] = await Promise.all([ladeLinie(datei), ladeLinieHalte(datei)]);
+
+  // Saeulen, Linienband und Laufweg nehmen die Farbe der Verkehrsart dieser
+  // Linie (stil.css, "Diagramme"). An <main>, weil alle Abschnitte sie teilen.
+  document.querySelector("main")?.setAttribute("data-art", linie.verkehrsart);
 
   baueRegler(index, datei, linie);
   zeichne(linie, halte);
@@ -124,30 +128,29 @@ function baueRegler(index: IndexDatei, datei: string, linie: LinieDatei): void {
   if (!ziel) return;
   const a = leseAuswahl();
 
-  // Die Verkehrsart engt die Linienauswahl ein, sie wechselt aber nicht von
-  // selbst die Linie: wer auf "Straßenbahn" stellt, waehrend eine Buslinie offen
-  // ist, will die Liste kuerzer haben und nicht eine andere Seite. Die offene
-  // Linie bleibt deshalb immer in der Liste, auch wenn sie nicht zum Filter passt.
-  const linienOptionen = (art: string | null): string =>
-    index.linien
-      .filter((l) => art === null || l.verkehrsart === art || l.datei === datei)
-      .map(
-        (l) =>
-          `<option value="${escape(l.datei)}"${l.datei === datei ? " selected" : ""}>` +
-          `${escape(l.linie)} — ${escape(l.verlauf)}</option>`,
-      )
-      .join("");
-
-  const arten = [...new Set(index.linien.map((l) => l.verkehrsart))];
-  const artOptionen =
-    `<option value="">alle</option>` +
-    arten
-      .map(
-        (v) =>
-          `<option value="${escape(v)}"${v === a.art ? " selected" : ""}>` +
-          `${escape(VERKEHRSART_NAME[v] ?? v)}</option>`,
-      )
-      .join("");
+  // Eine Auswahl, nach Verkehrsart gegliedert. Bis Gestaltung v4 stand davor ein
+  // eigenes Feld "Verkehrsart", das nur diese Liste kuerzte — ein Feld, das an
+  // keiner Zahl etwas aendert, und in der Leiste der Platz, der ihr fuer eine
+  // einzige Zeile fehlte. <optgroup> gliedert dieselbe Liste ohne Zusatzfeld;
+  // der Parameter `art` in alten Adressen bleibt stehen und wird ignoriert.
+  const gruppen: Array<[string, (l: LinieKopf) => boolean]> = [
+    [VERKEHRSART_NAME.tram ?? "Straßenbahn", (l) => l.verkehrsart === "tram" && !l.bedarfsverkehr],
+    [VERKEHRSART_NAME.bus ?? "Bus", (l) => l.verkehrsart !== "tram" && !l.bedarfsverkehr],
+    ["Ruftaxi", (l) => l.bedarfsverkehr === true],
+  ];
+  const linienOptionen = gruppen
+    .map(([name, passt]) => {
+      const optionen = index.linien
+        .filter(passt)
+        .map(
+          (l) =>
+            `<option value="${escape(l.datei)}"${l.datei === datei ? " selected" : ""}>` +
+            `${escape(l.linie)} — ${escape(l.verlauf)}</option>`,
+        )
+        .join("");
+      return optionen === "" ? "" : `<optgroup label="${escape(name)}">${optionen}</optgroup>`;
+    })
+    .join("");
 
   // Zeitraum: der ganze vorliegende Bestand oder ein einzelner Betriebstag. Eine
   // "letzte 30 Tage"-Voreinstellung waere bei dieser Historie eine Fiktion (Q5);
@@ -169,43 +172,47 @@ function baueRegler(index: IndexDatei, datei: string, linie: LinieDatei): void {
     ? linie.richtungen
     : [{ richtung: 0, name: "Richtung 0" }, { richtung: 1, name: "Richtung 1" }];
 
-  const richtungOptionen = richtungen
+  // Richtung und Schwelle sind Segmente statt Auswahlfelder: zwei bzw. fuenf
+  // Zustaende, die man vergleicht, indem man sie durchschaltet — /methodik
+  // empfiehlt genau das ("schaltet die Schwellen einmal durch"). Radioknoepfe,
+  // damit Pfeiltasten und Screenreader ("3 von 5") funktionieren.
+  const richtungKnoepfe = richtungen
     .map(
       (r) =>
-        `<option value="${r.richtung}"${r.richtung === a.richtung ? " selected" : ""}>` +
-        `${escape(r.name)}</option>`,
+        `<label><input type="radio" name="richtung" value="${r.richtung}"` +
+        `${r.richtung === a.richtung ? " checked" : ""}> ${escape(r.name)}</label>`,
     )
     .join("");
 
   // Die Schwelle ist als Frage beschriftet, nicht als Kennzahlname: "unter
   // 3 min" ist die Sprache des Datenmodells, gewaehlt wird aber, ab wann eine
   // Bahn als zu spaet gelten soll.
-  const schwelleOptionen = SCHWELLEN.map(
+  const schwelleKnoepfe = SCHWELLEN.map(
     (s) =>
-      `<option value="${s}"${s === a.schwelle ? " selected" : ""}>` +
-      `ab ${s} ${s === 1 ? "Minute" : "Minuten"}</option>`,
+      `<label><input type="radio" name="schwelle" value="${s}"` +
+      `${s === a.schwelle ? " checked" : ""}> ${s} min</label>`,
   ).join("");
 
   ziel.innerHTML = `
     <details class="regler-aufklapp" data-reglerklappe>
       <summary><span data-reglerstand></span></summary>
       <div class="regler-felder">
-        <label>Verkehrsart
-          <select data-feld="art">${artOptionen}</select>
+        <label class="feld feld--breit"><span class="feld-name">Linie</span>
+          <select data-feld="linie">${linienOptionen}</select>
         </label>
-        <label>Linie
-          <select data-feld="linie">${linienOptionen(a.art)}</select>
-        </label>
-        <label>Richtung
-          <select data-feld="richtung">${richtungOptionen}</select>
-        </label>
-        <label>Zeitraum
+        <div class="feld feld--segmente">
+          <span class="feld-name" id="feld-richtung">Richtung</span>
+          <div class="segmente" role="radiogroup" aria-labelledby="feld-richtung"
+               data-feld="richtung">${richtungKnoepfe}</div>
+        </div>
+        <label class="feld"><span class="feld-name">Zeitraum</span>
           <select data-feld="zeitraum">${zeitraumOptionen}</select>
         </label>
-        <label>Ab wann gilt „zu spät“?
-          <select data-feld="schwelle">${schwelleOptionen}</select>
-        </label>
-        <button type="button" data-merken>Diese Linie merken</button>
+        <div class="feld feld--segmente">
+          <span class="feld-name" id="feld-schwelle">Ab wann gilt „zu spät“?</span>
+          <div class="segmente" role="radiogroup" aria-labelledby="feld-schwelle"
+               data-feld="schwelle">${schwelleKnoepfe}</div>
+        </div>
       </div>
     </details>`;
 
@@ -228,14 +235,6 @@ function baueRegler(index: IndexDatei, datei: string, linie: LinieDatei): void {
   aktualisiereStand();
   ziel.addEventListener("change", aktualisiereStand);
 
-  ziel.querySelector('[data-feld="art"]')?.addEventListener("change", (e) => {
-    const wert = (e.target as HTMLSelectElement).value || null;
-    schreibeAuswahl({ art: wert });
-    const auswahlfeld = ziel.querySelector('[data-feld="linie"]');
-    // Nur die Optionen austauschen, nicht das Feld: ein neues Element haette
-    // seinen Ereignishoerer verloren, und die Linienauswahl waere tot.
-    if (auswahlfeld instanceof HTMLSelectElement) auswahlfeld.innerHTML = linienOptionen(wert);
-  });
   ziel.querySelector('[data-feld="zeitraum"]')?.addEventListener("change", (e) => {
     const wert = (e.target as HTMLSelectElement).value;
     schreibeAuswahl(wert === "" ? { von: null, bis: null } : { von: wert, bis: wert });
@@ -251,15 +250,14 @@ function baueRegler(index: IndexDatei, datei: string, linie: LinieDatei): void {
     p.set("linie", (e.target as HTMLSelectElement).value);
     location.search = p.toString();
   });
+  // Das Ereignis kommt vom Radioknopf und steigt ueber die Segmentleiste auf —
+  // vor dem Hoerer an [data-regler] in start(), der danach neu zeichnet. Die
+  // Adresse steht also schon, wenn gezeichnet wird.
   ziel.querySelector('[data-feld="richtung"]')?.addEventListener("change", (e) => {
-    schreibeAuswahl({ richtung: Number((e.target as HTMLSelectElement).value) });
+    schreibeAuswahl({ richtung: Number((e.target as HTMLInputElement).value) });
   });
   ziel.querySelector('[data-feld="schwelle"]')?.addEventListener("change", (e) => {
-    schreibeAuswahl({ schwelle: Number((e.target as HTMLSelectElement).value) });
-  });
-  ziel.querySelector("[data-merken]")?.addEventListener("click", (e) => {
-    merkeLinie(datei);
-    (e.target as HTMLButtonElement).textContent = "Ist gemerkt";
+    schreibeAuswahl({ schwelle: Number((e.target as HTMLInputElement).value) });
   });
 }
 
@@ -308,22 +306,50 @@ function kopf(linie: LinieDatei, richtung: number): void {
   const nummer = liniennummer(linie.linie);
   document.title = `${art} ${nummer} — TramPuls`;
 
+  // Der Verlauf als Linienband. route_long_name trennt seine Stationen mit
+  // " - "; nur daran wird aufgeteilt, der Text bleibt Zeichen fuer Zeichen
+  // derselbe (Anzeige, kein neuer Datenwert — Regel 12). Ein Verlauf ohne
+  // Trenner bleibt eine einzige Station.
+  const stationen = linie.verlauf
+    .split(" - ")
+    .map((s) => s.trim())
+    .filter((s) => s !== "");
+
+  // Gemerkt wird die Linie, die offen ist — sie oeffnet sich beim naechsten
+  // Aufruf von /linie ohne Auswahl (start()). Der Knopf steht im Kopf und nicht
+  // mehr in der Reglerleiste: er aendert keine Zahl, er gehoert zur Linie.
+  const datei = leseAuswahl().linie ?? "";
+  const gemerkt = datei !== "" && gemerkteLinie() === datei;
+
   // Das Schild ist `aria-hidden`: die Ueberschrift daneben sagt dasselbe in
   // Worten und dazu die Verkehrsart. Zweimal dieselbe Nummer vorgelesen zu
   // bekommen hilft niemandem.
   ziel.innerHTML = `
+    <p class="zurueck"><a href="/linien.html">Alle Linien</a></p>
     <div class="linienkopf">
-      <span class="nummer" data-art="${escape(linie.verkehrsart)}"
-            aria-hidden="true">${escape(nummer)}</span>
+      ${schild(nummer, linie.verkehrsart, { verborgen: true })}
       <div class="linienkopf-text">
         <h1>${escape(art)} ${escape(nummer)}</h1>
-        <p class="verlauf">${escape(linie.verlauf)}</p>
+      </div>
+      <div class="linienkopf-aktionen">
+        <button type="button" class="knopf knopf--merken" data-merken
+                aria-pressed="${gemerkt ? "true" : "false"}">${gemerkt ? "Gemerkt" : "Linie merken"}</button>
+        <a class="knopf" href="${escape(vergleichsLink(richtung))}">Zwei Zeiträume vergleichen</a>
       </div>
     </div>
+    ${stationen.length > 0
+      ? `<ol class="laufweg" aria-label="Verlauf">${
+          stationen.map((s) => `<li>${escape(s)}</li>`).join("")}</ol>`
+      : ""}
     <p class="richtung">${einleitung} <strong>${escape(name)}</strong></p>
-    ${zusatz.length > 0 ? `<p class="klein">${escape(zusatz.join(" "))}</p>` : ""}
-    <p class="weiter"><a href="${escape(vergleichsLink(richtung))}">Zwei Zeiträume
-      vergleichen →</a></p>`;
+    ${zusatz.length > 0 ? `<p class="klein">${escape(zusatz.join(" "))}</p>` : ""}`;
+
+  ziel.querySelector("[data-merken]")?.addEventListener("click", (e) => {
+    merkeLinie(datei);
+    const knopf = e.currentTarget as HTMLButtonElement;
+    knopf.textContent = "Gemerkt";
+    knopf.setAttribute("aria-pressed", "true");
+  });
 }
 
 /**
@@ -390,9 +416,16 @@ function kennzahl(
     return;
   }
 
+  // Die Kopfzeile der Tafel nennt die vollstaendige Auswahl — dieselbe Zeile
+  // wie die geschlossene Reglerklappe auf dem Telefon. Eine Zahl, die nicht
+  // sagt, wofuer sie steht, waere genau die Aussage, die diese Seite nicht
+  // macht.
+  const richtungName =
+    linie.richtungen.find((r) => r.richtung === richtung)?.name ?? `Richtung ${richtung}`;
   block(
     ziel,
-    `<p class="gross">${grosseZahl(s.puenktlich, s.bewertbar)}</p>
+    `<p class="tafel-zeile">${escape(reglerstand(linie, leseAuswahl(), richtungName))}</p>
+     <p class="gross">${grosseZahl(s.puenktlich, s.bewertbar)}</p>
      <p class="klein">${vonHundert(quote(s.puenktlich, s.bewertbar))} Halten waren
        weniger als ${schwelle} Minuten zu spät</p>
      <dl>
@@ -612,41 +645,50 @@ function profil(
     return;
   }
 
-  const { haupt } = block(
-    ziel,
-    "<h2>Wo die Verspätung entsteht</h2>",
-    `<p>Hier steht nicht, wo die Bahn spät <em>ist</em>, sondern wo sie spät
-     <em>wird</em> — die Halte stehen von oben nach unten in der Reihenfolge der
-     Strecke.</p>
-     <p>Ein Balken nach rechts heißt: auf diesem Abschnitt kommt Verspätung dazu.
-     Nach links: hier wird wieder aufgeholt. Wo ein gestrichelter Strich auf der
-     Mittellinie steht, wurde für diesen Halt kein einziger Abschnitt gemessen.</p>`,
-  );
+  // Die Streckentabelle: Bild und Tabelle in einem. Je Halt eine Zeile, in der
+  // ersten Spalte das Linienband, neben der Zahl "Dazugekommen" ihr Balken.
+  // Bis Gestaltung v4 standen ein SVG-Profil und dieselben 73 Namen noch einmal
+  // als Tabelle darunter — bei Linie 5 rund 1.900 px Bild und 2.600 px Tabelle
+  // (gemessen 2026-09-24 bei 1440 px). Jetzt ist die Tabelle das Bild: der
+  // Screenreader liest echte Zellen statt einer Zusammenfassung, und jede Zahl
+  // steht in der Zeile ihres Halts.
+  ziel.className = "";
+  ziel.innerHTML =
+    `<h2>Wo die Verspätung entsteht</h2>
+     <div class="legende profil-legende">
+       <p>Hier steht nicht, wo die Bahn spät <em>ist</em>, sondern wo sie spät
+       <em>wird</em> — die Halte stehen von oben nach unten in der Reihenfolge der
+       Strecke.</p>
+       <p>Ein Balken nach rechts heißt: auf diesem Abschnitt kommt Verspätung dazu.
+       Nach links: hier wird wieder aufgeholt. Wo ein gestrichelter Strich auf der
+       Mittellinie steht, wurde für diesen Halt kein einziger Abschnitt gemessen.</p>
+     </div>`;
 
-  balkenProfilIn(
-    haupt,
-    reihe.map((r) => ({
-      beschriftung: r.name,
-      // null, nicht 0: fuer diesen Halt gab es keinen gemessenen Abschnitt.
-      wert: r.gewicht > 0 ? r.zuwachs / r.gewicht : null,
-    })),
+  // null, nicht 0: fuer diesen Halt gab es keinen gemessenen Abschnitt (Regel 8).
+  const zuwaechse = reihe.map((r) => (r.gewicht > 0 ? r.zuwachs / r.gewicht : null));
+  const letzte = reihe.length - 1;
+  const t = tabelle(
+    ["Halt", "Dazugekommen", "Verspätung im Schnitt", "Weniger als 3 Min zu spät",
+     "Gemessene Halte"],
+    reihe.map((r, i) => [
+      r.name,
+      zuwaechse[i] === null ? "—" : sekunden(zuwaechse[i] ?? 0),
+      r.bewertbar > 0 ? sekunden(r.delay / r.bewertbar) : "—",
+      quoteText(r.puenktlich, r.bewertbar),
+      zahl(r.bewertbar),
+    ]),
+    "daten",
+    "Verspätungszuwachs je Halt",
+    (zelle, z, s) => {
+      if (s === 0) {
+        zelle.classList.add("halt");
+        if (z === 0 || z === letzte) zelle.classList.add("endhalt");
+      }
+      if (s === 1) zelle.prepend(zuwachsbalken(zuwaechse[z] ?? null, zuwaechse));
+    },
   );
-
-  haupt.appendChild(
-    tabelle(
-      ["Halt", "Dazugekommen", "Verspätung im Schnitt", "Weniger als 3 Min zu spät",
-       "Gemessene Halte"],
-      reihe.map((r) => [
-        r.name,
-        r.gewicht > 0 ? sekunden(r.zuwachs / r.gewicht) : "—",
-        r.bewertbar > 0 ? sekunden(r.delay / r.bewertbar) : "—",
-        quoteText(r.puenktlich, r.bewertbar),
-        zahl(r.bewertbar),
-      ]),
-      undefined,
-      "Verspätungszuwachs je Halt",
-    ),
-  );
+  t.querySelector("table")?.classList.add("strecke");
+  ziel.appendChild(t);
 }
 
 /**

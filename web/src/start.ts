@@ -54,7 +54,7 @@ function zeigeKacheln(index: IndexDatei, zahlen: NetzZahlen[]): void {
     // Textfarbe, und nie aus route_color (TramPuls_Recht_und_Lizenz).
     karte.dataset.art = n.verkehrsart;
     karte.innerHTML = `
-      <h2>${VERKEHRSART_NAME[n.verkehrsart] ?? n.verkehrsart}</h2>
+      <h3 class="art" data-art="${n.verkehrsart}">${VERKEHRSART_NAME[n.verkehrsart] ?? n.verkehrsart}</h3>
       <p class="gross">${grosseZahl(n.puenktlich, n.bewertbare_halte)}</p>
       <p class="klein">${
         q === null

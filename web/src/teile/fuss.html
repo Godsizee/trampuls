@@ -1,10 +1,26 @@
 <!-- Fusszeile aller neun Seiten, eingesetzt beim Bauen wie die Kopfzeile.
      Der Satz zur Verbindung mit VRN und RNV ist Pflicht auf jeder Seite
      (TramPuls_Recht_und_Lizenz) und steht deshalb hier und nirgends sonst. -->
-<footer class="fuss huelle">
-  <p data-stand></p>
-  <p data-attribution></p>
-  <p>Ein privates Projekt. Keine Verbindung zum Verkehrsverbund Rhein-Neckar oder zur
-     Rhein-Neckar-Verkehr GmbH. <a href="/lizenz.html">Lizenz und Attribution</a> ·
-     <a href="/impressum.html">Impressum</a>.</p>
+<footer class="fuss">
+  <div class="huelle">
+    <div class="fuss-kopf">
+      <a class="marke" href="/">
+        <svg class="marke-zeichen" viewBox="0 0 32 32" width="30" height="30" aria-hidden="true" focusable="false">
+          <rect class="marke-grund" x="1" y="1" width="30" height="30" rx="8"/>
+          <path class="marke-strecke" d="M6.5 16h19"/>
+          <circle class="marke-halt" cx="16" cy="16" r="5"/>
+        </svg>
+        <span class="marke-wort">TramPuls</span>
+      </a>
+      <p>Ein privates Projekt. Keine Verbindung zum Verkehrsverbund Rhein-Neckar oder zur
+         Rhein-Neckar-Verkehr GmbH.</p>
+    </div>
+    <p data-stand></p>
+    <p data-attribution></p>
+    <nav class="fuss-verweise" aria-label="Rechtliches und Quelltext">
+      <a href="/lizenz.html">Lizenz und Attribution</a>
+      <a href="/impressum.html">Impressum</a>
+      <a href="https://github.com/Godsizee/trampuls">Quelltext</a>
+    </nav>
+  </div>
 </footer>

@@ -3,11 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#faf9f6" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#121317" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f3f5f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0b0e13" media="(prefers-color-scheme: dark)">
 <title>Straßenbahn und Bus im Überblick — TramPuls</title>
-<!-- Begruendung: index.html, gleiche Stelle (TPULS-109). -->
-<link rel="icon" href="data:,">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <meta name="description" content="Wie pünktlich Straßenbahn und Bus der Rhein-Neckar-Verkehr zuletzt waren, mit dem Verlauf der letzten 30 Tage.">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="TramPuls">
@@ -16,12 +15,12 @@
 <meta property="og:title" content="Straßenbahn und Bus im Überblick — TramPuls">
 <meta property="og:description" content="Wie pünktlich Straßenbahn und Bus der Rhein-Neckar-Verkehr zuletzt waren, mit dem Verlauf der letzten 30 Tage.">
 <meta name="twitter:card" content="summary">
-<!-- Nur die Groteske wird vorgeladen: sie traegt die erste Zahl. Die Serif
-     traegt Ueberschriften und darf per font-display:swap nachkommen.
+<!-- Nur die schmale Instanz wird vorgeladen: sie traegt die erste Zahl auf
+     der Tafel. Der Lesetext darf per font-display:swap nachkommen.
      crossorigin ist auch bei gleicher Herkunft Pflicht — Schriften werden
      im CORS-Modus geholt, und ohne das Attribut laedt der Browser die
      Datei ein zweites Mal. -->
-<link rel="preload" href="/schrift/archivo-var-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/schrift/instrument-sans-schmal-var-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/src/stil.css">
 <!-- Blockierend und ohne `type="module"`: eine gemerkte Farbwahl muss
      stehen, bevor das erste Bild der Seite gezeichnet wird. Begruendung
@@ -35,20 +34,23 @@
   <p class="lead">Alle Linien der Rhein-Neckar-Verkehr zusammengerechnet — Straßenbahn
      und Bus nebeneinander. Einzelne Linien stehen unter
      <a href="/linien.html">Linien</a>.</p>
-  <!-- Der Umschalter steht in der ausgelieferten HTML und nicht erst im
-       Skript: jede Eingabe hat vom ersten Aufbau an einen Wert, und "Aktueller
-       Tag" ist die Voreinstellung, wegen der die meisten hier sind. -->
-  <div class="zeitwahl" role="radiogroup" aria-label="Zeitraum der Zahlen" data-zeitwahl>
-    <label><input type="radio" name="zeitraum" value="tag" checked> Aktueller Tag</label>
-    <label><input type="radio" name="zeitraum" value="gesamt"> Gesamter Zeitraum</label>
-  </div>
-  <section class="kennzahlen" data-netz>
-    <p class="hinweis">Zahlen werden geladen…</p>
+  <!-- Anzeigetafel wie auf der Startseite (Begruendung: index.html). -->
+  <section class="tafel" aria-labelledby="tafel-titel">
+    <div class="tafel-kopf">
+      <h2 class="tafel-titel" id="tafel-titel">Pünktlichkeit im Netz der RNV</h2>
+      <div class="zeitwahl segmente" role="radiogroup" aria-label="Zeitraum der Zahlen" data-zeitwahl>
+        <label><input type="radio" name="zeitraum" value="tag" checked> Aktueller Tag</label>
+        <label><input type="radio" name="zeitraum" value="gesamt"> Gesamter Zeitraum</label>
+      </div>
+    </div>
+    <div class="kennzahlen" data-netz>
+      <p class="hinweis">Zahlen werden geladen…</p>
+    </div>
+    <p class="vorbehalt" data-vorbehalt></p>
   </section>
-  <p class="vorbehalt" data-vorbehalt></p>
   <section class="breit" data-verlauf></section>
   <section class="breit" data-ferien></section>
-  <p class="weiter"><a href="/linien.html">Alle Linien ansehen →</a></p>
+  <p class="weiter"><a href="/linien.html">Alle Linien ansehen</a></p>
 </main>
 <!-- teil:fuss -->
 <script type="module" src="/src/netz.ts"></script>

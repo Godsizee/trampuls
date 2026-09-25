@@ -1,180 +1,169 @@
 /* TramPuls — Gestaltung
    ===========================================================================
 
-   Richtung: "statistisches Jahrbuch". Serif fuer Ueberschriften und den Lead,
-   Groteske fuer alles, was gezaehlt oder bedient wird — Zahlen, Tabellen,
-   Regler, Liniennummern. Haarlinien und Weissraum statt gefuellter Kaesten.
+   Richtung seit ADR-029: "Fahrgastinformation". Die Seite spricht die Sprache
+   guter Verkehrsbeschilderung: eine schmale Groteske fuer alles, was man im
+   Vorbeigehen lesen soll — Ueberschriften, Ziffern, Linienschilder —, die
+   normale Breite derselben Familie fuer alles, was man in Ruhe liest. Die eine
+   Zahl, wegen der jemand kommt, steht auf einer Anzeigetafel; der Laufweg
+   einer Linie ist ein Linienband wie ueber der Tuer in der Bahn.
+
+   Beschilderung ist die sachlichste Bildsprache im oeffentlichen Raum: sie
+   informiert, sie urteilt nicht. Deshalb traegt sie Regel 14 — und deshalb
+   gibt es hier keine Ampelfarben. Keine Zahl wird nach ihrem Wert eingefaerbt.
 
    Drei Dinge, die dabei nicht verhandelbar sind:
 
-   - Die Linienfarben der RNV (route_color) kommen hier nicht vor. Sie sind
+   - Die Linienfarben der RNV (route_color) kommen nicht vor. Sie sind
      Markenfarben und keine Kontrastwerte, und als Seitenidentitaet waeren sie
      eine Verwechslungsgefahr mit dem VRN (TramPuls_Recht_und_Lizenz). Die
-     Verkehrsart bekommt stattdessen einen eigenen, gedaempften Marker — als
-     Flaeche, nie als Textfarbe.
-   - Das Layout ist von der schmalsten Breite her gebaut. Grundregeln gelten
-     fuer das Telefon; die Medienabfragen fuegen erst ab Tabletbreite etwas
-     hinzu. Geprueft wird bei 320 / 344 / 360 / 390 / 768 / 1024 / 1440 / 1920
-     — 344 und 360 decken das Frontdisplay eines Galaxy Z Fold ab, dessen
-     Besonderheit weniger die Breite als das Seitenverhaeltnis von rund 1:2,4
-     ist: sehr hoch, sehr schmal. Ab 1400 px kommen zwei Stufen dazu, die
-     Schriftgrad und Huellenbreite anheben; alles darunter bleibt unberuehrt
-     (Abschnitt "Breiten" am Dateiende).
+     Verkehrsart hat zwei eigene Toene — und eine eigene Schildform, damit die
+     Farbe nie allein traegt.
+   - Das Layout ist von der schmalsten Breite her gebaut. Geprueft wird bei
+     320 / 344 / 360 / 390 / 768 / 1024 / 1440 / 1920 / 2240 / 2560 in beiden
+     Farbschemata (web/pruefung/breitenmatrix.spec.ts).
    - Auf keiner dieser Breiten scrollt die Seite waagerecht. Breite Tabellen
-     und Diagramme scrollen in ihrem eigenen Kasten.
+     scrollen in ihrem eigenen Kasten.
 
-   Welches Schema gilt, entscheidet die Systemvorgabe — bis der Leser den
-   Umschalter in der Kopfleiste benutzt; dann seine Wahl, in beide Richtungen.
-   Beide Paletten stehen als `light-dark()` in einem einzigen Merkmalsblock.
+   Anzeigetafel und Fusszeile sind ein Stueck Nachtschema im Tagschema: sie
+   setzen `color-scheme: dark`, und jedes Token, das als `light-dark()` in
+   :root steht, loest sich darin zu seinem dunklen Wert auf. Das funktioniert
+   nur, weil diese Tokens unregistriert sind — eine unregistrierte Custom
+   Property erbt den Ausdruck, nicht die Farbe, und `light-dark()` wird erst
+   am Element ausgewertet, das sie benutzt (gemessen 2026-09-20, TPULS-118).
+   Wer eines davon per @property registriert, bricht die Tafel.
 
-   Kontraste sind gegen WCAG AA im gebauten Stand im Browser gemessen, nicht
-   geschaetzt (2026-08-29, Chrome, beide Farbschemata; die Farbwerte sind seit
-   der Messung unveraendert):
+   Kontraste nach WCAG 2.x, gemessen 2026-09-24 im gebauten Stand (Chrome,
+   jedes Token ueber ein Hilfselement aufgeloest, auf der Seite und in der
+   Tafel; web/pruefung/kontraste.spec.ts). Werte hell / dunkel:
 
-     hell    Tinte 17,20:1 · gedaempft 6,08:1 · Akzent 7,62:1
-     dunkel  Tinte 14,88:1 · gedaempft 7,06:1 · Akzent 8,27:1
-     Liniennummer auf ihrem Markerton 7,62:1 (hell) / 8,27:1 (dunkel)
+     Tinte auf Grund 16,90 / 16,16 · auf Flaeche 18,47 / 14,89
+     gedaempft auf Grund 5,82 / 7,59 · auf Flaeche 6,36 / 6,99
+       · auf Zebrastreifen 5,87 / 7,31
+     Akzent (Verweise) auf Grund 5,42 / 10,72 · auf Flaeche 5,93 / 9,88
+     Fokusring auf Grund 3,34 / 10,72 · auf Flaeche 3,65 / 9,88
+     Rahmen Bedienelement (--linie-stark) auf Grund 3,03 / 4,20
+       · auf Flaeche 3,31 / 3,87
+     Schrift auf Tram-Schild 5,19 / 9,00 · auf Bus-Schild 6,63 / 8,18
+     Tafel (in beiden Schemata dunkel): Signalziffer 10,49 · Text 15,83
+       · Nebentext 7,43 · Tram-Zeichen 8,81 · Bus-Zeichen 8,00
 
-   Die Haarlinie --linie liegt bei 1,35:1 und ist deshalb ausschliesslich
-   dekorativ. Alles, was eine Bedienflaeche begrenzt — Auswahlfeld, Suchfeld,
-   Knopf — benutzt --linie-stark: 3,34:1 hell, 3,55:1 dunkel, damit ueber der
-   Grenze von 3:1 fuer Bedienelemente.
-
-   Zwei weitere Token, gerechnet und im gebauten Stand nachgemessen
-   (2026-09-20, TPULS-118 / ADR-025):
-
-     --zeile-aktiv (ueberfahrene/fokussierte Tabellenzeile)
-       1,17:1 hell / 1,19:1 dunkel gegen --papier
-     --gitter-stark (Hilfslinien im Diagramm)
-       1,79:1 hell / 1,93:1 dunkel gegen --papier
-
-   Zebra und die Kante der stehenden Tabellenspalte brauchten dagegen **kein**
-   neues Token: die Zeilenstreifen benutzen --flaeche (1,08:1 hell / 1,09:1
-   dunkel — genau die Staerke, die ein Streifen braucht), die Spaltenkante
-   --linie-stark statt --linie. Gedaempfter Text auf dem Zebrastreifen bleibt
-   bei 5,62:1 hell / 6,48:1 dunkel ueber AA.
+   Die Haarlinie --linie liegt bei 1,27 / 1,23, die Hilfslinie --gitter bei
+   1,57 / 1,70; beide sind ausschliesslich dekorativ. Alles, was eine
+   Bedienflaeche begrenzt, benutzt --linie-stark.
    =========================================================================== */
 
 /* ---------------------------------------------------------------------------
    Schrift
 
-   Selbst gehostet, kein Google-Fonts-CDN: eine Seite, die mit "kein Tracking"
-   wirbt, darf nicht bei jedem Aufruf die IP ihrer Leser an einen Dritten
-   schicken (Regel 13). Beide Dateien sind auf Latin-1 plus die Sonderzeichen
-   subsettet, die die Oberflaeche wirklich benutzt, und ihre Gewichtsachse ist
-   auf den benutzten Bereich beschnitten. Gemessen 2026-08-29:
-   Groteske 25,6 KB, Serif 28,6 KB, zusammen 54,2 KB.
+   Eine Familie, zwei Instanzen: Instrument Sans in normaler Breite fuer den
+   Lesetext und auf 75 % Breite fuer Ueberschriften, Ziffern und Schilder. Beide
+   Dateien sind aus demselben variablen Original geschnitten (Breitenachse
+   festgelegt, Gewichtsachse beschnitten, Latin-1 plus benutzte Sonderzeichen);
+   Herkunft und Befehle in public/schrift/README.md. Gemessen 2026-09-24:
+   Text 27,2 KB, Schmal 25,3 KB, zusammen 52,5 KB — 1,7 KB weniger als die
+   beiden Schriften davor.
 
-   Nur die Groteske wird vorgeladen. Sie traegt die erste Zahl; die Serif
-   traegt Ueberschriften und darf nachkommen. Damit liegen auf dem kritischen
-   Pfad 25,6 KB und nicht 54.
+   Vorgeladen wird die schmale Instanz: sie traegt die erste Zahl auf der
+   Tafel. Der Lesetext kommt per `font-display: swap` nach.
    --------------------------------------------------------------------------- */
 
 @font-face {
-  font-family: "Archivo Var";
-  src: url("/schrift/archivo-var-latin.woff2") format("woff2");
-  font-weight: 380 700;
+  font-family: "Instrument Sans";
+  src: url("/schrift/instrument-sans-var-latin.woff2") format("woff2");
+  font-weight: 400 700;
   font-style: normal;
   font-display: swap;
 }
 
-/* Die Serif heisst hier nicht mehr "Source Serif 4", und das ist kein
-   Geschmack: die OFL 1.1 verbietet in Klausel 3, dass eine modifizierte
-   Fassung den Reserved Font Name fuehrt, und "Source" ist ein solcher. Das
-   Subset ist eine Modifikation. Der Copyright-Vermerk von Adobe steht
-   unveraendert in der Datei — den zu erhalten verlangt dieselbe Lizenz.
-   Archivo hat keinen Reserved Font Name und behaelt deshalb seinen. */
 @font-face {
-  font-family: "TramPuls Serif";
-  src: url("/schrift/trampuls-serif-var-latin.woff2") format("woff2");
-  font-weight: 400 620;
+  font-family: "Instrument Sans Schmal";
+  src: url("/schrift/instrument-sans-schmal-var-latin.woff2") format("woff2");
+  font-weight: 500 700;
   font-style: normal;
   font-display: swap;
 }
 
-/* Metrisch angeglichene Ersatzschriften. Ohne sie springt das Layout in dem
-   Moment, in dem die echte Schrift eintrifft — bei `font-display: swap` sieht
-   das jeder Besucher mit langsamer Verbindung. Die Werte sind aus den
-   gemessenen Fontmetriken gerechnet (2026-08-29):
-   Archivo x-Hoehe 526/1000, Aufstrich 878, Abstrich 210;
-   Source Serif 4 x-Hoehe 475/1000, Aufstrich 1036, Abstrich 335. */
-@font-face {
-  font-family: "Groteske Ersatz";
-  src: local("Segoe UI"), local("Roboto"), local("Helvetica Neue"), local("Arial");
-  size-adjust: 101.4%;
-  ascent-override: 86.6%;
-  descent-override: 20.7%;
-  line-gap-override: 0%;
-}
-
-@font-face {
-  font-family: "Serif Ersatz";
-  src: local("Georgia"), local("Times New Roman"), local("Liberation Serif");
-  size-adjust: 98.7%;
-  ascent-override: 105%;
-  descent-override: 34%;
-  line-gap-override: 0%;
-}
+/* Metrisch angeglichene Ersatzschriften, je Systemschrift ein eigener Satz:
+   eine einzige Regel fuer alle koennte nur fuer eine davon stimmen. Angeglichen
+   wird die Laufweite, nicht die x-Hoehe — ein Absatz, der beim Nachladen der
+   echten Schrift anders umbricht, springt; eine um wenige Prozent andere
+   x-Hoehe springt nicht. Gemessen 2026-09-24 in Chrome an einem deutschen
+   Absatz von 283 Zeichen (Text, Gewicht 400) bzw. an Ueberschriften und
+   Haltestellennamen (Schmal, Gewicht 650 gegen 700):
+     Text:   Instrument Sans = 91,4 % Segoe UI · 102,9 % Roboto · 90,2 % Arial
+     Schmal: Instrument Sans 75 = 110,9 % Arial Narrow · 107,8 % Roboto Condensed
+             · 90,9 % Arial fett
+   Auf- und Abstrich: Instrument Sans 970 / 250 von 1000, geteilt durch den
+   jeweiligen size-adjust. Wer eine Schrift austauscht, rechnet das neu. */
+@font-face { font-family: "Text Ersatz Segoe"; src: local("Segoe UI"); size-adjust: 91.4%; ascent-override: 106.1%; descent-override: 27.4%; line-gap-override: 0%; }
+@font-face { font-family: "Text Ersatz Roboto"; src: local("Roboto"); size-adjust: 102.9%; ascent-override: 94.3%; descent-override: 24.3%; line-gap-override: 0%; }
+@font-face { font-family: "Text Ersatz Arial"; src: local("Arial"), local("Helvetica Neue"), local("Helvetica"); size-adjust: 90.2%; ascent-override: 107.5%; descent-override: 27.7%; line-gap-override: 0%; }
+@font-face { font-family: "Schmal Ersatz Narrow"; src: local("Arial Narrow"); size-adjust: 110.9%; ascent-override: 87.5%; descent-override: 22.5%; line-gap-override: 0%; }
+@font-face { font-family: "Schmal Ersatz Roboto"; src: local("Roboto Condensed"); size-adjust: 107.8%; ascent-override: 90%; descent-override: 23.2%; line-gap-override: 0%; }
+@font-face { font-family: "Schmal Ersatz Arial"; src: local("Arial"), local("Helvetica Neue"), local("Helvetica"); size-adjust: 90.9%; ascent-override: 106.7%; descent-override: 27.5%; line-gap-override: 0%; }
 
 /* ---------------------------------------------------------------------------
    Merkmale
    --------------------------------------------------------------------------- */
 
 :root {
-  /* Beide Werte stehen nebeneinander: hell zuerst, dunkel danach. Welcher
-     gilt, entscheidet `color-scheme` — die Systemvorgabe, oder die
-     ausdrueckliche Wahl aus der Kopfleiste weiter unten.
-
-     Vorher stand die dunkle Palette in einem eigenen
-     `@media (prefers-color-scheme: dark)`-Block. Mit einem Umschalter braeuchte
-     sie dort ein zweites Mal Platz — einmal fuer die Systemvorgabe, einmal fuer
-     die Wahl —, und zwei gleichlautende Bloecke laufen auseinander, sobald ein
-     Ton nachjustiert wird. `light-dark()` setzt dieselbe Grenze wie `popover`
-     weiter unten (Chrome 123, Safari 17.5, Firefox 120); wer eins nicht kann,
-     kann das andere auch nicht. */
+  /* Hell zuerst, dunkel danach. Welcher Wert gilt, entscheidet `color-scheme`
+     am benutzenden Element — die Systemvorgabe, die ausdrueckliche Wahl aus
+     der Kopfleiste, oder `color-scheme: dark` auf Tafel und Fusszeile. */
   color-scheme: light dark;
 
-  --papier: light-dark(#faf9f6, #121317);
-  --flaeche: light-dark(#f2f0eb, #1a1c21);
-  --tinte: light-dark(#14161a, #e8e6e1);
-  --gedaempft: light-dark(#5a5f6a, #9aa0aa);
-  --linie: light-dark(#dcd8d0, #2c2f36);
-  --linie-stark: light-dark(#8e887e, #676d79);
-  /* Ueberfahrene oder fokussierte Tabellenzeile. Liegt zwischen --flaeche
-     (Zebrastreifen) und --papier: 1,17:1 hell, 1,19:1 dunkel gegen --papier,
-     und 1,084:1 bzw. 1,095:1 gegen den Streifen — gerade genug, um den
-     Unterschied zu sehen, gerade wenig genug, um keine Auszeichnung zu sein.
-     Gerechnet 2026-09-20 (TPULS-118). */
-  --zeile-aktiv: light-dark(#eae7e0, #212429);
-  /* Hilfslinien im Diagramm. --linie liegt bei 1,35:1 und war dafuer zu schwach:
-     eine 50-%-Linie, die man suchen muss, hilft beim Ablesen nicht. 1,79:1 hell,
-     1,93:1 dunkel. Bleibt bewusst unter 3:1 — sie begrenzt keine Bedienflaeche
-     und soll die Saeulen nicht ueberstimmen. Gerechnet 2026-09-20 (TPULS-118). */
-  --gitter-stark: light-dark(#c3bcb0, #41454e);
-  --akzent: light-dark(#12595e, #6fb9bd);
-  --plus: light-dark(#9c4a21, #e09a6a);
-  --minus: light-dark(#2f6b46, #7cc79c);
-  --tram: light-dark(#12595e, #6fb9bd);
-  --bus: light-dark(#3f5570, #93a8c4);
-  --schleier: light-dark(rgba(20, 22, 26, 0.34), rgba(0, 0, 0, 0.72));
+  --grund: light-dark(#f3f5f7, #0b0e13);
+  --flaeche: light-dark(#ffffff, #131820);
+  --flaeche-2: light-dark(#f4f6f8, #0f131a);
+  --tinte: light-dark(#10141a, #e8ebef);
+  --gedaempft: light-dark(#566070, #9aa3b1);
+  --linie: light-dark(#e1e5ea, #232a35);
+  --linie-stark: light-dark(#858e9c, #6b7686);
+  --gitter: light-dark(#c9cfd8, #36404e);
+  --zeile-aktiv: light-dark(#e9edf2, #1b212b);
+  --akzent: light-dark(#8a5a00, #ffb224);
+  --fokus: light-dark(#b97800, #ffb224);
+  --auswahl: light-dark(#10141a, #ffb224);
+  --auf-auswahl: light-dark(#ffffff, #10141a);
+  --tram: light-dark(#0b7a73, #4cc3b5);
+  --auf-tram: light-dark(#ffffff, #0b0e13);
+  --bus: light-dark(#6b45b8, #b39af7);
+  --auf-bus: light-dark(#ffffff, #0b0e13);
+  --plus: light-dark(#c4581b, #f08a4b);
+  --minus: light-dark(#4d6b99, #8fa9d6);
+  --schleier: light-dark(rgb(16 20 26 / 0.28), rgb(0 0 0 / 0.7));
 
-  --schrift-serif: "TramPuls Serif", "Serif Ersatz", Georgia, "Times New Roman", serif;
-  --schrift-grotesk: "Archivo Var", "Groteske Ersatz", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  /* Signalgelb gilt in beiden Schemata: es ist eine Flaeche mit dunkler
+     Schrift (Marke, gewaehlter Zustand im Nachtschema) oder eine Ziffer auf der
+     immer dunklen Tafel, nie Schrift auf hellem Grund. */
+  --signal: #ffb224;
+  --auf-signal: #10141a;
+  /* Die Tafel ist in beiden Schemata dunkel. Ihr Grund steht als fester Wert
+     und nicht als light-dark(): in der Tafel gilt color-scheme: dark, ein
+     light-dark() loeste sich dort immer zum zweiten Wert auf. */
+  --tafel-grund: #0d1117;
+  --tafel-rand: #232a34;
 
-  /* Schriftgrade. Die Skala ist fluid, aber nach oben gedeckelt: eine
-     Ueberschrift, die auf einem 27-Zoll-Schirm weiterwaechst, wird nicht
-     edler, sondern nur groesser. */
-  --t-display: clamp(2.6rem, 12vw, 4.25rem);
-  --t-h1: clamp(1.65rem, 5.2vw, 2.5rem);
-  --t-h2: clamp(1.15rem, 3.2vw, 1.45rem);
-  --t-h3: 1.02rem;
-  --t-lead: clamp(1rem, 2.4vw, 1.12rem);
+  /* Der Grund, auf dem ein Element gerade steht. Freisteller der
+     Saeulenwerte und die stehende Tabellenspalte brauchen genau diese Farbe —
+     auf einer Flaeche ist das nicht mehr --grund. Tafel und Flaechen setzen
+     den Wert fuer sich neu. */
+  --hinter: var(--grund);
+
+  --schrift-text: "Instrument Sans", "Text Ersatz Segoe", "Text Ersatz Roboto", "Text Ersatz Arial", system-ui, sans-serif;
+  --schrift-schmal: "Instrument Sans Schmal", "Schmal Ersatz Narrow", "Schmal Ersatz Roboto", "Schmal Ersatz Arial", system-ui, sans-serif;
+
+  /* Schriftgrade. Fluid, aber nach oben gedeckelt. */
+  --t-anzeige: clamp(3.25rem, 13vw, 5.75rem);
+  --t-h1: clamp(2.1rem, 6.4vw, 3.6rem);
+  --t-h2: clamp(1.4rem, 3.6vw, 1.95rem);
+  --t-h3: 1.15rem;
+  --t-lead: clamp(1.0625rem, 2.3vw, 1.25rem);
   --t-klein: 0.875rem;
   --t-mikro: 0.75rem;
 
-  /* Abstaende auf einer 4px-Basis. Vorher standen hier ad hoc gewaehlte
-     rem-Werte; ein Raster ist der Unterschied zwischen "aufgeraeumt" und
-     "zufaellig ordentlich". */
+  /* Abstaende auf einer 4px-Basis. */
   --r1: 0.25rem;
   --r2: 0.5rem;
   --r3: 0.75rem;
@@ -184,84 +173,86 @@
   --r7: 3rem;
   --r8: 4.5rem;
 
-  /* Die Huelle fasst gerade so das Raster mit Randspalte: 40 rem Hauptteil
-     + 3 rem Rinne + 16 rem Rand + Innenabstand. Bei 72 rem blieb auf Seiten
-     ohne Randspalte rechts eine tote Flaeche stehen, waehrend die Navigation
-     am aeusseren Rand klebte — die Seite sah dann unfertig aus statt
-     grosszuegig. */
-  --breite-seite: 66rem;
+  /* Radien. Das Tram-Schild ist eckig, das Bus-Schild rund — die Form traegt
+     die Verkehrsart mit, damit die Farbe es nie allein muss. */
+  --radius-s: 0.3rem;
+  --radius-m: 0.6rem;
+  --radius-l: 1rem;
+  --radius-voll: 999px;
+
+  --schatten: 0 1px 2px light-dark(rgb(16 20 26 / 0.06), rgb(0 0 0 / 0.45)),
+              0 4px 16px light-dark(rgb(16 20 26 / 0.04), rgb(0 0 0 / 0.25));
+
+  --breite-seite: 72rem;
   --breite-text: 40rem;
   --breite-rand: 16rem;
-
-  /* Aussenabstand der randlosen Huelle ab 87,5 rem. Unterhalb ungenutzt: dort
-     zentriert --breite-seite, und der Innenabstand kommt aus .huelle selbst.
-     clamp statt fester Wert, damit der Abstand bei 1400 px nicht so breit
-     wirkt wie bei 3440 px. */
   --rand-aussen: clamp(1.5rem, 2.2vw, 3.5rem);
+  /* Innenabstand einer Flaeche. Die Randspalten-Schwelle unten rechnet ihn mit. */
+  --innen: var(--r5);
 
   /* Fingerbreite. Alles, was angetippt wird, ist mindestens so hoch. */
   --tippziel: 2.75rem;
 }
 
-/* Die ausdrueckliche Wahl aus der Kopfleiste. Sie steht hinter der
-   Systemvorgabe und schlaegt sie in beide Richtungen — auch "hell" auf einem
-   Geraet, das dunkel gestellt ist. Gesetzt wird das Merkmal von
-   `public/farbschema.js`, noch bevor das erste Bild der Seite steht; ohne
-   JavaScript bleibt es aus und die Systemvorgabe gilt unveraendert weiter. */
+/* Die Farbe der Verkehrsart, um die es in einem Abschnitt geht. data-art steht
+   an <main> (linie.ts), am Abschnitt (netz.ts), an der Kachel (linien.ts) oder
+   an der Ueberschrift; alles darin — Saeule, Linienband, Balken — liest diese
+   eine Variable. Ohne data-art gilt Tinte: es gibt keine neutrale Verkehrsfarbe. */
+[data-art="tram"] { --art-farbe: var(--tram); }
+[data-art="bus"] { --art-farbe: var(--bus); }
+
+/* Die ausdrueckliche Wahl aus der Kopfleiste. Gesetzt von public/farbschema.js,
+   noch bevor das erste Bild steht. Ohne JavaScript gilt die Systemvorgabe. */
 :root[data-farbschema="hell"] { color-scheme: light; }
 :root[data-farbschema="dunkel"] { color-scheme: dark; }
 
 * { box-sizing: border-box; }
 
-/* `hidden` muss verstecken, auch wo eine Regel `display` setzt. Die vier
-   Datumsfelder auf /vergleich blieben im Modus "Schulzeit und Ferien"
-   sichtbar und mit der Tastatur erreichbar: `.regler label { display: flex }`
-   ueberstimmte das hidden-Attribut, das vergleich.ts setzt (gemessen
-   2026-09-24 im gebauten Stand: hidden=true, display=flex; TPULS-137). */
+/* `hidden` muss verstecken, auch wo eine Regel `display` setzt. Bis Gestaltung
+   v4 blieben die vier Datumsfelder auf /vergleich im Modus "Schulzeit und
+   Ferien" sichtbar und mit der Tastatur erreichbar: `.regler label
+   { display: flex }` ueberstimmte das hidden-Attribut, das vergleich.ts setzt
+   (gemessen 2026-09-24 im gebauten Stand: hidden=true, display=flex). */
 [hidden] { display: none !important; }
 
 html {
-  /* iOS vergroessert im Querformat sonst eigenmaechtig die Schrift und bringt
-     die gemessenen Spaltenbreiten der Diagramme durcheinander. */
+  /* iOS vergroessert im Querformat sonst eigenmaechtig die Schrift. */
   -webkit-text-size-adjust: 100%;
 }
 
 body {
   margin: 0;
-  background: var(--papier);
+  background: var(--grund);
   color: var(--tinte);
-  font-family: var(--schrift-grotesk);
+  font-family: var(--schrift-text);
   font-size: 1rem;
   font-weight: 400;
   line-height: 1.6;
-  /* Haltestellennamen wie "Heidelberg Betriebshof/Gaisbergstrasse" brechen
-     lieber um, als die Seite breiter zu machen als das Fenster. */
   overflow-wrap: break-word;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 svg, img { max-width: 100%; }
 
 :focus-visible {
-  outline: 2px solid var(--akzent);
+  outline: 2px solid var(--fokus);
   outline-offset: 2px;
-  border-radius: 2px;
+  border-radius: var(--radius-s);
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  a, button, .knopf, summary { transition: color 120ms ease, border-color 120ms ease; }
+  a, button, .knopf, summary, label, input, select {
+    transition: color 140ms ease, background-color 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
+  }
 }
 
 /* ---------------------------------------------------------------------------
    Geruest
-
-   Zwei Breiten: `--breite-seite` fasst die Seite, `--breite-text` haelt den
-   Lesetext auf ein Mass, das man ohne Kopfbewegung liest. Vorher lief jeder
-   Erklaersatz ueber die vollen 60rem.
    --------------------------------------------------------------------------- */
 
-/* Sichtbar erst im Fokus. Sechs Navigationseintraege auf jeder Seite sind mit
-   der Tastatur sonst sechs Tabulatorschritte vor jedem Inhalt (TPULS-117). */
+/* Sichtbar erst im Fokus. Fuenf Navigationseintraege sind mit der Tastatur
+   sonst fuenf Tabulatorschritte vor jedem Inhalt (TPULS-117). */
 .sprung {
   position: absolute;
   left: var(--r4);
@@ -271,10 +262,11 @@ svg, img { max-width: 100%; }
   align-items: center;
   min-height: var(--tippziel);
   padding: 0 var(--r4);
-  background: var(--tinte);
-  color: var(--papier);
-  border-radius: 2px;
+  background: var(--auswahl);
+  color: var(--auf-auswahl);
+  border-radius: var(--radius-m);
   text-decoration: none;
+  font-weight: 600;
   transition: top 120ms ease;
 }
 .sprung:focus-visible { top: var(--r2); }
@@ -286,59 +278,63 @@ svg, img { max-width: 100%; }
   padding: var(--r5) var(--r4) var(--r8);
 }
 
-/* Container statt Bildschirmbreite (ADR-025).
-   Dieselbe Tabelle steht in drei sehr verschiedenen Kaesten: Hauptspalte 44–48 rem,
-   Randspalte 16–20 rem, volle Huelle. Solange sie den Bildschirm fragte, brauchte
-   jeder Kasten eine eigene Ausnahme — und zwei davon brachen um, obwohl Zahlen
-   nicht umbrechen duerfen.
-   Container-Abfragen liegen innerhalb der Untergrenze, die `light-dark()` ohnehin
-   setzt (Chrome 123 / Safari 17.5 / Firefox 120 gegen Chrome 105 / Safari 16 /
-   Firefox 110) — es braucht also keinen Rueckfallweg. */
+/* Container statt Bildschirmbreite (ADR-025): Komponenten fragen den Kasten,
+   in dem sie stehen. Jedes direkte Kind der Huelle ist ein Rasterplatz und
+   damit der Container, den die Komponenten darin abfragen. */
 main.huelle { container: seite / inline-size; }
-.block > .block-haupt { container: haupt / inline-size; }
-.block > .block-rand  { container: rand  / inline-size; }
-
-/* Jedes direkte Kind der Huelle ist ein Rasterplatz und damit der Container,
-   den die Komponenten darin abfragen. Das gilt auf jeder Breite, nicht erst im
-   Raster: unterhalb von 87,5 rem ist der Platz einfach so breit wie die Huelle,
-   und die Abfragen unten treffen dieselbe Entscheidung wie vorher die
-   Bildschirmabfrage. */
 main.huelle > * { container: platz / inline-size; }
+.block > .block-haupt { container: haupt / inline-size; }
+.block > .block-rand { container: rand / inline-size; }
 
 /* Das Lesemass ist die Vorgabe fuer Fliesstext. Alles, was Daten traegt, sagt
-   selbst, welches Mass es braucht — vorher entschied darueber, ob jemand daran
-   gedacht hatte, `.breit` zu setzen. */
+   selbst, welches Mass es braucht. */
 main.huelle > * { max-width: var(--breite-text); }
 main.huelle > .block,
 main.huelle > .breit,
-main.huelle > .kennzahlen,
+main.huelle > .tafel,
+main.huelle > .auftakt,
 main.huelle > .vergleich,
 main.huelle > .regler,
 main.huelle > .linienliste,
-/* Die Traeger der Bloecke auf /linie. Sie haben seit ADR-028 keine Klasse mehr
-   (sie sind nur noch Rasterplatz und Container), tragen aber Daten und duerfen
-   deshalb nicht auf das Lesemass eingeschnuert werden. */
 main.huelle > [data-kopf],
+main.huelle > [data-regler],
+main.huelle > [data-kennzahl],
 main.huelle > [data-verlauf],
 main.huelle > [data-tagesgang],
 main.huelle > [data-profil],
 main.huelle > [data-ausfaelle],
-main.huelle > [data-kennzahl],
-/* Container, die selbst ein Raster aufbauen (Kachelwand /linien, Befunde
-   /befunde) und deshalb nicht auf 40 rem eingeschnuert werden duerfen. */
 main.huelle > [data-linien],
 main.huelle > [data-befunde] { max-width: none; }
 
-/* Randspalte im Block. Der Hauptteil behaelt sein Lesemass, die Nebensachen —
-   Legende, lange Erlaeuterung, "Zahlen dazu" — ruecken daneben und beginnen
-   oben. Darunter faellt alles in die Flussreihenfolge zurueck, damit die
-   Tabellenentsprechung direkt beim Diagramm bleibt.
-   59rem und nicht 62rem: die Schwelle stand vorher am Bildschirm, jetzt am
-   Kasten. Bei 992 px Bildschirm (62 rem) ist die Huelle 992 px breit, abzueglich
-   2 x var(--r5) Innenabstand bleiben 944 px = 59 rem Inhalt. Wer die 62 stehen
-   laesst, nimmt jedem Laptop zwischen 992 und 1040 px die Randspalte weg.
-   Gerechnet 2026-09-22. */
-@container platz (min-width: 59rem) {
+/* Der Abstand zwischen zwei Abschnitten haengt am Abschnitt, nicht an seiner
+   Ueberschrift (die traegt oben 0, siehe Typografie). */
+main.huelle > section,
+main.huelle > .block,
+main.huelle > .tafel { margin-top: var(--r6); }
+
+/* Ein Abschnitt mit Randspalte hat genau zwei Kinder, .block-haupt und
+   .block-rand — Bedingung dafuer, dass beide in derselben Rasterzeile liegen.
+   Auf schmalem Kasten steht der Rand unter dem Hauptteil. */
+.block > .block-haupt,
+.block > .block-rand { min-width: 0; }
+.block-rand {
+  margin-top: var(--r5);
+  padding-top: var(--r3);
+  border-top: 1px solid var(--linie);
+  font-size: var(--t-klein);
+  color: var(--gedaempft);
+}
+.block-rand > :first-child { margin-top: 0; }
+.block-rand > :last-child { margin-bottom: 0; }
+.block-rand p { margin: var(--r3) 0; }
+
+/* Die Randspalte rueckt neben den Hauptteil, sobald der Hauptteil daneben
+   noch 36 rem behaelt: 36 + 3 Rinne + 16 Rand = 55 rem Inhaltsbreite des
+   Containers. Die Flaeche selbst zieht dafuer ihren Innenabstand ab — die
+   Containerabfrage misst den Inhaltskasten. Bei 1024 px Bildschirm sind das
+   1024 - 2 x 24 (Huelle) - 2 x 25 (Flaeche mit Rand) = 926 px = 57,9 rem:
+   die Randspalte steht daneben, wie vor diesem Umbau. Gerechnet 2026-09-24. */
+@container platz (min-width: 55rem) {
   .block {
     display: grid;
     grid-template-columns: minmax(0, 1fr) var(--breite-rand);
@@ -352,70 +348,51 @@ main.huelle > [data-befunde] { max-width: none; }
   }
 }
 
-/* Der Abstand zwischen zwei Abschnitten haengt am Abschnitt, nicht an seiner
-   Ueberschrift: die traegt `margin-top: 0`, weil sie ganz oben im Hauptteil
-   steht und ihr eigener Vorlauf den Rand aus der Rasterzeile schieben wuerde. */
-main.huelle > section { margin-top: var(--r7); }
-.block { margin-top: var(--r7); }
-
-/* Ein Abschnitt mit Randspalte. Auf dem Telefon steht der Rand einfach unter
-   dem Hauptteil; ab Laptopbreite rueckt er daneben und beginnt oben.
-
-   Der Abschnitt hat genau zwei Kinder — Hauptteil und Rand. Das ist keine
-   ueberfluessige Verschachtelung, sondern die Bedingung dafuer, dass beide in
-   derselben Rasterzeile liegen: mit lose eingehaengten Kindern waere der Rand
-   an Zeile 1 gebunden und wuerde in der Hauptspalte eine Luecke aufreissen. */
-.block > .block-haupt { min-width: 0; }
-.block > .block-rand { min-width: 0; }
-
-.block-rand {
-  margin-top: var(--r5);
-  padding-top: var(--r3);
-  border-top: 1px solid var(--linie);
-  font-size: var(--t-klein);
-  color: var(--gedaempft);
-}
-.block-rand > :first-child { margin-top: 0; }
-.block-rand > :last-child { margin-bottom: 0; }
-.block-rand p { margin: var(--r3) 0; }
-
 /* ---------------------------------------------------------------------------
    Typografie
    --------------------------------------------------------------------------- */
 
 h1, h2, h3 {
-  font-family: var(--schrift-serif);
-  font-weight: 600;
-  line-height: 1.15;
+  font-family: var(--schrift-schmal);
+  font-weight: 650;
+  line-height: 1.08;
   letter-spacing: -0.005em;
   text-wrap: balance;
 }
 
-h1 { font-size: var(--t-h1); margin: 0 0 var(--r3); }
+h1 {
+  font-size: var(--t-h1);
+  font-weight: 700;
+  line-height: 1.02;
+  letter-spacing: -0.012em;
+  margin: var(--r3) 0 var(--r3);
+}
 h2 { font-size: var(--t-h2); margin: var(--r7) 0 var(--r3); }
 h3 { font-size: var(--t-h3); margin: var(--r5) 0 var(--r2); }
 
 /* Die erste Ueberschrift eines Abschnitts braucht ihren Vorlauf nicht, wenn
-   direkt darueber schon die Abschnittsgrenze sitzt.
-
-   Das gilt auch fuer h3: im Abschnitt mit Randspalte beginnt der Randteil an
-   der Oberkante des Rasters, die Ueberschrift daneben aber erst 24 px darunter
-   — die beiden Spalten sahen dadurch gegeneinander verschoben aus (gemessen
-   2026-08-31 auf /netz: 27 px Versatz). */
+   direkt darueber schon die Abschnittsgrenze sitzt (gemessen 2026-08-31 auf
+   /netz: sonst 27 px Versatz zwischen Haupt- und Randspalte). */
 section > h2:first-child,
+section > h3:first-child,
 .block-haupt > h2:first-child,
 .block-haupt > h3:first-child { margin-top: 0; }
 
 p { margin: var(--r3) 0; }
 
-a { color: var(--akzent); text-underline-offset: 0.18em; text-decoration-thickness: from-font; }
+a {
+  color: var(--akzent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+}
+a:hover { text-decoration-thickness: 2px; }
 
 .lead {
-  font-family: var(--schrift-serif);
   font-size: var(--t-lead);
   line-height: 1.55;
-  max-width: 38rem;
+  max-width: 40rem;
   margin: var(--r4) 0 0;
+  color: var(--tinte);
 }
 
 .klein { font-size: var(--t-klein); color: var(--gedaempft); margin: var(--r1) 0; }
@@ -424,80 +401,104 @@ a { color: var(--akzent); text-underline-offset: 0.18em; text-decoration-thickne
    aussehen: zitiert, nicht umformuliert. */
 blockquote {
   margin: var(--r4) 0;
-  padding: 0 0 0 var(--r4);
-  border-left: 2px solid var(--akzent);
-  font-family: var(--schrift-serif);
-  font-size: var(--t-lead);
-  line-height: 1.55;
-  max-width: 38rem;
-}
-blockquote p { margin: 0; }
-
-/* Die Anschrift auf /impressum. Der Vorgabewert von <address> ist kursiv —
-   das liest sich hier wie ein Nebensatz, obwohl es die einzige Angabe der
-   Seite ist, auf die es rechtlich ankommt. */
-address {
-  font-style: normal;
-  margin: var(--r4) 0;
-  line-height: 1.7;
-}
-
-/* Spaltennamen des Datenmodells in der Begriffstabelle. Sie stehen absichtlich
-   in derselben Groteske wie die Zahlen und nicht in einer eigenen
-   Monospace-Schrift — das waere eine dritte Schriftdatei fuer ein Dutzend
-   Woerter. */
-code {
-  font-family: var(--schrift-grotesk);
-  font-size: 0.92em;
-  font-weight: 500;
-  letter-spacing: 0.01em;
-  padding: 0.05em 0.3em;
+  padding: var(--r4) var(--r5);
+  border-left: 3px solid var(--signal);
+  border-radius: 0 var(--radius-m) var(--radius-m) 0;
   background: var(--flaeche);
-  border-radius: 2px;
+  max-width: 40rem;
+}
+blockquote p { margin: 0 0 var(--r3); }
+blockquote p:last-child { margin-bottom: 0; }
+
+/* Die Anschrift auf /impressum steht aufrecht: sie ist die einzige Angabe der
+   Seite, auf die es rechtlich ankommt. */
+address { font-style: normal; margin: var(--r4) 0; line-height: 1.7; }
+
+/* Spaltennamen des Datenmodells in der Begriffstabelle. Keine dritte
+   Schriftdatei fuer ein Dutzend Woerter. */
+code {
+  font-family: var(--schrift-text);
+  font-size: 0.9em;
+  font-weight: 500;
+  padding: 0.08em 0.35em;
+  background: var(--flaeche-2);
+  border: 1px solid var(--linie);
+  border-radius: var(--radius-s);
 }
 
-/* Eine Legende erklaert ein Diagramm und ist Lesetext, kein Datenblock. Sie
-   bekommt deshalb das Lesemass auch dann, wenn der Abschnitt um sie herum
-   die volle Seitenbreite nutzt. */
-.legende { max-width: 38rem; }
+.legende { max-width: 40rem; }
 
-/* Weiterfuehrender Verweis am Ende einer Seite. Vorher stand hier ein
-   Inline-Stil; Abstaende gehoeren ins Raster, nicht ins Markup. */
-.weiter { margin-top: var(--r7); }
+/* Weiterfuehrender Verweis. Der Pfeil ist gezeichnet und kein Zeichen: keine
+   der beiden Schriftdateien enthaelt U+2192 (geprueft 2026-09-24 an allen
+   Latin-Dateien des Fontsource-Pakets), das Zeichen kam bis hierher aus einer
+   Ersatzschrift. Als Maske eingefaerbt, damit er der Verweisfarbe folgt;
+   data:-Bilder erlaubt die CSP (img-src 'self' data:). */
+.weiter { margin-top: var(--r6); }
+.weiter a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45em;
+  min-height: var(--tippziel);
+  font-weight: 600;
+  text-decoration: none;
+}
+.weiter a::after,
+.knopf::after {
+  content: "";
+  flex: none;
+  width: 1em;
+  height: 1em;
+  background: currentColor;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M2 8h11M9 3.5 13.5 8 9 12.5' fill='none' stroke='%23000' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .weiter a::after, .knopf::after { transition: transform 160ms ease; }
+  .weiter a:hover::after, .knopf:hover::after { transform: translateX(3px); }
+}
+.weiter a:hover { text-decoration: underline; text-decoration-thickness: 1px; }
+
+/* Die kleine Beschriftung ueber einem Feld, einer Tafel oder einer Tabelle:
+   Versalien mit Sperrung, wie auf einer Anzeige. */
+.feld-name,
+.tafel-titel,
+.inhaltsspalte-titel,
+thead th {
+  font-family: var(--schrift-text);
+  font-size: var(--t-mikro);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--gedaempft);
+}
 
 /* ---------------------------------------------------------------------------
    Kopf- und Fusszeile
-
-   Kein graues Band mehr: eine Haarlinie trennt, die Wortmarke steht in der
-   Serif und die Navigation in der Groteske. Der Rangunterschied entsteht aus
-   der Schrift, nicht aus einer Flaeche.
    --------------------------------------------------------------------------- */
 
-header.kopfleiste { border-bottom: 1px solid var(--linie); }
+header.kopfleiste {
+  border-bottom: 1px solid var(--linie);
+  background: var(--grund);
+  /* Seitenwechsel ueberblenden nur den Inhalt, die Leiste steht (siehe
+     "Bewegung" am Dateiende). */
+  view-transition-name: kopfleiste;
+}
 
-/* Klebend erst ab Schreibtischbreite. Auf dem Telefon kostet eine klebende
-   Leiste dauerhaft Hoehe, und dort ist der Weg nach oben kurz — die Seite ist
-   eine Spalte. Ab 87,5 rem steht der Inhalt im Raster und die Seite ist
-   breiter als hoch; der Weg zurueck zur Navigation waere sonst der ganze
-   Scrollweg.
-   --kopf-hoehe gibt die Hoehe an den klebenden Regler weiter (TPULS-134).
-   Der Wert ist gemessen, nicht geraten: `header.kopfleiste`
-   .getBoundingClientRect().height im gebauten Stand (Chrome), 2026-09-22 —
-   68,8 px bei 1440 px Breite (1,0625rem Wurzelschrift, macht 4,05rem) und
-   71,5 px bei 2560 px (1,125rem Wurzelschrift, macht 3,97rem). Beide runden
-   auf denselben Wert; ein zweiter Wert im 112,5-rem-Block war deshalb
-   nicht noetig. */
+/* Klebend erst ab Schreibtischbreite: auf dem Telefon kostet eine klebende
+   Leiste dauerhaft Hoehe, und der Weg nach oben ist dort kurz. --kopf-hoehe
+   gibt die Hoehe an klebenden Regler und Inhaltsspalte weiter; gemessen
+   2026-09-24 im gebauten Stand: 64,8 px bei 1440 px (17 px Wurzelschrift),
+   68,5 px bei 1920 und 2560 px (18 px) — beides 3,81 rem. 3,875 rem laesst
+   einen Hauch Luft, damit nichts unter die Leiste rutscht. */
 @media (min-width: 87.5rem) {
-  :root { --kopf-hoehe: 4rem; }
+  :root { --kopf-hoehe: 3.875rem; }
   header.kopfleiste {
     position: sticky;
     top: 0;
     z-index: 6;
-    background: var(--papier);
+    background: color-mix(in srgb, var(--grund) 86%, transparent);
+    -webkit-backdrop-filter: saturate(1.4) blur(12px);
+    backdrop-filter: saturate(1.4) blur(12px);
   }
-
-  /* Die Sprungmarken aus der Inhaltsspalte (TPULS-132) duerfen nicht hinter
-     der jetzt klebenden Kopfleiste landen. */
   main.huelle h2, main.huelle h3 { scroll-margin-top: calc(var(--kopf-hoehe) + var(--r4)); }
 }
 
@@ -505,133 +506,342 @@ header.kopfleiste .huelle {
   padding-block: var(--r2);
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 0 var(--r5);
-  align-items: baseline;
 }
 
 .marke {
-  font-family: var(--schrift-serif);
-  font-size: 1.2rem;
-  font-weight: 600;
-  letter-spacing: -0.01em;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: var(--tippziel);
   color: var(--tinte);
   text-decoration: none;
-  padding-block: var(--r2);
 }
-.marke:hover { color: var(--akzent); }
+.marke:hover { color: var(--tinte); }
+.marke-zeichen { display: block; width: 1.9rem; height: 1.9rem; flex: none; }
+.marke-grund { fill: var(--signal); }
+.marke-strecke { fill: none; stroke: var(--auf-signal); stroke-width: 3; stroke-linecap: round; }
+.marke-halt { fill: #ffffff; stroke: var(--auf-signal); stroke-width: 3; }
+.marke-wort {
+  font-family: var(--schrift-schmal);
+  font-size: 1.45rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1;
+}
 
-/* Fuenf Eintraege plus Wortmarke passen auf 344 px nicht in eine Zeile. Sie
-   brechen um, statt die Kopfleiste ueber den Bildschirmrand zu schieben —
-   umbrechen ist hier richtiger als ein Scrollstreifen, in dem Eintraege
-   unsichtbar werden. */
 header.kopfleiste nav {
   display: flex;
   flex-wrap: wrap;
-  gap: 0 var(--r4);
+  gap: 0 var(--r1);
   margin-inline-start: auto;
 }
 header.kopfleiste nav a {
-  display: inline-flex;
-  align-items: center;
-  /* Auch ein Navigationseintrag ist ein Tippziel und haelt die Fingerbreite
-     ein. Mit blossem Innenabstand kam er auf 38 px (gemessen 2026-08-29). */
-  min-height: var(--tippziel);
-  font-size: var(--t-klein);
-  color: var(--gedaempft);
-  text-decoration: none;
-}
-header.kopfleiste nav a:hover { color: var(--akzent); }
-header.kopfleiste nav a[aria-current="page"] {
-  color: var(--tinte);
-  font-weight: 600;
-  box-shadow: inset 0 -2px 0 var(--akzent);
-}
-
-/* Der Umschalter fuer das Farbschema. Er sitzt am aeusseren Rand der
-   Kopfleiste, hinter der Navigation: er gehoert nicht zu ihr — ein Knopf, der
-   die Seite umfaerbt, ist kein Ziel, das man ansteuert.
-
-   Der Vorgabestil fuer `button` weiter unten gibt jedem Knopf Rahmen und
-   Flaeche. Beides waere hier eine Kachel in einer Leiste, die sonst nur aus
-   Haarlinien besteht — deshalb zurueckgenommen, wie beim Begriffsknopf. Die
-   Fingerbreite bleibt, sie ist der Grund fuer die Mindestmasse. */
-.farbschalter {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  align-self: center;
-  min-height: var(--tippziel);
-  min-width: var(--tippziel);
-  padding: 0;
-  border: 0;
-  border-radius: 2px;
-  background: none;
-  color: var(--gedaempft);
-  /* Das Zeichen ist 16 px breit, sein Tippziel 44 — ohne den negativen
-     Aussenabstand stuende es sichtbar weit vom Rand der Huelle ab. */
-  margin-inline-end: calc(var(--r3) * -1);
-}
-.farbschalter:hover { color: var(--akzent); }
-.farbschalter svg { display: block; width: 1rem; height: 1rem; }
-
-footer.fuss {
-  border-top: 1px solid var(--linie);
-  margin-top: var(--r8);
-  padding-top: var(--r4);
-  font-size: var(--t-klein);
-  color: var(--gedaempft);
-}
-footer.fuss p { max-width: 38rem; }
-footer.fuss a { color: var(--akzent); }
-
-/* ---------------------------------------------------------------------------
-   Kennzahlen
-
-   Vorher: gefuellte graue Karten mit Rahmen und Radius. Jetzt Bloecke, die nur
-   durch eine Haarlinie und Weissraum getrennt sind. Die Verkehrsart bekommt
-   einen kurzen farbigen Strich — die einzige Farbflaeche im Block.
-   --------------------------------------------------------------------------- */
-
-.kennzahlen {
-  display: grid;
-  max-width: 52rem;
-  gap: var(--r6);
-  /* min() statt 16rem: auf 320 px ist eine Spalte sonst breiter als die Seite. */
-  grid-template-columns: repeat(auto-fit, minmax(min(16rem, 100%), 1fr));
-  margin-top: var(--r6);
-}
-
-/* Umschalter fuer den Zeitraum der Netzzahlen (/ und /netz).
-
-   Zwei Zustaende, die einander ausschliessen — also Radioknoepfe und keine
-   zwei Schalter: nur damit sagt der Screenreader "1 von 2" und nur damit
-   wandert die Pfeiltaste zwischen ihnen. Der eigentliche Knopf liegt
-   unsichtbar ueber seiner Beschriftung, statt mit `display: none` aus der
-   Tabulatorreihenfolge zu verschwinden.
-
-   Der gewaehlte Abschnitt ist gefuellt und nicht nur unterstrichen: bei zwei
-   gleich aussehenden Feldern muss ohne Vergleich erkennbar sein, welches
-   gilt. Das ist derselbe Ton wie beim Hauptknopf auf der Startseite. */
-.zeitwahl {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--r2);
-  margin: var(--r5) 0 0;
-}
-.zeitwahl label {
   position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   min-height: var(--tippziel);
-  padding: var(--r2) var(--r4);
-  border: 1px solid var(--linie-stark);
+  padding: 0 var(--r3);
+  border-radius: var(--radius-m);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--gedaempft);
+  text-decoration: none;
+}
+header.kopfleiste nav a:hover { color: var(--tinte); background: var(--flaeche); }
+/* Die gewaehlte Seite traegt die Signalkante unten — wie die Markierung an
+   der Bahnsteigkante: ein Strich, keine Flaeche. */
+header.kopfleiste nav a[aria-current="page"] { color: var(--tinte); font-weight: 600; }
+header.kopfleiste nav a[aria-current="page"]::after {
+  content: "";
+  position: absolute;
+  left: var(--r3);
+  right: var(--r3);
+  bottom: 0.3rem;
+  height: 3px;
   border-radius: 2px;
+  background: var(--signal);
+}
+
+/* Der Umschalter fuer das Farbschema sitzt am aeusseren Rand, hinter der
+   Navigation: ein Knopf, der die Seite umfaerbt, ist kein Ziel. */
+.farbschalter {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--tippziel);
+  min-width: var(--tippziel);
+  padding: 0;
+  border: 1px solid var(--linie);
+  border-radius: var(--radius-voll);
+  background: var(--flaeche);
+  color: var(--gedaempft);
+}
+.farbschalter:hover { color: var(--tinte); border-color: var(--linie-stark); }
+.farbschalter svg { display: block; width: 1rem; height: 1rem; }
+
+/* Die Fusszeile ist wie die Tafel ein Stueck Nachtschema. Sie traegt die
+   Pflichtangaben — Attribution, Distanzierung, Impressum — und steht deshalb
+   auf jeder Seite gleich. */
+footer.fuss {
+  color-scheme: dark;
+  --hinter: var(--tafel-grund);
+  margin-top: var(--r8);
+  background: var(--tafel-grund);
+  border-top: 1px solid var(--tafel-rand);
+  color: var(--gedaempft);
+  font-size: var(--t-klein);
+}
+footer.fuss .huelle {
+  display: grid;
+  gap: var(--r2) var(--r7);
+  padding-block: var(--r6) var(--r7);
+}
+footer.fuss p { margin: 0; max-width: 42rem; }
+footer.fuss a { color: var(--tinte); }
+footer.fuss .marke { color: var(--tinte); }
+.fuss-kopf { display: grid; gap: var(--r3); }
+.fuss-verweise {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--r5);
+}
+.fuss-verweise a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tippziel);
+}
+@media (min-width: 60rem) {
+  footer.fuss .huelle {
+    grid-template-columns: minmax(16rem, 1fr) minmax(0, 2fr);
+    align-items: start;
+  }
+  .fuss-kopf { grid-row: span 3; }
+}
+
+/* ---------------------------------------------------------------------------
+   Flaechen
+
+   Was Daten traegt, steht auf einer eigenen Flaeche: ein Kasten mit Haarlinie
+   und kleinem Radius, damit im Raster erkennbar bleibt, was zusammengehoert.
+   Der Innenabstand steckt in --innen; die Randspalten-Schwelle rechnet ihn mit.
+   --------------------------------------------------------------------------- */
+
+main.huelle > [data-verlauf],
+main.huelle > [data-tagesgang],
+main.huelle > [data-profil],
+main.huelle > [data-ausfaelle],
+main.huelle > [data-einordnung],
+[data-ferien] > section,
+[data-verlauf].breit > .block,
+.befund {
+  --hinter: var(--flaeche);
+  background: var(--flaeche);
+  border: 1px solid var(--linie);
+  border-radius: var(--radius-l);
+  padding: var(--innen);
+  box-shadow: var(--schatten);
+}
+/* Ein leerer Abschnitt (etwa bevor die Zahlen da sind oder wenn eine
+   Richtung nichts hat) zeigt keinen leeren Kasten. */
+main.huelle > [data-verlauf]:empty,
+main.huelle > [data-tagesgang]:empty,
+main.huelle > [data-profil]:empty,
+main.huelle > [data-ausfaelle]:empty,
+main.huelle > [data-einordnung]:empty { display: none; }
+
+/* /netz: Verlauf und Ferien sind Abschnitte mit Ueberschrift und darunter je
+   einem Kasten fuer Strassenbahn und Bus — nicht selbst ein Kasten. */
+main.huelle > [data-verlauf].breit,
+main.huelle > [data-ferien] {
+  --hinter: var(--grund);
+  background: none;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  box-shadow: none;
+}
+[data-verlauf].breit,
+[data-ferien] {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(30rem, 100%), 1fr));
+  gap: var(--r4) var(--r5);
+  align-items: start;
+}
+[data-verlauf].breit > h2,
+[data-verlauf].breit > .legende,
+[data-ferien] > h2,
+[data-ferien] > .legende,
+[data-ferien] > .vorbehalt { grid-column: 1 / -1; margin-block: 0; }
+/* Die beiden Kaesten stehen nebeneinander in einer Rasterzelle, ihr naechster
+   Container ist aber der ganze Abschnitt. Eine Randspalte kaeme deshalb schon
+   dann, wenn der Abschnitt breit ist, nicht der Kasten (derselbe Fehler wie
+   Falle 1 in Plan_Gestaltung_v3). Hier steht der Rand deshalb immer darunter. */
+[data-verlauf].breit > .block { display: block; margin-top: 0; }
+/* Die Ferientabelle hat vier Spalten ohne Umbruch und braucht rund 38 rem;
+   bei 1440 px sind zwei Kaesten nebeneinander 36,4 rem breit, und die Spalte,
+   um die es geht, stand hinter dem Scrollrand (gemessen 2026-09-24, derselbe
+   Befund schon im Bestand). Nebeneinander deshalb erst ab 40 rem je Kasten. */
+[data-ferien] { grid-template-columns: repeat(auto-fit, minmax(min(40rem, 100%), 1fr)); }
+[data-verlauf].breit > .block > .block-rand { margin-top: var(--r3); border-top: 1px solid var(--linie); padding-top: var(--r2); }
+
+/* ---------------------------------------------------------------------------
+   Anzeigetafel
+
+   Die Zahl, wegen der jemand kommt, steht auf einer dunklen Tafel — in beiden
+   Farbschemata. Sie zeigt eine Quote, nie eine Abfahrt: keine Uhrzeit, kein
+   Ziel, keine Minuten bis zur naechsten Bahn. TramPuls ist keine
+   Fahrplanauskunft (TramPuls_Konzept), und die Tafel darf nicht so tun.
+   Der Vorbehalt steht als unterste Zeile auf der Tafel selbst — so kann er von
+   seiner Zahl auf keiner Breite getrennt werden (ADR-016).
+   --------------------------------------------------------------------------- */
+
+.tafel,
+.vergleichsspalte,
+[data-kennzahl] .block-haupt {
+  color-scheme: dark;
+  --hinter: var(--tafel-grund);
+  background: var(--tafel-grund);
+  color: var(--tinte);
+  border: 1px solid var(--tafel-rand);
+  border-radius: var(--radius-l);
+}
+.tafel,
+.vergleichsspalte { padding: var(--r4) var(--innen) var(--r5); box-shadow: var(--schatten); }
+.vergleichsspalte .gross { color: var(--signal); }
+
+.tafel-kopf {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--r3) var(--r5);
+  padding-bottom: var(--r3);
+  border-bottom: 1px solid var(--linie);
+}
+.tafel-titel { margin: 0; line-height: 1.4; }
+
+.kennzahlen {
+  display: grid;
+  gap: var(--r5) var(--r7);
+  /* min() statt 16rem: auf 320 px ist eine Spalte sonst breiter als die Seite. */
+  grid-template-columns: repeat(auto-fit, minmax(min(16rem, 100%), 1fr));
+  margin-top: var(--r5);
+}
+.kennzahl { min-width: 0; }
+.kennzahl > h3 {
+  margin: 0;
+  font-family: var(--schrift-text);
+  font-size: var(--t-klein);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--tinte);
+}
+
+/* Die Verkehrsart als Wort mit ihrem Zeichen davor: Quadrat fuer die
+   Strassenbahn, Kreis fuer den Bus — dieselbe Form wie das Linienschild. */
+.art { display: flex; align-items: center; gap: 0.55em; }
+.art::before {
+  content: "";
+  width: 0.8em;
+  height: 0.8em;
+  flex: none;
+  background: var(--art-farbe, var(--tinte));
+  border-radius: 2px;
+}
+.art[data-art="bus"]::before { border-radius: 50%; }
+
+/* Die grosse Zahl. Tabellenziffern, damit sie beim Umschalten nicht in der
+   Breite springt; `nowrap`, damit das Prozentzeichen auf 320 px nicht allein
+   in die naechste Zeile rutscht. Auf der Tafel in Signalgelb. */
+.gross {
+  font-family: var(--schrift-schmal);
+  font-size: var(--t-anzeige);
+  font-weight: 600;
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums lining-nums;
+  margin: var(--r3) 0 var(--r2);
+  display: flex;
+  align-items: baseline;
+  gap: 0.08em;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+.tafel .gross,
+[data-kennzahl] .gross { color: var(--signal); }
+.gross .einheit {
+  font-size: 0.36em;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--gedaempft);
+  flex: none;
+}
+
+.tafel > .vorbehalt {
+  margin: var(--r5) 0 0;
+  padding-top: var(--r3);
+  border-top: 1px solid var(--linie);
+  max-width: none;
+}
+
+/* /linie: die Kennzahl ist eine Tafel, ihre Erlaeuterung steht daneben. Die
+   Kopfzeile der Tafel nennt die vollstaendige Auswahl — eine Zahl, die nicht
+   sagt, wofuer sie steht, waere genau die Aussage, die diese Seite nicht
+   macht. */
+[data-kennzahl] .block-haupt { padding: var(--r4) var(--innen) var(--r5); box-shadow: var(--schatten); }
+.tafel-zeile {
+  margin: 0 0 var(--r2);
+  padding-bottom: var(--r3);
+  border-bottom: 1px solid var(--linie);
   font-size: var(--t-klein);
   color: var(--gedaempft);
-  cursor: pointer;
 }
-.zeitwahl input {
+
+/* ---------------------------------------------------------------------------
+   Segmente: Zeitwahl, Richtung, Schwelle, Vergleichsart
+
+   Zustaende, die einander ausschliessen, sind Radioknoepfe und keine
+   Schalter: nur damit sagt der Screenreader "1 von 5" und nur damit wandert
+   die Pfeiltaste. Der Knopf liegt unsichtbar ueber seiner Beschriftung, statt
+   mit `display: none` aus der Tabulatorreihenfolge zu fallen.
+   --------------------------------------------------------------------------- */
+
+.segmente {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  padding: 3px;
+  max-width: 100%;
+  background: var(--flaeche-2);
+  border: 1px solid var(--linie-stark);
+  border-radius: var(--radius-m);
+}
+.segmente label {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1 1 auto;
+  min-height: calc(var(--tippziel) - 8px);
+  padding: 0 var(--r4);
+  border-radius: calc(var(--radius-m) - 3px);
+  font-size: var(--t-klein);
+  font-weight: 500;
+  color: var(--gedaempft);
+  cursor: pointer;
+  text-align: center;
+  line-height: 1.25;
+}
+/* Die Hoehe des Tippziels misst die Breitenmatrix an der Beschriftung. 8 px
+   weniger als --tippziel plus 2 x 3 px Innenabstand plus 2 x 1 px Rahmen ergibt
+   wieder genau --tippziel fuer die ganze Leiste; die einzelne Beschriftung
+   waechst ueber `padding-block`, bis sie selbst 44 px erreicht. */
+.segmente label { padding-block: 5px; min-height: var(--tippziel); }
+.segmente input {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -640,110 +850,26 @@ footer.fuss a { color: var(--akzent); }
   opacity: 0;
   cursor: pointer;
 }
-.zeitwahl label:hover { color: var(--akzent); border-color: var(--akzent); }
-.zeitwahl label:has(:checked) {
-  background: var(--tinte);
-  border-color: var(--tinte);
-  color: var(--papier);
+.segmente label:hover { color: var(--tinte); }
+.segmente label:has(:checked) {
+  background: var(--auswahl);
+  color: var(--auf-auswahl);
   font-weight: 600;
 }
-/* Der Rahmen gehoert um die Beschriftung, nicht um den unsichtbaren Knopf
-   darin — sonst liegt er auf einem Element ohne eigene Ausdehnung. */
-.zeitwahl label:has(:focus-visible) {
-  outline: 2px solid var(--akzent);
+.segmente label:has(:focus-visible) {
+  outline: 2px solid var(--fokus);
   outline-offset: 2px;
 }
 
-.kennzahl { border-top: 2px solid var(--linie); padding-top: var(--r3); }
+/* ---------------------------------------------------------------------------
+   Zahlenpaare
+   --------------------------------------------------------------------------- */
 
-/* /vergleich: zwei Zeitraeume nebeneinander (T6). Auf dem Telefon untereinander
-   -- zwei Spalten zu je 160 px waeren dort keine Gegenueberstellung mehr,
-   sondern zwei unlesbare Saeulen. Der Unterschied darunter laeuft ueber beide
-   Spalten, weil er zu keiner von beiden gehoert. */
-.vergleich {
-  display: grid;
-  gap: var(--r6);
-  grid-template-columns: repeat(auto-fit, minmax(min(18rem, 100%), 1fr));
-  margin-top: var(--r6);
-}
-.vergleichsspalte { border-top: 2px solid var(--linie); padding-top: var(--r3); }
-
-/* /befunde: jede Aussage ein eigener Abschnitt mit Haarlinie darueber. Die
-   Aussage selbst steht gross und in der Serif -- sie ist der Satz, den jemand
-   zitiert; Fallzahl und Vorbehalt darunter tragen ihn, drangen sich aber nicht
-   davor. */
-.befund { border-top: 1px solid var(--linie); padding-top: var(--r4); margin-top: var(--r6); }
-.befund > h2 { margin-top: 0; }
-.aussage {
-  font-family: var(--schrift-serif);
-  font-size: var(--t-lead);
-  line-height: 1.5;
-  max-width: 38rem;
-}
-.vergleichsspalte > h2 { margin-top: 0; }
-.unterschied {
-  grid-column: 1 / -1;
-  margin: 0;
-  padding-top: var(--r3);
-  border-top: 1px solid var(--linie);
-  font-size: var(--t-lead);
-  font-family: var(--schrift-serif);
-}
-.kennzahl[data-art="tram"] { border-top-color: var(--tram); }
-.kennzahl[data-art="bus"] { border-top-color: var(--bus); }
-.kennzahl h2 {
-  font-family: var(--schrift-grotesk);
-  font-size: var(--t-mikro);
-  font-weight: 600;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-  color: var(--gedaempft);
-  margin: 0;
-  line-height: 1.4;
-}
-
-/* Die grosse Zahl. Tabellenziffern, damit sie beim Umschalten des Reglers
-   nicht in der Breite springt; das Prozentzeichen ist kleiner und gedaempft,
-   weil es die Zahl begleitet und nicht Teil von ihr ist.
-   `nowrap` ist hier Pflicht: auf 320 px wuerde das Zeichen sonst allein in
-   die zweite Zeile rutschen. */
-.gross {
-  font-family: var(--schrift-grotesk);
-  font-size: var(--t-display);
-  font-weight: 600;
-  line-height: 1;
-  letter-spacing: -0.03em;
-  font-variant-numeric: tabular-nums lining-nums;
-  margin: var(--r2) 0 0;
-  display: flex;
-  align-items: baseline;
-  gap: 0.1em;
-  flex-wrap: nowrap;
-  white-space: nowrap;
-}
-.gross .einheit {
-  font-size: 0.32em;
-  font-weight: 500;
-  letter-spacing: 0;
-  color: var(--gedaempft);
-  flex: none;
-}
-
-.hinweis, .fehler {
-  border-left: 2px solid var(--akzent);
-  background: var(--flaeche);
-  padding: var(--r3) var(--r4);
-  margin: var(--r4) 0;
-}
-.fehler { border-left-color: var(--plus); }
-
-/* Zahlenpaare. Der Begriff links, der Wert rechts, dazwischen so viel Luft,
-   wie die Zeile hergibt. */
 dl {
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 0 var(--r4);
-  margin: var(--r5) 0 0;
+  margin: var(--r4) 0 0;
   font-size: var(--t-klein);
 }
 dt {
@@ -756,6 +882,7 @@ dd {
   margin: 0;
   padding: var(--r2) 0;
   text-align: right;
+  font-weight: 600;
   font-variant-numeric: tabular-nums lining-nums;
   white-space: nowrap;
   border-bottom: 1px solid var(--linie);
@@ -763,14 +890,49 @@ dd {
 dt .klein { display: block; margin: 0; font-size: var(--t-mikro); line-height: 1.4; }
 
 /* ---------------------------------------------------------------------------
+   Hinweise
+   --------------------------------------------------------------------------- */
+
+.hinweis,
+.fehler {
+  display: flex;
+  gap: var(--r3);
+  align-items: flex-start;
+  margin: var(--r4) 0;
+  padding: var(--r3) var(--r4);
+  background: var(--flaeche-2);
+  border: 1px solid var(--linie);
+  border-radius: var(--radius-m);
+  font-size: var(--t-klein);
+}
+.hinweis::before,
+.fehler::before {
+  content: "";
+  flex: none;
+  width: 1.1rem;
+  height: 1.1rem;
+  margin-top: 0.12rem;
+  background: var(--gedaempft);
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='6.5' fill='none' stroke='%23000' stroke-width='1.4'/%3E%3Cpath d='M8 7.2v4' stroke='%23000' stroke-width='1.5' stroke-linecap='round'/%3E%3Ccircle cx='8' cy='4.9' r='.95'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+.fehler { border-color: var(--plus); }
+.fehler::before { background: var(--plus); }
+
+/* Der Vorbehalt gehoert neben die Zahl, nicht in die Fusszeile: eine grosse
+   Prozentzahl ohne Fallzahl und ohne "der Tag laeuft noch" ist genau die
+   Aussage, die dieses Projekt nicht machen will (ADR-016). */
+.vorbehalt {
+  font-size: var(--t-klein);
+  color: var(--gedaempft);
+  margin: var(--r4) 0 0;
+  max-width: 40rem;
+}
+
+/* ---------------------------------------------------------------------------
    Tabellen
 
-   Drei Modi statt drei Zufaelle (ADR-025) -- Begruendung und Grenzwerte bei
-   `tabelle()` in seite.ts. Was bis zum 2026-09-20 eine Sonderfall-Familie
-   `.block-rand .tabellenhuelle …` war (Bd-2, TPULS-095: 533 px Inhalt auf
-   360 px Randspalte-Kasten, die Fallzahl damit hinter einem Scrollbalken
-   verschwunden, den auf einem Zeigegeraet niemand sieht), ist jetzt der Modus
-   `paar` -- er gilt, gleich in welchem Container die Tabelle steht.
+   Drei Modi statt drei Zufaelle (ADR-025), Begruendung und Grenzwerte bei
+   `tabelle()` in seite.ts.
    --------------------------------------------------------------------------- */
 
 table {
@@ -784,20 +946,13 @@ th, td {
   border-bottom: 1px solid var(--linie);
   text-align: left;
 }
-/* Ausrichtung haengt am Inhalt der Spalte, nicht an ihrer Stelle. Vorher war
-   alles rechtsbuendig ausser der ersten Spalte — die Spalte "Durchgehend" auf
-   /methodik traegt "ja"/"nein" und stand damit rechts an der Zahlenkante. */
 th[data-typ="zahl"], td[data-typ="zahl"] {
   text-align: right;
   font-variant-numeric: tabular-nums lining-nums;
 }
+tbody th { font-weight: 500; }
 thead th {
-  color: var(--gedaempft);
-  font-weight: 600;
-  font-size: var(--t-mikro);
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  border-bottom-color: var(--linie-stark);
+  border-bottom: 1px solid var(--linie-stark);
   vertical-align: bottom;
 }
 
@@ -806,38 +961,27 @@ thead th {
 .tabellenhuelle { overflow-x: auto; overscroll-behavior-x: contain; }
 
 /* Der Schleier an der Kante liegt nur an, solange wirklich etwas zu holen ist.
-   Vorher lag er dauerhaft ueber der ersten und letzten Spalte — auch bei einer
-   Tabelle, die vollstaendig sichtbar war. */
+   Er faerbt sich mit dem Grund, auf dem die Tabelle steht (--hinter). */
 .tabellenhuelle.scrollt {
   background:
-    linear-gradient(to right, var(--papier), rgba(0, 0, 0, 0)) 0 0 / 2rem 100% no-repeat local,
-    linear-gradient(to left, var(--papier), rgba(0, 0, 0, 0)) 100% 0 / 2rem 100% no-repeat local,
-    radial-gradient(farthest-side at 0 50%, var(--schleier), rgba(0, 0, 0, 0)) 0 0 / 1.25rem 100% no-repeat scroll,
-    radial-gradient(farthest-side at 100% 50%, var(--schleier), rgba(0, 0, 0, 0)) 100% 0 / 1.25rem 100% no-repeat scroll;
+    linear-gradient(to right, var(--hinter), rgb(0 0 0 / 0)) 0 0 / 2rem 100% no-repeat local,
+    linear-gradient(to left, var(--hinter), rgb(0 0 0 / 0)) 100% 0 / 2rem 100% no-repeat local,
+    radial-gradient(farthest-side at 0 50%, var(--schleier), rgb(0 0 0 / 0)) 0 0 / 1.25rem 100% no-repeat scroll,
+    radial-gradient(farthest-side at 100% 50%, var(--schleier), rgb(0 0 0 / 0)) 100% 0 / 1.25rem 100% no-repeat scroll;
 }
 
 .tabelle--daten { width: max-content; min-width: 100%; }
 .tabelle--daten th, .tabelle--daten td { white-space: nowrap; }
 
-/* Zeilenstreifen. Der Ton sitzt an den Zellen und nicht an der Zeile: die
-   stehende erste Spalte hat einen eigenen Hintergrund (sonst scheint der Text
-   darunter durch), und der muss denselben Streifen treffen wie der Rest der
-   Zeile. Ueber die Zeile gesetzt, bliebe die stehende Spalte einfarbig.
-   --flaeche liegt bei 1,08:1 (hell) / 1,09:1 (dunkel) gegen --papier, gemessen
-   2026-09-20 — genau die Staerke, die ein Streifen braucht. Gedaempfter Text
-   darauf kommt auf 5,62:1 / 6,48:1 und bleibt damit ueber AA. */
-.tabelle--daten tbody tr > * { background: var(--papier); }
-.tabelle--daten tbody tr:nth-child(even) > * { background: var(--flaeche); }
+/* Zeilenstreifen an den Zellen, nicht an der Zeile: die stehende erste Spalte
+   hat einen eigenen Hintergrund und muss denselben Streifen treffen. */
+.tabelle--daten tbody tr > * { background: var(--hinter); }
+.tabelle--daten tbody tr:nth-child(even) > * { background: var(--flaeche-2); }
 @media (hover: hover) {
   .tabelle--daten tbody tr:hover > * { background: var(--zeile-aktiv); }
 }
 
-/* Die stehende erste Spalte. Ohne sie ist nach zwei Spalten Scrollen nicht mehr
-   erkennbar, zu welchem Tag oder Halt eine Zahl gehoert.
-   Die Kante lag bis zum 2026-09-20 auf --linie und damit bei 1,35:1 — im selben
-   Stylesheet als "ausschliesslich dekorativ" bezeichnet. Die eine Linie, die
-   sagt "hier laeuft die Tabelle weiter", war unsichtbar. --linie-stark liegt bei
-   3,34:1 / 3,57:1. */
+/* Die stehende erste Spalte, mit sichtbarer Kante (--linie-stark, >= 3:1). */
 .tabelle--daten thead th:first-child,
 .tabelle--daten th[scope="row"] {
   position: sticky;
@@ -845,15 +989,14 @@ thead th {
   z-index: 1;
   box-shadow: 1px 0 0 var(--linie-stark);
 }
-.tabelle--daten thead th:first-child { background: var(--papier); }
+.tabelle--daten thead th:first-child { background: var(--hinter); }
 
-/* Die erste Spalte bricht nie um. Sie wird gekuerzt.
-   43 Zeichen ist der laengste Haltestellenname im Bestand
-   ("Friedrichsfeld (MA), Elsa-Braendstroem-Strasse", gemessen 2026-09-20 ueber
-   alle -halte.json). Bei 14 px und gemessenen 0,52 em je Zeichen sind das rund
-   313 px — ab 24 rem Kappung wird also nichts mehr gekuerzt. Gekuerzt wird nur
-   auf dem Telefon und in der Randspalte, und dort ist ein "…" ruhiger als vier
-   umgebrochene Zeilen mit springender Zeilenhoehe. */
+/* Die erste Spalte bricht nie um, sie wird gekuerzt. Der laengste
+   Haltestellenname hat 43 Zeichen ("Friedrichsfeld (MA), Elsa-Braendstroem-
+   Strasse") und misst in Instrument Sans bei 14 px 287 px; im Mittel ueber
+   alle 962 Stationsnamen sind es 0,50 em je Zeichen (gemessen 2026-09-24 im
+   gebauten Stand, Archivo davor: 0,52). Ab 24 rem Kappung wird nichts mehr
+   gekuerzt, auch nicht mit dem Linienband der Streckentabelle davor. */
 .tabelle--daten th[scope="row"] {
   max-inline-size: var(--spalte-erste, 24rem);
   overflow: hidden;
@@ -861,113 +1004,108 @@ thead th {
 }
 @container (max-width: 30rem) { .tabelle--daten { --spalte-erste: 11rem; } }
 @container (min-width: 30.0625rem) and (max-width: 46rem) { .tabelle--daten { --spalte-erste: 16rem; } }
+/* Die Streckentabelle traegt vor dem Namen das Linienband (2,1 rem). Mit
+   11 rem blieben auf dem Telefon rund 18 Zeichen Name; 13 rem geben 23 und
+   lassen bei 390 px daneben noch Platz fuer Balken und Zahl "Dazugekommen". */
+@container (max-width: 30rem) { .tabelle--daten.strecke { --spalte-erste: 13rem; } }
 
 /* --- Modus `paar` -------------------------------------------------------- */
 
-/* Zwei bis drei Spalten passen in jede Randspalte. Kein Scrollkasten, keine
-   stehende Spalte, kein Schleier — und deshalb auch keine versteckte Fallzahl. */
 .tabelle--paar { width: 100%; }
 .tabelle--paar th, .tabelle--paar td { white-space: normal; }
-.block-rand .tabelle--paar th, .block-rand .tabelle--paar td { padding-inline: var(--r2); }
-.block-rand .tabelle--paar th:first-child,
-.block-rand .tabelle--paar td:first-child { padding-inline-start: 0; }
-.block-rand .tabelle--paar th:last-child,
-.block-rand .tabelle--paar td:last-child { padding-inline-end: 0; }
+.tabelle--paar th:first-child, .tabelle--paar td:first-child { padding-inline-start: 0; }
+.tabelle--paar th:last-child, .tabelle--paar td:last-child { padding-inline-end: 0; }
 
 /* --- Modus `text` -------------------------------------------------------- */
 
 .tabelle--text th, .tabelle--text td {
   white-space: normal;
   vertical-align: top;
-  text-transform: none;
-  letter-spacing: 0;
 }
 
-/* Der Kasten ist per `haltScrollzustand()` (seite.ts) ein Tabulatorhalt, sobald
-   er wirklich scrollt -- der Fokusrahmen muss dafuer sichtbar sein. */
-.tabellenhuelle:focus-visible {
-  outline: 2px solid var(--akzent);
-  outline-offset: 2px;
-}
+.tabellenhuelle:focus-visible { outline: 2px solid var(--fokus); outline-offset: 2px; }
 
-/* Kein scroll-snap: bei Spalten sehr unterschiedlicher Breite -- "Betriebstag"
-   neben "Fahrten ohne Fahrplanbezug" -- springt die Rastung ueber schmale
-   Spalten hinweg oder bleibt vor breiten haengen. Freier Bildlauf ist hier
-   ruhiger. */
+/* Kein scroll-snap: bei Spalten sehr unterschiedlicher Breite springt die
+   Rastung ueber schmale Spalten hinweg. */
 .tabelle--daten { scroll-snap-type: none; }
 
 details { margin-top: var(--r4); }
 summary {
   cursor: pointer;
-  color: var(--akzent);
-  font-size: var(--t-klein);
-  padding: var(--r2) 0;
-  min-height: var(--tippziel);
   display: flex;
   align-items: center;
+  gap: 0.5em;
+  min-height: var(--tippziel);
+  padding: var(--r2) 0;
+  color: var(--akzent);
+  font-size: var(--t-klein);
+  font-weight: 600;
+  list-style: none;
+}
+summary::-webkit-details-marker { display: none; }
+summary::before {
+  content: "";
+  flex: none;
+  width: 0.9em;
+  height: 0.9em;
+  background: currentColor;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M6 3.5 10.5 8 6 12.5' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+details[open] > summary::before { transform: rotate(90deg); }
+@media (prefers-reduced-motion: no-preference) {
+  summary::before { transition: transform 160ms ease; }
 }
 
 /* ---------------------------------------------------------------------------
    Diagramme
    --------------------------------------------------------------------------- */
 
-/* Die Hoehe kam bis zum 2026-09-20 als Konstante: 11 rem, auf jeder Breite.
-   Bei 320 px ergab das 176 px Hoehe und ein Verhaeltnis von 1,8:1, in der
-   48-rem-Hauptspalte bei 1440 px dagegen 768 x 187 px und 4,1:1 — dasselbe
-   Diagramm in zwei voellig verschiedenen Formen. Jetzt haengt die Hoehe am
-   Kasten, wie alles andere auch (ADR-025). */
+/* Die Hoehe haengt am Kasten (ADR-025), in drei Containerstufen. */
 .diagramm { width: 100%; height: 11rem; display: block; margin: var(--r4) 0; }
 @container (min-width: 46rem) { .diagramm { height: 15rem; } }
 @container (min-width: 60rem) { .diagramm { height: 18rem; } }
-.profil { width: 100%; height: auto; display: block; margin: var(--r4) 0; }
 
-.gitter { stroke: var(--gitter-stark); stroke-width: 1; }
+.gitter { stroke: var(--gitter); stroke-width: 1; stroke-dasharray: 2 3; }
 .grundlinie { stroke: var(--linie-stark); stroke-width: 1; }
 .achse {
   fill: var(--gedaempft);
-  font-family: var(--schrift-grotesk);
-  font-size: 10px;
+  font-family: var(--schrift-text);
+  font-size: 10.5px;
   font-variant-numeric: tabular-nums lining-nums;
 }
-/* Ausrichtung gilt fuer jede SVG-Beschriftung — Achsenziffern wie
-   Haltestellennamen. */
 text.mitte { text-anchor: middle; }
 text.rechts { text-anchor: end; }
-.saeule { fill: var(--akzent); }
-/* Die Wertbeschriftung sitzt auf der Saeule und muss auf beiden Untergruenden
-   lesbar sein — auf --papier ueber der Saeule, auf --akzent darin. Deshalb
-   `paint-order: stroke` mit einem Rand in Papierfarbe: das ist kein Schatten,
-   sondern ein Freisteller, und er kostet keine zweite Farbe. */
+
+/* Die Saeule nimmt die Farbe der Verkehrsart, um die es geht — gesetzt ueber
+   data-art am Abschnitt (netz.ts) oder an <main> (linie.ts, vergleich.ts).
+   Ohne data-art steht sie in Tinte: es gibt keine "neutrale" Verkehrsfarbe. */
+.saeule { fill: var(--art-farbe, var(--tinte)); }
+/* Wertbeschriftung mit Freisteller in der Farbe des Grundes, auf dem das
+   Diagramm steht (--hinter) — auf einer Flaeche ist das nicht mehr --grund. */
 .saeulenwert {
   fill: var(--tinte);
-  stroke: var(--papier);
-  stroke-width: 2.5px;
+  stroke: var(--hinter);
+  stroke-width: 3px;
   paint-order: stroke fill;
-  font-family: var(--schrift-grotesk);
-  font-size: 10px;
+  font-family: var(--schrift-schmal);
+  font-size: 11px;
   font-weight: 600;
   font-variant-numeric: tabular-nums lining-nums;
 }
-/* "Nicht gemessen" ist etwas anderes als "nichts war puenktlich". Vorher war
-   an dieser Stelle schlicht nichts zu sehen, und das war von einem sehr
-   kleinen Wert nicht zu unterscheiden. Jetzt steht dort ein eigenes Zeichen. */
-.luecke { stroke: var(--linie-stark); stroke-width: 1; stroke-dasharray: 2 2; }
+/* "Nicht gemessen" ist etwas anderes als "nichts war puenktlich" (Regel 8). */
+.luecke { stroke: var(--linie-stark); stroke-width: 1.5; stroke-dasharray: 2 2; }
 .nulllinie { stroke: var(--linie-stark); stroke-width: 1; }
-.streckenlinie { stroke: var(--linie-stark); stroke-width: 1; }
-.haltpunkt { fill: var(--papier); stroke: var(--linie-stark); stroke-width: 1; }
+
+/* Zuwachsbalken der Streckentabelle: orange heisst dazugekommen, blau
+   aufgeholt — keine Ampel, und die Richtung traegt zusaetzlich die Lage
+   links oder rechts der Nulllinie. */
 .balken.plus { fill: var(--plus); }
 .balken.minus { fill: var(--minus); }
-.haltname {
-  fill: var(--tinte);
-  font-family: var(--schrift-grotesk);
-  font-size: 11px;
-}
 
 /* Das Ablesefeld steht immer da, auch ohne Zeiger — dann traegt es die
-   Zusammenfassung. Ein Feld, das erst beim Ueberfahren erscheint, verschiebt
-   das Layout und ist auf einem Telefon nie zu sehen. */
+   Zusammenfassung. */
 .ablesung {
-  margin: calc(var(--r4) * -1) 0 var(--r4);
+  margin: calc(var(--r3) * -1) 0 var(--r3);
   font-size: var(--t-klein);
   color: var(--gedaempft);
   font-variant-numeric: tabular-nums lining-nums;
@@ -978,315 +1116,592 @@ text.rechts { text-anchor: end; }
    Regler und Formularelemente
    --------------------------------------------------------------------------- */
 
-.regler {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--r3) var(--r4);
-  align-items: end;
-  margin: var(--r5) 0;
-  padding-block: var(--r4);
-  border-block: 1px solid var(--linie);
-}
-/* Die aufklappbare Fassung auf /linie (TPULS-117) sitzt auf einem <details>,
-   dessen direkte Kinder <summary> und .regler-felder sind -- nicht mehr die
-   Felder selbst. .regler-aufklapp traegt deshalb nur den Rahmen von .regler,
-   das Flex-Layout darunter uebernimmt .regler-felder. */
+/* Die Steuerleiste auf /linie und /vergleich ist eine Flaeche wie die
+   Datenkaesten; auf /linien der Kasten um das Suchfeld. */
+.regler,
 .regler-aufklapp {
-  margin: var(--r5) 0;
-  padding-block: var(--r4);
-  border-block: 1px solid var(--linie);
+  --hinter: var(--flaeche);
+  margin: var(--r5) 0 0;
+  padding: var(--r4) var(--innen);
+  background: var(--flaeche);
+  border: 1px solid var(--linie);
+  border-radius: var(--radius-l);
+  box-shadow: var(--schatten);
 }
+.regler,
 .regler-felder {
   display: flex;
   flex-wrap: wrap;
   gap: var(--r3) var(--r4);
   align-items: end;
 }
-/* min-width: 0 laesst die Beschriftung schrumpfen; ohne sie macht die
+/* Ein Feld: die Beschriftung oben, darunter das Auswahlfeld oder die Segmente.
+   min-width: 0 laesst die Beschriftung schrumpfen; ohne sie macht die
    laengste Option im Auswahlfeld die Zeile breiter als den Bildschirm. */
-.regler label,
-.regler-felder label {
+.feld {
   display: flex;
   flex-direction: column;
   gap: var(--r1);
-  font-size: var(--t-mikro);
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--gedaempft);
   flex: 1 1 12rem;
   min-width: 0;
-  max-width: 22rem;
+  max-width: 24rem;
+  margin: 0;
 }
+.feld--segmente { flex: 0 1 auto; max-width: 100%; }
+/* Die vier Datumsfelder auf /vergleich stehen als eine Zeile zusammen und
+   verschwinden zusammen (hidden am Gruppenkasten). */
+.feldgruppe {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--r3) var(--r4);
+  flex: 1 1 100%;
+}
+.feld--breit { flex: 2 1 18rem; max-width: 32rem; }
 
-/* Auf einem schmalen Kasten steht jedes Feld untereinander statt nebeneinander
-   gequetscht — vorher fragte das den Bildschirm, obwohl der Regler auf /linie
-   in der Hauptspalte (44–48 rem) steht, nicht in voller Bildschirmbreite. */
+/* Auf einem schmalen Kasten steht jedes Feld untereinander. */
 @container (max-width: 34rem) {
-  .regler label,
-  .regler-felder label { flex-basis: 100%; max-width: none; }
-  button[data-merken] { width: 100%; }
+  .feld, .feld--segmente, .feld--breit { flex-basis: 100%; max-width: none; }
+  .feld--segmente .segmente { display: flex; }
 }
 
 /* Auf dem Telefon ist die Leiste zu, damit die Kennzahl ueber der Falzkante
-   bleibt (TPULS-117) -- ab Tablet-/Laptopbreite steht sie offen, dann ist
-   die Zusammenfassung in der Klappe ueberfluessig. `open` setzt
-   `haltReglerklappe()` in linie.ts per `matchMedia`, nicht diese Regel: der
-   Inhalt eines geschlossenen <details> laesst sich in neueren Browsern nicht
-   mehr verlaesslich per `display` sichtbar machen. */
+   bleibt (TPULS-117); `open` setzt haltReglerklappe() in linie.ts. */
 @media (min-width: 34.0625rem) {
   .regler-aufklapp > summary { display: none; }
 }
-.regler-aufklapp > summary {
-  font-size: var(--t-klein);
-  color: var(--akzent);
-}
+/* Die geschlossene Klappe nennt die vollstaendige Auswahl (TPULS-117). In
+   Tinte, nicht in Verweisfarbe: sie ist eine Angabe, der Pfeil davor zeigt,
+   dass sie sich oeffnen laesst. */
+.regler-aufklapp > summary { padding-top: 0; color: var(--tinte); font-weight: 500; }
+.regler-aufklapp > summary::before { background: var(--akzent); }
 
 select, input[type="search"], button {
-  font-family: var(--schrift-grotesk);
-  /* Unter 16 px zoomt iOS beim Antippen in das Feld hinein und kommt von
-     alleine nicht wieder heraus — deshalb nicht die Groesse der Beschriftung. */
+  font-family: var(--schrift-text);
+  /* Unter 16 px zoomt iOS beim Antippen in das Feld. */
   font-size: 1rem;
   font-weight: 400;
-  letter-spacing: 0;
-  text-transform: none;
   padding: var(--r2) var(--r3);
   min-height: var(--tippziel);
   max-width: 100%;
-  background: var(--papier);
+  background-color: var(--hinter);
   color: var(--tinte);
   border: 1px solid var(--linie-stark);
-  border-radius: 2px;
+  border-radius: var(--radius-m);
 }
 select, input[type="search"] { width: 100%; }
-button { cursor: pointer; padding: var(--r2) var(--r4); font-weight: 500; }
-button:hover, select:hover, input[type="search"]:hover { border-color: var(--akzent); }
+button { cursor: pointer; padding: var(--r2) var(--r4); font-weight: 600; }
+button:hover, select:hover, input[type="search"]:hover { border-color: var(--tinte); }
+select:focus-visible, input[type="search"]:focus-visible { outline-offset: 1px; }
+
+/* Das Suchfeld traegt eine Lupe. Sie haengt an der Beschriftung und nicht am
+   Feld (ein <input> hat kein ::before) und liegt ueber dem Innenabstand. */
+.suche { position: relative; }
+.suche input[type="search"] { padding-inline-start: 2.6rem; font-size: 1.0625rem; }
+.suche::after {
+  content: "";
+  position: absolute;
+  left: 0.9rem;
+  bottom: calc((var(--tippziel) - 1.15rem) / 2);
+  width: 1.15rem;
+  height: 1.15rem;
+  background: var(--gedaempft);
+  pointer-events: none;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='7' cy='7' r='4.8' fill='none' stroke='%23000' stroke-width='1.6'/%3E%3Cpath d='m10.6 10.6 3.6 3.6' stroke='%23000' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E") center / contain no-repeat;
+}
 
 /* ---------------------------------------------------------------------------
-   Liniennummer und Linienliste
+   Linienschild
 
-   Das Schild traegt nur die Nummer. "RNV 20" ist der Feldwert aus
-   route_short_name; auf ein Schild gehoert "20", und dass es eine RNV-Linie
-   ist, steht auf jeder Seite dieses Projekts ohnehin daneben.
+   Das Schild traegt nur die Nummer ("RNV 20" -> "20", ADR-017). Die Form
+   traegt die Verkehrsart: Strassenbahn eckig, Bus rund, Ruftaxi als Umriss —
+   es faehrt nur auf Anmeldung (ADR-011). Die Nummer steht trotzdem nie allein:
+   sieben Linien tragen sie doppelt (Regel 12), die Verkehrsart steht deshalb
+   immer auch als Wort daneben oder darueber.
    --------------------------------------------------------------------------- */
 
 .nummer {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 2.6rem;
-  padding: 0.1rem 0.4rem;
+  min-width: 2.35em;
+  height: 1.7em;
+  padding: 0 0.5em;
   background: var(--tinte);
-  color: var(--papier);
-  border-radius: 2px;
-  font-family: var(--schrift-grotesk);
+  color: var(--hinter);
+  border-radius: var(--radius-s);
+  font-family: var(--schrift-schmal);
   font-weight: 700;
-  font-size: 0.95rem;
+  font-size: 1rem;
+  line-height: 1;
   font-variant-numeric: tabular-nums lining-nums;
   letter-spacing: 0.01em;
-  text-align: center;
+  white-space: nowrap;
   flex: none;
 }
-/* Die Markertoene sind im hellen Schema dunkel und im dunklen Schema hell.
-   Die Schriftfarbe des Schilds muss deshalb mitwechseln — sie ist immer die
-   jeweilige Grundfarbe der Seite. */
-.nummer[data-art="tram"] { background: var(--tram); color: var(--papier); }
-.nummer[data-art="bus"] { background: var(--bus); color: var(--papier); }
-
-h1 .nummer { font-size: 1.35rem; min-width: 3.2rem; padding: 0.15rem 0.5rem; }
-
-.linienliste { list-style: none; padding: 0; margin: 0; }
-.linienliste li {
-  display: flex;
-  justify-content: space-between;
-  gap: var(--r1) var(--r5);
-  align-items: baseline;
-  flex-wrap: wrap;
-  padding: var(--r2) 0;
-  border-bottom: 1px solid var(--linie);
+.nummer[data-art="tram"] { background: var(--tram); color: var(--auf-tram); }
+.nummer[data-art="bus"] { background: var(--bus); color: var(--auf-bus); border-radius: var(--radius-voll); }
+.nummer[data-bedarf] {
+  background: transparent;
+  color: var(--bus);
+  box-shadow: inset 0 0 0 2px var(--bus);
 }
-.linienliste a {
-  color: var(--tinte);
-  text-decoration: none;
-  display: flex;
+/* "Moonliner 1", "43/46": laengere Nummern bekommen einen kleineren Grad,
+   damit das Schild nicht breiter wird als der Verlauf daneben. */
+.nummer[data-lang] { font-size: 0.8125rem; }
+
+.linienkopf .nummer { font-size: clamp(1.6rem, 5vw, 2.4rem); }
+.linienkopf .nummer[data-lang] { font-size: clamp(1.1rem, 3.4vw, 1.6rem); }
+
+/* ---------------------------------------------------------------------------
+   Linienliste: die Kachelwand auf /linien
+   --------------------------------------------------------------------------- */
+
+.linienliste {
+  list-style: none;
+  padding: 0;
+  margin: var(--r3) 0 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(19rem, 100%), 1fr));
   gap: var(--r3);
-  /* Mittig statt an der Grundlinie: der Eintrag muss die volle Fingerbreite
-     hoch sein (an der Grundlinie kam er auf 36 px, gemessen 2026-08-29), und
-     in einem 44 px hohen Kasten saessen Schild und Text sonst oben. */
-  align-items: center;
-  min-height: var(--tippziel);
-  flex: 1 1 16rem;
-  min-width: 0;
 }
-.linienliste a:hover .verlauf { color: var(--akzent); }
-.verlauf { color: var(--gedaempft); font-size: var(--t-klein); min-width: 0; }
-.werte {
-  text-align: right;
+/* Die ganze Kachel ist das Ziel, nicht nur ihr Schild: der Verweis spannt
+   sich ueber die Kachel (::after), der Rest bleibt Text und markierbar. */
+.linienliste li {
+  --hinter: var(--flaeche);
+  position: relative;
   display: flex;
   flex-direction: column;
+  gap: var(--r2);
+  padding: var(--r4);
+  background: var(--flaeche);
+  border: 1px solid var(--linie);
+  border-radius: var(--radius-l);
+  box-shadow: var(--schatten);
+}
+@media (hover: hover) {
+  .linienliste li:hover { border-color: var(--linie-stark); }
+}
+.linienliste li:has(a:focus-visible) { outline: 2px solid var(--fokus); outline-offset: 2px; }
+.linienliste a {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--r3);
+  min-height: var(--tippziel);
+  color: var(--tinte);
+  text-decoration: none;
+  order: 1;
+}
+.linienliste a::after { content: ""; position: absolute; inset: 0; border-radius: inherit; }
+.linienliste a:focus-visible { outline: none; }
+.linienliste .verlauf { color: var(--tinte); font-size: var(--t-klein); line-height: 1.4; padding-top: 0.15rem; }
+.verlauf { color: var(--gedaempft); font-size: var(--t-klein); min-width: 0; }
+
+/* Der Balken zeigt dieselbe Quote wie die Zahl darunter, als SVG mit
+   Praesentationsattributen (die CSP verwirft ein style-Attribut, ADR-025).
+   `flex: 0 0 auto` und eine ausdrueckliche Breite: ein SVG mit viewBox, aber
+   ohne eigene Masse, rechnete in der Spaltenrichtung sonst seine Breite ueber
+   das Seitenverhaeltnis 25:1 hoch (gemessen 2026-09-22: 700–830 px
+   waagerechter Scroll). */
+.quotenbalken {
+  order: 2;
+  flex: 0 0 auto;
+  inline-size: 100%;
+  block-size: 6px;
+  margin: var(--r1) 0 0;
+  border-radius: 3px;
+}
+.quotenbalken-bett { fill: var(--flaeche-2); stroke: var(--linie); stroke-width: 0.5; }
+.quotenbalken-wert { fill: var(--art-farbe, var(--tinte)); }
+/* Ohne Messung kein Balken, sondern eine gestrichelte Grundlinie. */
+.quotenbalken-ohne { stroke: var(--linie-stark); stroke-width: 1; stroke-dasharray: 3 3; }
+
+.werte {
+  order: 3;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 var(--r3);
   font-variant-numeric: tabular-nums lining-nums;
 }
-.werte strong { font-weight: 600; }
-
-/* Die Richtungsnamen stehen als eigene Zeile ausserhalb von .werte, nicht als
-   letzte Zeile darin. .werte hat keine feste Breite — sie schrumpft auf den
-   breitesten Inhalt. Die Richtungsnamen ("Ludwigshafen, Rathaus ·
-   Oggersheim, Grossparthweiher") sind oft die laengste Zeile im ganzen
-   Eintrag; stuenden sie in .werte, wuerde ihre Laenge dessen Breite
-   bestimmen, und die kurzen Zahlenzeilen (Prozent, Fallzahl) richteten sich
-   an dieser zufaelligen, von Linie zu Linie springenden Breite aus statt an
-   einer eigenen (gesehen 2026-08-29 auf /linien.html: die Prozentzahl klebte
-   am rechten Rand, waehrend die Richtungszeile fast die volle Breite der
-   Karte einnahm). `flex: 1 1 100%` zwingt sie im Flex-Layout des `li`
-   immer auf eine eigene, volle Zeile — unabhaengig von der Breite von .werte. */
-.richtungen { flex: 1 1 100%; text-align: left; }
-
-/* Der Balken zeigt dieselbe Quote wie die Zahl in .werte daneben, als
-   zusaetzliche Zeile unter dem Eintrag (Markup-Reihenfolge siehe
-   linien.ts::eintrag). `flex: 1 1 100%` ist derselbe Kniff wie bei
-   .richtungen oben: er zwingt das Element im Flex-Layout des <li> auf eine
-   eigene volle Zeile, unabhaengig von seiner Breite.
-   Als SVG mit Praesentationsattributen aufgebaut, nicht per Inline-Stil: die
-   CSP der Auslieferung ist `style-src 'self'`, ein `style`-Attribut wuerde
-   stumm verworfen (ADR-025) und der Balken zeigte immer 0 %.
-   --gitter-stark als Bett (1,79:1 / 1,93:1 gegen --papier, gemessen
-   2026-09-20): sichtbar genug, um die Laenge des Balkens einordnen zu
-   koennen, leise genug, um nicht selbst als Wert gelesen zu werden. */
-.quotenbalken {
-  flex: 1 1 100%;
-  block-size: 4px;
-  margin: var(--r2) 0;
+.werte strong {
+  font-family: var(--schrift-schmal);
+  font-size: 1.35rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
 }
-.quotenbalken-bett { fill: var(--gitter-stark); }
-.quotenbalken-wert { fill: var(--akzent); }
-/* Ohne Messung kein Balken, sondern eine gestrichelte Grundlinie — dasselbe
-   Zeichen wie in den Diagrammen fuer "hier wurde nichts gemessen". */
-.quotenbalken-ohne {
-  stroke: var(--linie-stark);
-  stroke-width: 1;
-  stroke-dasharray: 3 3;
-}
+.werte .klein { margin: 0; }
+.richtungen { display: none; }
+.haltetreffer { order: 4; margin: 0; }
 
-/* Der Kopf der Linienseite: Schild links, Ueberschrift und Verlauf daneben.
-   Das Schild ist `aria-hidden` — die Ueberschrift sagt Verkehrsart und Nummer
-   ohnehin in Worten, und zweimal dieselbe Zahl vorgelesen zu bekommen hilft
-   niemandem. Die Flexbasis von 10rem haelt beide auch auf 320 px in einer
-   Zeile; erst darunter bricht das Schild auf eine eigene. */
-.linienkopf { display: flex; gap: var(--r4); align-items: baseline; flex-wrap: wrap; }
-.linienkopf-text { flex: 1 1 10rem; min-width: 0; }
+/* ---------------------------------------------------------------------------
+   Linienseite
+   --------------------------------------------------------------------------- */
+
+.zurueck { margin: 0 0 var(--r2); font-size: var(--t-klein); }
+.zurueck a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  min-height: var(--tippziel);
+  color: var(--gedaempft);
+  text-decoration: none;
+  font-weight: 500;
+}
+.zurueck a::before {
+  content: "";
+  width: 1em;
+  height: 1em;
+  background: currentColor;
+  transform: scaleX(-1);
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M2 8h11M9 3.5 13.5 8 9 12.5' fill='none' stroke='%23000' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+.zurueck a:hover { color: var(--tinte); }
+
+.linienkopf {
+  display: flex;
+  gap: var(--r4);
+  align-items: center;
+  flex-wrap: wrap;
+}
+.linienkopf-text { flex: 1 1 14rem; min-width: 0; }
+.linienkopf-aktionen { display: flex; flex-wrap: wrap; gap: var(--r2); }
+.knopf--merken::after { display: none; }
+.knopf--merken[aria-pressed="true"] { border-color: var(--tinte); }
 .linienkopf h1 { margin: 0; }
-.linienkopf .verlauf { margin: var(--r2) 0 0; display: block; }
 
-/* Die Richtungszeile im Kopf der Linienseite. */
-.richtung { margin: var(--r2) 0 0; font-size: var(--t-klein); color: var(--gedaempft); }
+/* Der Verlauf als Linienband: die Stationen aus route_long_name, verbunden
+   von einem Strich in der Farbe der Verkehrsart. Aufgeteilt wird nur an
+   " - ", dem Trenner, den der Feed selbst benutzt; der Text bleibt Zeichen
+   fuer Zeichen derselbe (Regel 12: Anzeige, kein neuer Datenwert). */
+.laufweg {
+  list-style: none;
+  margin: var(--r4) 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--r2) 0;
+  font-size: var(--t-klein);
+  color: var(--tinte);
+}
+.laufweg li {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  padding-inline-end: 2.1em;
+}
+.laufweg li:last-child { padding-inline-end: 0; }
+.laufweg li::before {
+  content: "";
+  width: 0.8em;
+  height: 0.8em;
+  flex: none;
+  border-radius: 50%;
+  background: var(--hinter);
+  box-shadow: inset 0 0 0 2.5px var(--art-farbe, var(--tinte));
+}
+.laufweg li:first-child::before,
+.laufweg li:last-child::before { background: var(--art-farbe, var(--tinte)); }
+/* Der Strich zwischen zwei Stationen haengt an der vorderen und laeuft bis an
+   die Perle der naechsten heran. */
+.laufweg li:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  right: 0.35em;
+  top: 50%;
+  width: 1.4em;
+  height: 3px;
+  margin-top: -1.5px;
+  border-radius: 2px;
+  background: var(--art-farbe, var(--tinte));
+}
+.laufweg li:first-child, .laufweg li:last-child { font-weight: 600; }
+
+.richtung { margin: var(--r3) 0 0; font-size: var(--t-klein); color: var(--gedaempft); }
 .richtung strong { color: var(--tinte); font-weight: 600; }
+
+[data-kopf] p { max-width: 48rem; }
+
+/* Die Streckentabelle (T3): in der ersten Spalte das Linienband — ein Strang
+   in der Farbe der Verkehrsart, je Halt eine Perle, Endhalte groesser —, neben
+   "Dazugekommen" der Zuwachsbalken. Ohne Zeilenlinien, sonst risse jede Zeile
+   den Strang um ein Pixel auf; die Zeilen trennt der Zebrastreifen. */
+.strecke th, .strecke td { border-bottom: 0; padding-block: 0.4rem; }
+.strecke tbody th.halt {
+  padding-inline-start: 2.1rem;
+}
+.strecke tbody th.halt::before {
+  content: "";
+  position: absolute;
+  left: calc(0.95rem - 2.5px);
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  background: var(--art-farbe, var(--tinte));
+}
+.strecke tbody tr:first-child th.halt::before { top: 50%; }
+.strecke tbody tr:last-child th.halt::before { bottom: 50%; }
+/* Die Perle nimmt den Grund ihrer Zeile an (inherit), damit sie auf dem
+   Zebrastreifen und beim Ueberfahren nicht als Fleck steht. */
+.strecke tbody th.halt::after {
+  content: "";
+  position: absolute;
+  left: calc(0.95rem - 0.4rem);
+  top: calc(50% - 0.4rem);
+  width: 0.8rem;
+  height: 0.8rem;
+  border-radius: 50%;
+  background: inherit;
+  box-shadow: inset 0 0 0 2px var(--tinte);
+}
+.strecke tbody th.halt.endhalt { font-weight: 650; }
+.strecke tbody th.halt.endhalt::after {
+  left: calc(0.95rem - 0.55rem);
+  top: calc(50% - 0.55rem);
+  width: 1.1rem;
+  height: 1.1rem;
+  box-shadow: inset 0 0 0 3px var(--tinte);
+}
+
+/* Der Zuwachsbalken steht links neben seiner Zahl, in fester Breite: alle
+   Zeilen teilen denselben Massstab, also auch dieselbe Laenge fuer 100 %. */
+.strecke td:nth-child(2) { white-space: nowrap; }
+.zuwachsbalken {
+  display: inline-block;
+  vertical-align: middle;
+  width: 7rem;
+  height: 0.75rem;
+  margin-inline-end: var(--r3);
+}
+@container (max-width: 30rem) { .zuwachsbalken { width: 4.5rem; } }
+@container (min-width: 60rem) { .zuwachsbalken { width: 10rem; } }
+.zuwachsbalken .nulllinie { stroke: var(--linie-stark); stroke-width: 1; }
+.zuwachsbalken .luecke { stroke: var(--linie-stark); stroke-width: 1.5; stroke-dasharray: 2 2; }
+
+.profil-legende { max-width: 72rem; }
+@container platz (min-width: 62rem) {
+  .profil-legende { columns: 2; column-gap: var(--r7); }
+  .profil-legende p { margin-top: 0; break-inside: avoid; }
+}
+
+/* ---------------------------------------------------------------------------
+   Vergleich und Befunde
+   --------------------------------------------------------------------------- */
+
+/* Genau zwei Spalten, A und B. auto-fit legte bei 1440 px vier Spuren an:
+   .unterschied ueberspannt alle, damit galt keine als leer, und A und B
+   blieben auf je einem Viertel der Breite stehen (gemessen 2026-09-24). */
+.vergleich {
+  display: grid;
+  gap: var(--r4);
+  grid-template-columns: minmax(0, 1fr);
+  margin-top: var(--r5);
+}
+/* seite und nicht platz: [data-vergleich] ist selbst der Rasterplatz und kann
+   sich nicht selbst abfragen (Falle 2 aus Plan_Gestaltung_v3). Er laeuft auf
+   jeder Breite ueber die ganze Zeile, die Breite der Seite ist also seine. */
+@container seite (min-width: 36rem) {
+  .vergleich { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.vergleichsspalte > h2 { margin-top: 0; font-size: var(--t-h3); }
+.vergleichsspalte > h2 .klein { display: block; margin-top: var(--r1); font-family: var(--schrift-text); font-weight: 400; letter-spacing: 0; }
+.vergleichsspalte .gross { font-size: clamp(2.75rem, 9vw, 4.25rem); }
+.unterschied {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: var(--r4) var(--innen);
+  background: var(--flaeche-2);
+  border: 1px solid var(--linie);
+  border-radius: var(--radius-l);
+  font-size: var(--t-lead);
+  line-height: 1.5;
+}
+.unterschied strong { font-family: var(--schrift-schmal); font-weight: 700; font-size: 1.15em; }
+
+/* /befunde: jede Aussage ein Kasten. Der Satz, den jemand zitiert, steht
+   gross; Fallzahl und Vorbehalt darunter tragen ihn. */
+/* minmax(0, 1fr) und nicht die implizite Spur: eine auto-Spur waechst auf die
+   Mindestbreite ihres Inhalts, und die Schwellentabelle im ersten Befund ist
+   ohne Umbruch rund 600 px breit — auf 390 px lief die Seite um 246 px
+   waagerecht (gemessen 2026-09-24, Breitenmatrix P1). */
+[data-befunde] {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--r4);
+  margin-top: var(--r5);
+}
+.befund { margin: 0; }
+.befund-kern > h2 { margin-top: 0; font-size: var(--t-h3); line-height: 1.2; }
+.befund-beleg > :first-child { margin-top: 0; }
+/* Aussage links, Beleg rechts — sobald beide nebeneinander lesbar bleiben.
+   Der Container ist [data-befunde], der ueber die ganze Zeile laeuft. */
+@container platz (min-width: 58rem) {
+  .befund {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
+    gap: var(--r7);
+    align-items: start;
+  }
+  .befund-beleg { padding-top: 0.35rem; }
+}
+.aussage {
+  font-size: var(--t-lead);
+  line-height: 1.5;
+  max-width: none;
+}
+.aussage strong { font-weight: 650; }
 
 /* ---------------------------------------------------------------------------
    Startseite
    --------------------------------------------------------------------------- */
 
-/* Der Vorbehalt gehoert neben die Zahl, nicht in die Fusszeile: eine grosse
-   Prozentzahl ohne Fallzahl und ohne "der Tag laeuft noch" ist genau die
-   Aussage, die dieses Projekt nicht machen will. Er bleibt deshalb auf jeder
-   Breite im Hauptfluss und wandert nie in die Randspalte. */
-.vorbehalt {
-  font-size: var(--t-klein);
-  color: var(--gedaempft);
-  margin: var(--r5) 0 0;
-  max-width: 38rem;
+/* Der Auftakt der Startseite: Frage und Einleitung links, die Tafel rechts,
+   sobald beide nebeneinander Platz haben. seite und nicht platz: .auftakt ist
+   selbst der Rasterplatz und kann sich nicht selbst abfragen; er laeuft ueber
+   die ganze Zeile, die Seitenbreite ist also seine. 70 rem, weil die Tafel
+   ihre beiden Kennzahlen erst ab rund 35 rem nebeneinander stellt (2 x 16 rem
+   plus Rinne) — bei 1440 px sind es 42,5 rem (gerechnet 2026-09-24). */
+.auftakt { display: grid; gap: 0 var(--r7); align-items: center; }
+.auftakt > .tafel { margin-top: var(--r5); }
+@container seite (min-width: 70rem) {
+  .auftakt { grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); }
+  .auftakt > h1, .auftakt > .lead { grid-column: 1; }
+  .auftakt > .tafel { grid-column: 2; grid-row: 1 / span 2; margin-top: 0; }
 }
 
-.wege { display: flex; flex-wrap: wrap; gap: var(--r3); margin: var(--r6) 0 0; }
+.wege { display: flex; flex-wrap: wrap; gap: var(--r3); margin: var(--r5) 0 0; }
 .knopf {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 0.5em;
   min-height: var(--tippziel);
   padding: var(--r2) var(--r5);
   border: 1px solid var(--linie-stark);
-  border-radius: 2px;
-  background: var(--papier);
+  border-radius: var(--radius-voll);
+  background: var(--flaeche);
   color: var(--tinte);
   font-size: 1rem;
-  font-weight: 500;
+  font-weight: 600;
   text-decoration: none;
   text-align: center;
 }
-.knopf:hover { border-color: var(--akzent); color: var(--akzent); }
-.knopf.haupt { background: var(--tinte); border-color: var(--tinte); color: var(--papier); }
-.knopf.haupt:hover { background: var(--akzent); border-color: var(--akzent); color: var(--papier); }
+.knopf:hover { border-color: var(--tinte); color: var(--tinte); }
+.knopf.haupt { background: var(--auswahl); border-color: var(--auswahl); color: var(--auf-auswahl); }
+.knopf.haupt:hover { background: var(--tinte); border-color: var(--tinte); color: var(--hinter); }
 
-/* Drei Schritte, jeder eine Zeile lang. Die Ziffer steht in einer eigenen
-   Spalte, damit der Text bei Umbruch nicht unter sie rutscht. */
+/* "Wie das gemessen wird" als Linienband: drei Stationen auf einem Strang.
+   Die Ziffer steht in der Perle; der Text daneben fasst den Fluss nicht an
+   (der Begriffsknopf in Schritt 2 zerbrach 2026-08-29 in einem Rasterlayout —
+   deshalb absolute Positionierung statt Raster im <li>, ADR-017). */
 .schritte {
   list-style: none;
   counter-reset: schritt;
   padding: 0;
   margin: var(--r4) 0 0;
   display: grid;
-  gap: var(--r4);
-  max-width: 38rem;
+  gap: var(--r5);
+  max-width: 40rem;
 }
-/* Die Ziffer haengt links im Innenabstand, statt in einer eigenen
-   Rasterspalte zu stehen.
-
-   Das ist kein Stilwechsel, sondern eine Reparatur: mit `display: grid` auf
-   dem `li` wird *jedes* Inline-Element darin zu einem eigenen Rasterelement.
-   Der Begriffsknopf "Betriebstag" in Schritt 2 landete dadurch in der
-   1,75-rem-Spalte und brach dort in vier Zeilen um (gesehen 2026-08-29).
-   Absolute Positionierung stellt die Ziffer, ohne den Textfluss anzufassen. */
 .schritte li {
   counter-increment: schritt;
   position: relative;
-  padding-left: 2.5rem;
+  padding-left: 3.25rem;
+  min-height: 2.25rem;
 }
 .schritte li::before {
   content: counter(schritt);
   position: absolute;
   left: 0;
-  top: 0;
-  width: 1.75rem;
-  text-align: right;
-  font-family: var(--schrift-serif);
+  top: -0.2rem;
+  width: 2.25rem;
+  height: 2.25rem;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--hinter);
+  box-shadow: inset 0 0 0 3px var(--tinte);
+  font-family: var(--schrift-schmal);
   font-size: 1.05rem;
-  font-weight: 600;
-  color: var(--akzent);
-  line-height: 1.6;
+  font-weight: 700;
   font-variant-numeric: lining-nums;
+  color: var(--tinte);
+  z-index: 1;
+}
+/* Der Strang: von Perle zu Perle, in Signalgelb. */
+.schritte li:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  left: calc(1.125rem - 2px);
+  top: 2rem;
+  bottom: calc(var(--r5) * -1 - 0.2rem);
+  width: 4px;
+  border-radius: 2px;
+  background: var(--signal);
 }
 
-.fragen { list-style: none; padding: 0; margin: var(--r4) 0 0; max-width: 38rem; }
-.fragen li { border-bottom: 1px solid var(--linie); }
-.fragen li:first-child { border-top: 1px solid var(--linie); }
+.fragen {
+  list-style: none;
+  padding: 0;
+  margin: var(--r4) 0 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(17rem, 100%), 1fr));
+  gap: var(--r3);
+  max-width: 40rem;
+}
+.fragen li { margin: 0; }
 .fragen a {
   display: flex;
   flex-direction: column;
   justify-content: center;
   gap: var(--r1);
+  height: 100%;
   min-height: var(--tippziel);
-  padding: var(--r3) 0;
+  padding: var(--r4) var(--r5);
+  background: var(--flaeche);
+  border: 1px solid var(--linie);
+  border-radius: var(--radius-l);
+  box-shadow: var(--schatten);
   color: var(--tinte);
+  font-weight: 600;
   text-decoration: none;
 }
-.fragen a:hover { color: var(--akzent); }
-.fragen .klein { margin: 0; }
+.fragen a:hover { border-color: var(--linie-stark); }
+.fragen .klein { margin: 0; font-weight: 400; }
 
-.abgrenzung { margin-top: var(--r4); max-width: 38rem; }
-.abgrenzung ul { margin: 0; padding: 0; list-style: none; }
-.abgrenzung li {
-  padding: var(--r3) 0 var(--r3) var(--r4);
-  border-left: 2px solid var(--linie);
+.abgrenzung { margin-top: var(--r4); max-width: 40rem; }
+.abgrenzung ul {
   margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: var(--r3);
 }
-.abgrenzung strong { font-weight: 600; }
+.abgrenzung li {
+  position: relative;
+  margin: 0;
+  padding: 0 0 0 1.9rem;
+}
+/* Ein durchgestrichener Kreis: "nicht". Dieselbe Maske wie die anderen
+   Zeichen, keine Bilddatei. */
+.abgrenzung li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.2rem;
+  width: 1.15rem;
+  height: 1.15rem;
+  background: var(--gedaempft);
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='6.4' fill='none' stroke='%23000' stroke-width='1.5'/%3E%3Cpath d='m3.6 12.4 8.8-8.8' stroke='%23000' stroke-width='1.5'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+.abgrenzung strong { font-weight: 650; }
 
 /* ---------------------------------------------------------------------------
    Fachwort mit Erklaerung
 
    Der Knopf sieht aus wie Text und ist trotzdem ein Knopf — nur so ist das
    Wort mit der Tastatur erreichbar und auf dem Telefon antippbar. Die
-   Erklaerung liegt als `popover` im Top-Layer: dort kann sie die Seite nicht
-   waagerecht aufziehen, egal an welcher Stelle im Satz das Wort steht.
+   Erklaerung liegt als `popover` im Top-Layer.
    --------------------------------------------------------------------------- */
 
 .begriff {
@@ -1298,13 +1713,13 @@ h1 .nummer { font-size: 1.35rem; min-width: 3.2rem; padding: 0.15rem 0.5rem; }
   display: inline-block;
   vertical-align: baseline;
   /* Der Tippbereich ist groesser als das Wort; die negativen Aussenabstaende
-     nehmen die Vergroesserung aus dem Zeilenfluss wieder heraus, damit die
-     Zeilenhoehe im Fliesstext nicht springt. */
+     nehmen die Vergroesserung aus dem Zeilenfluss wieder heraus. */
   padding: 0.6rem 0.25rem;
   margin: -0.6rem -0.25rem;
   min-height: 0;
   text-decoration: underline dotted;
-  text-underline-offset: 0.2em;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.22em;
   cursor: help;
 }
 .begriff:hover, .begriff:focus-visible { color: var(--akzent); border-color: transparent; }
@@ -1312,24 +1727,20 @@ h1 .nummer { font-size: 1.35rem; min-width: 3.2rem; padding: 0.15rem 0.5rem; }
 [popover].erklaerung {
   max-width: min(24rem, calc(100vw - 2rem));
   margin: auto;
-  padding: var(--r4);
+  padding: var(--r4) var(--r5);
   border: 1px solid var(--linie-stark);
-  border-radius: 3px;
+  border-radius: var(--radius-l);
   background: var(--flaeche);
   color: var(--tinte);
-  font-family: var(--schrift-grotesk);
+  font-family: var(--schrift-text);
   font-size: var(--t-klein);
-  line-height: 1.5;
-  box-shadow: 0 12px 32px var(--schleier);
+  line-height: 1.55;
+  box-shadow: 0 16px 40px var(--schleier);
 }
 [popover].erklaerung::backdrop { background: transparent; }
 
 /* ---------------------------------------------------------------------------
    Begriffstabelle auf /methodik
-
-   Anders als die Zahlentabellen: hier stehen Saetze, keine Ziffern. Sie
-   duerfen umbrechen und nicht scrollen — ein waagerechter Scrollkasten waere
-   fuer eine Erklaerung die falsche Form.
    --------------------------------------------------------------------------- */
 
 .glossar { width: 100%; border-collapse: collapse; font-size: var(--t-klein); margin-top: var(--r3); }
@@ -1339,21 +1750,14 @@ h1 .nummer { font-size: 1.35rem; min-width: 3.2rem; padding: 0.15rem 0.5rem; }
   vertical-align: top;
   padding: var(--r2) var(--r3) var(--r2) 0;
   border-bottom: 1px solid var(--linie);
-  text-transform: none;
-  letter-spacing: 0;
   font-size: var(--t-klein);
 }
 .glossar th[scope="row"] { width: 13rem; font-weight: 600; color: var(--tinte); }
 
-/* Die Begriffstabelle darf umbrechen — hier stehen Saetze, keine Ziffern. Sie
-   loest sich aber nicht mehr in Bloecke auf: mit `display: block` auf `table`,
-   `tr`, `th` und `td` war sie fuer den Screenreader keine Tabelle mehr, und die
-   Zuordnung Begriff → Erklaerung hing allein an der Reihenfolge. Ein einspaltiges
-   Raster leistet dasselbe und behaelt die Auszeichnung (ADR-025). */
+/* Die Begriffstabelle bleibt eine Tabelle, auch schmal (ADR-025). */
 @container (max-width: 34rem) {
   .glossar, .glossar tbody { display: grid; }
-  .glossar tr { display: grid; gap: var(--r1); padding: var(--r2) 0;
-                border-bottom: 1px solid var(--linie); }
+  .glossar tr { display: grid; gap: var(--r1); padding: var(--r2) 0; border-bottom: 1px solid var(--linie); }
   .glossar th[scope="row"] { width: auto; border-bottom: 0; padding: 0; }
   .glossar td { border-bottom: 0; padding: 0; color: var(--gedaempft); }
 }
@@ -1361,18 +1765,17 @@ h1 .nummer { font-size: 1.35rem; min-width: 3.2rem; padding: 0.15rem 0.5rem; }
 /* ---------------------------------------------------------------------------
    Breiten
 
-   Aufsteigend, damit die spaetere Regel die fruehere ergaenzt statt sie
-   zurueckzunehmen.
+   Aufsteigend, damit die spaetere Regel die fruehere ergaenzt.
    --------------------------------------------------------------------------- */
 
-/* Telefon, einschliesslich Frontdisplay eines Fold: was nebeneinander stand,
-   steht untereinander. */
+/* Telefon, einschliesslich Frontdisplay eines Fold. */
 @media (max-width: 34rem) {
-  /* Sechs Eintraege in zwei Zeilen zu drei -- statt in zwei ungleich langen
-     Zeilen mit Flattersatz. Bei 320 px sind das drei Spalten zu je rund
-     100 px; der laengste Eintrag ("Methodik") misst bei 14 px rund 62 px und
-     passt. Ein waagerechter Scrollstreifen waere die Alternative und ist im
-     Bestand ausdruecklich verworfen: dort werden Eintraege unsichtbar. */
+  :root { --innen: var(--r4); }
+
+  /* Fuenf Eintraege: ab 360 px in einer Zeile zu fuenf gleich breiten
+     Feldern, darunter in zwei Zeilen zu drei. Gemessen 2026-09-24: der
+     laengste Eintrag ("Vergleich") misst bei 15 px in Instrument Sans 61 px,
+     bei 360 px stehen je Feld 65 px zur Verfuegung. */
   header.kopfleiste nav {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -1381,52 +1784,88 @@ h1 .nummer { font-size: 1.35rem; min-width: 3.2rem; padding: 0.15rem 0.5rem; }
     flex-basis: 100%;
     order: 2;
   }
-  header.kopfleiste nav a { justify-content: center; }
-
-  /* Der Umschalter rueckt neben die Wortmarke, nicht unter die Navigation:
-     in der Quelltextreihenfolge steht er hinter ihr und laege sonst allein in
-     einer dritten Zeile. */
+  header.kopfleiste nav a { padding: 0 var(--r1); }
   .farbschalter { order: 1; margin-inline-start: auto; }
-
-  .linienliste li { flex-direction: column; align-items: stretch; gap: var(--r2); }
-  /* In der Spalte ist die Flexbasis die Hoehe — 16rem waeren hier Luft. Und
-     der Streckenverlauf bricht hier auf zwei bis drei Zeilen um: das Schild
-     gehoert dann an die erste, nicht in die Mitte. */
-  .linienliste a { flex: 0 0 auto; align-items: flex-start; }
-  .werte {
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: 0 var(--r3);
-    text-align: left;
-  }
 
   .huelle { padding: var(--r4) var(--r4) var(--r7); }
 
-  /* Auf dem Telefon steht die Erklaerung unten am Rand statt in der Mitte:
-     dort ist sie mit dem Daumen erreichbar und verdeckt nicht die Stelle,
-     an der das erklaerte Wort steht. */
   [popover].erklaerung {
     margin: auto auto var(--r4);
     width: calc(100vw - 1.5rem);
     max-width: none;
   }
 
-  /* Ein Knopf neben dem anderen wird auf 320 px zu schmal zum Lesen. */
   .wege .knopf { flex: 1 1 100%; }
+  /* Zwei Segmente nebeneinander passen auf 320 px nur mit schmalerem
+     Innenabstand (Aktueller Tag | Gesamter Zeitraum: 2 x 119 px bei 256 px). */
+  .segmente label { padding-inline: var(--r3); }
+  /* Die Aussage zuerst (TPULS-117): auf dem Telefon muss die grosse Zahl ohne
+     Scrollen im Bild stehen. Gemessen 2026-09-24 an Linie 5 bei 360 px: im
+     Bestand begann sie bei 752 px, im ersten Entwurf bei 768 px — beides
+     unter der Falzkante eines 360 x 780-Schirms. Drei Stellen holen das
+     zurueck: Schild und Ueberschrift in einer Zeile, die beiden Knoepfe als
+     Verweise in einer Zeile darunter, die Reglerklappe flacher. */
+  .linienkopf { flex-wrap: wrap; gap: var(--r2) var(--r3); }
+  .linienkopf .nummer { font-size: 1.35rem; }
+  .linienkopf .nummer[data-lang] { font-size: 1rem; }
+  .linienkopf-text { flex: 1 1 0; }
+  .linienkopf h1 { font-size: clamp(1.6rem, 8vw, 2.1rem); }
+  .linienkopf-aktionen { flex-basis: 100%; gap: 0 var(--r4); }
+  .linienkopf-aktionen .knopf {
+    min-height: var(--tippziel);
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--akzent);
+    font-size: var(--t-klein);
+  }
+  .regler-aufklapp { margin-top: var(--r3); padding-block: var(--r2); }
+  /* "Alle Linien" steht auf dem Telefon schon als gewaehlter Eintrag direkt
+     darueber in der Navigation; der Verweis kostete dort 52 px vor der Zahl. */
+  .zurueck { display: none; }
+  .laufweg { margin-top: var(--r3); font-size: 0.8125rem; }
+  /* Die Kachel auf dem Telefon: dieselben Teile, weniger Luft. 107 Linien
+     untereinander waren 2026-09-24 bei 390 px 16.949 px Seite. */
+  .linienliste { gap: var(--r2); }
+  .linienliste li { padding: var(--r3) var(--r4); gap: var(--r1); }
+  .werte strong { font-size: 1.2rem; }
+  /* Die geschlossene Reglerklappe nennt die Auswahl direkt ueber der Tafel;
+     die Kopfzeile der Tafel wiederholte sie auf dem Telefon Wort fuer Wort. */
+  [data-kennzahl] .tafel-zeile { display: none; }
+  .tafel-kopf .segmente { width: 100%; }
+}
+@media (min-width: 22.5rem) and (max-width: 34rem) {
+  header.kopfleiste nav { grid-template-columns: repeat(5, 1fr); }
 }
 
 @media (min-width: 34.0625rem) {
   .huelle { padding: var(--r6) var(--r5) var(--r8); }
 }
 
-/* Ab Schreibtischbreite: die Seite gibt die zentrierte Spalte auf (ADR-028).
-   `max-width: none` ueber das Token, damit Kopf, Inhalt und Fuss in einem Zug
-   umschalten — alle drei sind .huelle.
-   Die Wurzelschrift steigt wie bisher: die Zeile wird dadurch breiter, ohne
-   mehr Zeichen zu tragen. Das Lesemass von 40 rem bleibt unangetastet.
-   Unterhalb von 87,5 rem (1400 px) aendert sich nichts — Telefon und Tablet
-   behalten jeden Wert, den sie vorher hatten. */
+/* Ab 60 rem stehen die Startseiten-Kaesten nebeneinander. */
+@media (min-width: 60rem) {
+  .schritte {
+    max-width: none;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--r6);
+  }
+  .schritte li { padding: 3.25rem var(--r4) 0 0; }
+  .schritte li::before { top: 0; }
+  .schritte li:not(:last-child)::after {
+    left: 2.25rem;
+    right: calc(var(--r6) * -1);
+    top: calc(1.125rem - 2px);
+    bottom: auto;
+    width: auto;
+    height: 4px;
+  }
+  .fragen, .abgrenzung { max-width: none; }
+  .abgrenzung ul { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--r4) var(--r7); }
+}
+
+/* Ab Schreibtischbreite gibt die Seite die zentrierte Spalte auf (ADR-028).
+   Die Wurzelschrift steigt: die Zeile wird breiter, ohne mehr Zeichen zu
+   tragen. */
 @media (min-width: 87.5rem) {
   :root {
     font-size: 1.0625rem;
@@ -1435,145 +1874,56 @@ h1 .nummer { font-size: 1.35rem; min-width: 3.2rem; padding: 0.15rem 0.5rem; }
   }
   .huelle { padding-inline: var(--rand-aussen); }
 
-  /* Das Raster. auto-fit + minmax bestimmt die Spaltenzahl aus der Breite:
-     bei 1440 px zwei Spalten, bei 2560 px drei bis vier. 28rem ist die Breite,
-     unter der ein Diagramm mit Achsenbeschriftung nicht mehr abzulesen ist
-     (gemessen an .diagramm, Containerstufe 1 endet bei 46rem — darunter
-     bleibt das kleine Format, das auf dem Telefon geprueft ist).
-     align-items: start, damit eine kurze Zelle nicht auf die Hoehe der
-     laengsten in ihrer Zeile gezogen wird. */
+  /* Das Raster. 28 rem ist die Breite, unter der ein Diagramm mit
+     Achsenbeschriftung nicht mehr abzulesen ist. Die Kaesten einer Zeile
+     sind gleich hoch (stretch): eine Kachelreihe mit springenden Unterkanten
+     sieht aus wie ein Fehler. */
   main.huelle {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(min(28rem, 100%), 1fr));
-    gap: var(--r7);
-    align-items: start;
+    gap: var(--r5);
+    align-items: stretch;
+    align-content: start;
   }
 
-  /* Was den Einstieg in die Seite traegt, laeuft ueber die ganze Zeile: sonst
-     stuende die Ueberschrift in einer 28-rem-Spalte, waehrend daneben ein
-     Diagramm beginnt. Dasselbe gilt fuer Kaesten, die selbst ein Raster oder
-     einen Mehrspalten-Text aufbauen (.kennzahlen, .vergleich) und fuer
-     Textkaesten, die sonst mit leerer Flaeche neben sich stehen bleiben, weil
-     kein zweites Element ihre Zeile teilt (.abgrenzung, .fragen, .schritte,
-     TPULS-131) — ebenso der Seitenkopf auf /linie ([data-kopf]), der die
-     Ueberschrift der Seite traegt. Gemessen 2026-09-22: ohne das liessen
-     /, /methodik und /linie sichtbare Luecken neben diesen Kaesten stehen,
-     weil das Raster ihre Spur grid-weit ohnehin anlegt (siehe die
-     ueberspannenden Ueberschriften), sie selbst aber nur eine Spalte fuellen. */
+  /* Was den Einstieg traegt und was selbst ein Raster aufbaut, laeuft ueber
+     die ganze Zeile. */
   main.huelle > h1,
   main.huelle > h2,
   main.huelle > .lead,
-  main.huelle > .zeitwahl,
+  main.huelle > .tafel,
+  main.huelle > .auftakt,
   main.huelle > .wege,
-  main.huelle > .vorbehalt,
-  main.huelle > .kennzahlen,
   main.huelle > .vergleich,
   main.huelle > .abgrenzung,
   main.huelle > .fragen,
   main.huelle > .schritte,
   main.huelle > .weiter,
-  main.huelle > .voll,
-  main.huelle > [data-kopf] { grid-column: 1 / -1; }
+  main.huelle > .regler,
+  main.huelle > [data-kopf],
+  main.huelle > [data-regler],
+  main.huelle > [data-profil],
+  main.huelle > [data-verlauf].breit,
+  main.huelle > [data-ferien],
+  main.huelle > [data-linien],
+  main.huelle > [data-befunde],
+  main.huelle > [data-einleitung] { grid-column: 1 / -1; }
 
-  /* Der Abstand kommt jetzt aus `gap`. Bleibt der Aussenabstand stehen,
-     addiert er sich darauf — die erste Rasterzeile saesse 3 rem tiefer als
-     die zweite. */
+  /* Der Abstand kommt jetzt aus `gap`. */
   main.huelle > section,
   main.huelle > .block,
-  main.huelle > .breit { margin-top: 0; }
+  main.huelle > .breit,
+  main.huelle > .tafel,
+  main.huelle > h2 { margin-top: 0; }
+  main.huelle > h2 { margin-top: var(--r5); }
 
-  /* Im Raster stehen bis zu vier Diagramme gleichzeitig im Bild, und alle
-     zeigen denselben Zeitraum und dieselbe Schwelle. Eine Einstellung, die
-     vier sichtbare Bilder steuert und selbst aus dem Bild gescrollt ist, ist
-     eine Einstellung, die man vergisst.
-     `z-index: 4` liegt unter der Kopfleiste (6) und der Sprungmarke (10) und
-     ueber dem normalen Fluss. Das `popover` der Begriffserklaerungen liegt im
-     Top-Layer und ist von Stapelkontexten ohnehin unberuehrt. */
-  main.huelle > .regler,
-  main.huelle > [data-regler] {
-    grid-column: 1 / -1;
-    position: sticky;
-    top: var(--kopf-hoehe, 0px);
-    z-index: 4;
-    background: var(--papier);
-    margin-top: 0;
-  }
+  main.huelle > [data-regler] { margin-top: 0; }
+  main.huelle > [data-regler] > .regler,
+  main.huelle > [data-regler] > .regler-aufklapp { margin-top: 0; }
 
-  /* Die Kennzahlen laufen ueber die ganze Rasterzeile und duerfen dafuer ihre
-     52-rem-Deckelung ablegen: bei 2560 px stehen dann vier bis fuenf Zahlen
-     nebeneinander statt drei mit Leere daneben. */
-  .kennzahlen { max-width: none; }
-
-  /* Die Kaesten fuellen ihre Zelle. Das Lesemass gilt der Zeile, nicht dem
-     Kasten — ein 38-rem-Kasten in einer 40-rem-Zelle laesst rechts einen
-     Streifen stehen, der wie ein Fehler aussieht.
-     `main.huelle > .abgrenzung` und nicht nur `.abgrenzung`: als direktes
-     Kind der Huelle traegt es sonst noch immer `main.huelle > * { max-width:
-     var(--breite-text) }` von weiter oben (Spezifitaet 0-1-1 gegen 0-1-0 bei
-     einem einzelnen Klassenselektor) — gemessen 2026-09-22, ohne den Praefix
-     blieb die Box bei 40 rem, egal was hier stand. .hinweis/.fehler/.aussage
-     stehen dagegen nie als direktes Kind der Huelle (immer in einem eigenen
-     Container verschachtelt), dort reicht der einfache Klassenselektor. */
   main.huelle > .abgrenzung,
   main.huelle > .fragen,
-  main.huelle > .schritte,
-  .hinweis, .fehler, .aussage { max-width: none; }
-
-  /* Ein Befund ist ein zitierbarer Satz mit Fallzahl darunter — kurz genug,
-     dass zwei bis drei nebeneinander passen. Untereinander waren es auf einem
-     grossen Schirm bis zu vier Bildschirmhoehen fuer ein Dutzend Saetze. */
-  main.huelle > [data-befunde] {
-    grid-column: 1 / -1;
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(24rem, 100%), 1fr));
-    gap: var(--r6) var(--r7);
-    align-items: start;
-  }
-  main.huelle > [data-befunde] > .befund { margin-top: 0; }
-
-  /* Der Container der Linienliste (/linien) muss selbst ein Raster aus
-     Kacheln tragen koennen und darf dafuer weder auf 40 rem eingeschnuert
-     noch auf eine einzelne Rasterzelle beschraenkt bleiben. */
-  main.huelle > [data-linien] { grid-column: 1 / -1; max-width: none; }
-
-  /* Kachelwand. auto-fill und nicht auto-fit: bei einer gefilterten Suche mit
-     zwei Treffern sollen die Kacheln ihre Breite behalten und nicht auf je
-     1200 px auseinandergezogen werden.
-     19rem ist die Breite, ab der Liniennummer und Verlauf in einer Zeile
-     nebeneinander stehen (.linienliste a hat flex-basis: 16rem). */
-  .linienliste {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(min(19rem, 100%), 1fr));
-    gap: 0 var(--r6);
-  }
-  /* In der Kachel steht alles untereinander: Schild und Verlauf, Balken,
-     Zahl. Nebeneinander waere bei 19rem die Zahl an den rechten Rand
-     gedrueckt und der Verlauf abgeschnitten. Die `order`-Werte holen den
-     Balken aus seiner Position ganz am Ende (siehe linien.ts::eintrag) an
-     seinen vorgesehenen Platz zwischen Schild und Zahl. */
-  .linienliste li { flex-direction: column; align-items: stretch; gap: var(--r1); }
-  .linienliste a { flex: 0 0 auto; align-items: flex-start; order: 1; }
-  /* .quotenbalken erbt sonst `flex: 1 1 100%` von der Grundregel oben — dort
-     fuer die Zeilenrichtung gedacht (Hauptachse = Breite). Hier steht das
-     <li> auf `flex-direction: column`, die Hauptachse ist jetzt die Hoehe,
-     und dieselbe Regel liesse den Balken in der Hoehe wachsen. Ein SVG mit
-     viewBox, aber ohne eigene width/height-Attribute traegt ein intrinsisches
-     Seitenverhaeltnis (hier 100:4 = 25:1) — waechst die Hoehe ungebremst,
-     rechnet der Browser die Breite ueber dieses Verhaeltnis mit und sprengte
-     gemessen 2026-09-22 die Seite um 700 bis 830 px nach rechts.
-     `flex: 0 0 auto` haelt die Hoehe bei den festen 4px aus `block-size`,
-     `inline-size: 100%` setzt die Breite explizit statt sie ueber das
-     Seitenverhaeltnis herzuleiten. */
-  .linienliste .quotenbalken { order: 2; flex: 0 0 auto; inline-size: 100%; }
-  .linienliste .werte {
-    order: 3;
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: 0 var(--r3);
-    text-align: left;
-  }
-  .linienliste .richtungen { display: none; }
+  main.huelle > .schritte { max-width: none; }
 }
 
 @media (min-width: 112.5rem) {
@@ -1581,78 +1931,60 @@ h1 .nummer { font-size: 1.35rem; min-width: 3.2rem; padding: 0.15rem 0.5rem; }
     font-size: 1.125rem;
     --breite-rand: 20rem;
   }
+  .fragen { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 
-  /* Ab 1800 px ist eine Rasterzelle breit genug fuer zwei Spalten. `columns`
-     und nicht Grid: die Eintraege sind unterschiedlich lang, und der
-     Spaltenumbruch soll sie ausgleichen statt sie in Zeilen zu zwingen.
-     `break-inside: avoid` haelt einen Eintrag zusammen — ein
-     Aufzaehlungspunkt, der mitten im Satz die Spalte wechselt, ist schlechter
-     zu lesen als eine ungleich hohe Spalte.
-     Nur Aufzaehlungen, kein Fliesstext: ein Absatz, der unten aus der einen
-     Spalte laeuft und oben in der naechsten weitergeht, zwingt das Auge zum
-     Sprung ueber die ganze Kastenhoehe. */
-  .abgrenzung ul,
-  .fragen,
-  .schritte {
-    columns: 2;
-    column-gap: var(--r7);
-  }
-  .abgrenzung li, .fragen li, .schritte li {
-    break-inside: avoid;
-    margin-bottom: var(--r4);
+  /* Die Steuerleiste klebt unter der Kopfleiste — erst ab hier, weil sie erst
+     ab hier in eine Zeile passt. Gemessen 2026-09-24 an Linie 5: bei 1440 px
+     zwei Zeilen und 208 px, bei 1920 px eine Zeile und 122 px. Klebend bei
+     1440 px blieben bei 900 px Fensterhoehe unter Kopf- und Steuerleiste
+     keine 630 px fuer die Streckentabelle. (TPULS-134 liess sie ab 1400 px
+     kleben; im Bestand war sie dort 158 px hoch.) */
+  main.huelle > [data-regler] {
+    position: sticky;
+    top: calc(var(--kopf-hoehe, 0px) + var(--r2));
+    z-index: 4;
   }
 }
 
 /* ---------------------------------------------------------------------------
    Inhaltsspalte der Textseiten (ADR-028)
 
-   Unterhalb von 87,5 rem steht sie nicht im Weg, sondern gar nicht da: auf dem
-   Telefon ist eine Sprungliste vor dem Text eine Huerde, kein Dienst — der
-   Daumen scrollt schneller, als die Liste gelesen ist.
-
-   Dieser Abschnitt steht bewusst NACH dem Panel-Raster oben: `main.huelle:has(
-   .inhaltsspalte)` setzt `display: grid` mit einem eigenen Spaltenraster und
-   ueberschreibt damit das Panel-Raster einer Kachelseite — eine Textseite
-   bekommt Text + Uebersicht, kein Kachelraster. Die hoehere Spezifitaet von
-   `:has()` traegt das zwar auch bei vertauschter Reihenfolge, aber die
-   Reihenfolge soll das schon beim Lesen zeigen, nicht erst die Spezifitaet.
+   Unterhalb von 87,5 rem steht sie gar nicht da: auf dem Telefon ist eine
+   Sprungliste vor dem Text eine Huerde. Der Abschnitt steht nach dem
+   Panel-Raster: eine Textseite bekommt Text + Uebersicht, kein Kachelraster.
    --------------------------------------------------------------------------- */
 
 .inhaltsspalte { display: none; }
 
 @media (min-width: 87.5rem) {
+  /* Zeilenabstand 0: die Uebersicht spannt ueber so viele Zeilen, wie die Seite
+     hoechstens hat (span 200 — /methodik hat 2026-09-24 58 direkte Kinder, /lizenz 19, /impressum 13).
+     Leere Zeilen haben dann keine Hoehe; mit einem Zeilenabstand kaeme er je
+     leerer Zeile dazu (gemessen: 999 Zeilen x 1,5 rem machten /methodik
+     37.275 px hoch). Die Abstaende tragen die Aussenabstaende der Elemente. */
   main.huelle:has(.inhaltsspalte) {
     display: grid;
     grid-template-columns: minmax(0, 1fr) var(--breite-rand);
     column-gap: var(--r8);
+    row-gap: 0;
     align-items: start;
   }
-  /* Der Text bleibt in Spalte 1, die Uebersicht steht in Spalte 2 und beginnt
-     oben. `grid-row: 1 / -1` haelt sie ueber die volle Hoehe, damit `sticky`
-     ueberhaupt einen Weg hat, an dem es kleben kann.
-     `top` rechnet die Hoehe der ab derselben Breite klebenden Kopfleiste mit
-     (TPULS-135) — ohne das klebte die Uebersicht bei var(--r5) und verschwaende
-     zur Haelfte hinter der Kopfleiste, sobald beide gleichzeitig aktiv sind. */
-  .inhaltsspalte {
+  main.huelle:has(.inhaltsspalte) > * { grid-column: 1; }
+  main.huelle:has(.inhaltsspalte) > h2 { margin-top: var(--r7); }
+  main.huelle:has(.inhaltsspalte) > .inhaltsspalte {
     display: block;
     grid-column: 2;
-    grid-row: 1 / -1;
+    grid-row: 1 / span 200;
     position: sticky;
     top: calc(var(--kopf-hoehe, 0px) + var(--r5));
     max-width: none;
     font-size: var(--t-klein);
-    border-top: 2px solid var(--linie);
-    padding-top: var(--r3);
+    padding: var(--r4) var(--r4) var(--r3);
+    background: var(--flaeche);
+    border: 1px solid var(--linie);
+    border-radius: var(--radius-l);
   }
-  .inhaltsspalte-titel {
-    font-family: var(--schrift-grotesk);
-    font-size: var(--t-mikro);
-    font-weight: 600;
-    letter-spacing: 0.09em;
-    text-transform: uppercase;
-    color: var(--gedaempft);
-    margin: 0 0 var(--r3);
-  }
+  .inhaltsspalte-titel { margin: 0 0 var(--r2); }
   .inhaltsspalte ol {
     list-style: none;
     margin: 0;
@@ -1660,16 +1992,31 @@ h1 .nummer { font-size: 1.35rem; min-width: 3.2rem; padding: 0.15rem 0.5rem; }
     display: flex;
     flex-direction: column;
   }
-  /* Fingerbreite, weil es ein Tippziel ist — die Breitenmatrix prueft das
-     nicht, weil der Selektor in P3 nicht gelistet ist; siehe
-     breitenmatrix.spec.ts. */
   .inhaltsspalte a {
     display: flex;
     align-items: center;
     min-height: var(--tippziel);
+    padding: var(--r1) 0;
     color: var(--gedaempft);
     text-decoration: none;
+    line-height: 1.35;
     border-bottom: 1px solid var(--linie);
   }
-  .inhaltsspalte a:hover { color: var(--akzent); }
+  .inhaltsspalte li:last-child a { border-bottom: 0; }
+  .inhaltsspalte a:hover { color: var(--tinte); }
+}
+
+/* ---------------------------------------------------------------------------
+   Bewegung
+
+   Seitenwechsel blenden weich ueber (View Transitions zwischen Dokumenten:
+   Chrome 126, Safari 18.2; Firefox ignoriert die Regel und wechselt hart —
+   derselbe Stand wie vorher). Kein Skript, keine Abhaengigkeit. Wer
+   reduzierte Bewegung eingestellt hat, bekommt den harten Wechsel.
+   --------------------------------------------------------------------------- */
+
+@media (prefers-reduced-motion: no-preference) {
+  @view-transition { navigation: auto; }
+  ::view-transition-old(root),
+  ::view-transition-new(root) { animation-duration: 180ms; }
 }

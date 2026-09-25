@@ -3,11 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#faf9f6" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#121317" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f3f5f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0b0e13" media="(prefers-color-scheme: dark)">
 <title>Lizenz und Attribution — TramPuls</title>
-<!-- Begruendung: index.html, gleiche Stelle (TPULS-109). -->
-<link rel="icon" href="data:,">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <meta name="description" content="Woher die Daten kommen, unter welcher Lizenz sie stehen, und warum TramPuls keine personenbezogenen Daten verarbeitet.">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="TramPuls">
@@ -16,12 +15,12 @@
 <meta property="og:title" content="Lizenz und Attribution — TramPuls">
 <meta property="og:description" content="Woher die Daten kommen, unter welcher Lizenz sie stehen, und warum TramPuls keine personenbezogenen Daten verarbeitet.">
 <meta name="twitter:card" content="summary">
-<!-- Nur die Groteske wird vorgeladen: sie traegt die erste Zahl. Die Serif
-     traegt Ueberschriften und darf per font-display:swap nachkommen.
+<!-- Nur die schmale Instanz wird vorgeladen: sie traegt die erste Zahl auf
+     der Tafel. Der Lesetext darf per font-display:swap nachkommen.
      crossorigin ist auch bei gleicher Herkunft Pflicht — Schriften werden
      im CORS-Modus geholt, und ohne das Attribut laedt der Browser die
      Datei ein zweites Mal. -->
-<link rel="preload" href="/schrift/archivo-var-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/schrift/instrument-sans-schmal-var-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/src/stil.css">
 <!-- Blockierend und ohne `type="module"`: eine gemerkte Farbwahl muss
      stehen, bevor das erste Bild der Seite gezeichnet wird. Begruendung
@@ -82,24 +81,21 @@
      sich jederzeit löschen.</p>
 
   <h2>Schriften</h2>
-  <p>Diese Seite benutzt zwei freie Schriften, die vom eigenen Server ausgeliefert
-     werden und nicht von einem Schriften-Dienst. Das ist Absicht: eine eingebundene
+  <p>Diese Seite benutzt eine freie Schrift, die vom eigenen Server ausgeliefert
+     wird und nicht von einem Schriften-Dienst. Das ist Absicht: eine eingebundene
      Web-Schrift von Dritten meldet bei jedem Aufruf die IP-Adresse der Leserin an ein
      fremdes Haus, und genau das soll hier nicht passieren.</p>
   <ul>
-    <li><strong>Archivo</strong> — Copyright 2020 The Archivo Project Authors.
-        <a href="/schrift/ARCHIVO-OFL.txt">SIL Open Font License 1.1</a></li>
-    <li><strong>TramPuls Serif</strong> — ein gekürzter Ausschnitt aus
-        <strong>Source Serif 4</strong>, Copyright 2014–2021 Adobe Systems Incorporated.
-        <a href="/schrift/SOURCE-SERIF-4-OFL.txt">SIL Open Font License 1.1</a></li>
+    <li><strong>Instrument Sans</strong> — Copyright 2022 The Instrument Sans Project
+        Authors. <a href="/schrift/INSTRUMENT-SANS-OFL.txt">SIL Open Font License 1.1</a></li>
   </ul>
-  <p>Beide Dateien enthalten nur die Zeichen, die diese Seite braucht — das spart rund
-     zwei Drittel der Größe. Die Lizenz erlaubt solche Änderungen ausdrücklich und
-     verlangt dafür zweierlei: Der Lizenztext liegt unverändert daneben, und eine
-     geänderte Fassung darf den geschützten Namen der Vorlage nicht weiterführen.
-     Deshalb heißt der Ausschnitt aus Source Serif 4 hier <em>TramPuls Serif</em> und
-     nicht mehr wie das Original. Archivo trägt keinen solchen geschützten Namen und
-     behält seinen.</p>
+  <p>Ausgeliefert werden zwei Ausschnitte derselben Schrift: einer in normaler Breite
+     für den Lesetext und einer auf drei Viertel der Breite für Überschriften, Zahlen
+     und Linienschilder. Beide enthalten nur die Zeichen, die diese Seite braucht. Die
+     Lizenz erlaubt solche Änderungen ausdrücklich und verlangt dafür, dass der
+     Lizenztext unverändert danebenliegt. Einen geschützten Namen, den eine geänderte
+     Fassung nicht weiterführen dürfte, trägt Instrument Sans nicht — die Ausschnitte
+     behalten deshalb ihren.</p>
 
   <h2>Wie die Zahlen zu lesen sind</h2>
   <p>Was hier steht, sind Zahlen mit Anzahl und Zeitraum — keine Vorwürfe. Verspätung im

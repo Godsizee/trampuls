@@ -72,6 +72,7 @@ async function start(): Promise<void> {
     befundZweiteQuelle(lage),
     befundAusfaelle(lage),
   ].join("");
+  for (const b of ziel.querySelectorAll(".befund")) gliedere(b);
 
   // Die Schwellentabelle wird angehaengt statt mitserialisiert: `tabelle()`
   // haengt einen ResizeObserver an den Scrollkasten (seite.ts), und der ginge
@@ -79,6 +80,26 @@ async function start(): Promise<void> {
   // melden, dass er scrollt.
   const platz = ziel.querySelector("[data-schwellen]");
   if (platz) platz.appendChild(schwellenTabelle(lage));
+}
+
+/**
+ * Jeder Befund in zwei Teile: vorn die Aussage (Ueberschrift und Satz), dahinter
+ * ihr Beleg (Tabelle, Grundlage, Vorbehalte). Nebeneinander, sobald der Kasten
+ * breit genug ist (stil.css, "Vergleich und Befunde") — der Satz, den jemand
+ * zitiert, steht dann auf derselben Hoehe wie das, was ihn traegt.
+ *
+ * Nachtraeglich statt in jeder Vorlage: jeder Befund beginnt mit genau zwei
+ * Elementen fuer die Aussage (h2 und der Satz bzw. die Frage), und das bleibt
+ * an einer Stelle wahr statt an sieben.
+ */
+function gliedere(befund: Element): void {
+  const kern = document.createElement("div");
+  kern.className = "befund-kern";
+  const beleg = document.createElement("div");
+  beleg.className = "befund-beleg";
+  [...befund.children].forEach((kind, i) => (i < 2 ? kern : beleg).appendChild(kind));
+  befund.append(kern);
+  if (beleg.children.length > 0) befund.append(beleg);
 }
 
 function tragfaehigeTage(m: MethodikDatei): string[] {

@@ -83,6 +83,7 @@ for (const breite of BREITEN) {
             const treffer: string[] = [];
             const auswahl = 'header nav a, .knopf, .regler select, .regler button, ' +
               '.regler input, .linienliste a, summary, .zeitwahl label, .farbschalter, ' +
+              '.segmente label, .marke, .zurueck a, .fuss-verweise a, .weiter a, ' +
               '.fragen a, .inhaltsspalte a';
             for (const el of document.querySelectorAll(auswahl)) {
               const r = el.getBoundingClientRect();
@@ -101,12 +102,12 @@ for (const breite of BREITEN) {
           const schriften = await page.evaluate(async () => {
             await document.fonts.ready;
             return {
-              grotesk: document.fonts.check('400 1rem "Archivo Var"'),
-              serif: document.fonts.check('600 1rem "TramPuls Serif"'),
+              text: document.fonts.check('400 1rem "Instrument Sans"'),
+              schmal: document.fonts.check('600 1rem "Instrument Sans Schmal"'),
             };
           });
-          expect(schriften.grotesk, "Archivo Var geladen").toBe(true);
-          expect(schriften.serif, "TramPuls Serif geladen").toBe(true);
+          expect(schriften.text, "Instrument Sans geladen").toBe(true);
+          expect(schriften.schmal, "Instrument Sans Schmal geladen").toBe(true);
 
           // P5 — keine JavaScript- und keine Ladefehler.
           expect(fehler, "Konsolen- und Seitenfehler").toEqual([]);

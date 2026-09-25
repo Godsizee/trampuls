@@ -3,15 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#faf9f6" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#121317" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f3f5f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0b0e13" media="(prefers-color-scheme: dark)">
 <title>TramPuls — Wie pünktlich fahren Straßenbahn und Bus der RNV?</title>
-<!-- Ohne dieses Icon fordert Chrome automatisch /favicon.ico an, bekommt 404 und
-     meldet das als Konsolenfehler — das liess die Breitenmatrix (TPULS-109) auf
-     allen 144 Kombinationen an derselben Stelle scheitern, unabhaengig vom echten
-     Layout. "data:," ist ein leeres, aber gueltiges Icon; img-src 'self' data: in
-     der CSP erlaubt es. Gemessen 2026-09-20. -->
-<link rel="icon" href="data:,">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <meta name="description" content="TramPuls schreibt die Echtzeitdaten von Straßenbahn und Bus der Rhein-Neckar-Verkehr mit und rechnet nach, wie pünktlich jede Linie tatsächlich war.">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="TramPuls">
@@ -20,12 +15,12 @@
 <meta property="og:title" content="TramPuls — Wie pünktlich fahren Straßenbahn und Bus der RNV?">
 <meta property="og:description" content="TramPuls schreibt die Echtzeitdaten von Straßenbahn und Bus der Rhein-Neckar-Verkehr mit und rechnet nach, wie pünktlich jede Linie tatsächlich war.">
 <meta name="twitter:card" content="summary">
-<!-- Nur die Groteske wird vorgeladen: sie traegt die erste Zahl. Die Serif
-     traegt Ueberschriften und darf per font-display:swap nachkommen.
+<!-- Nur die schmale Instanz wird vorgeladen: sie traegt die erste Zahl auf
+     der Tafel. Der Lesetext darf per font-display:swap nachkommen.
      crossorigin ist auch bei gleicher Herkunft Pflicht — Schriften werden
      im CORS-Modus geholt, und ohne das Attribut laedt der Browser die
      Datei ein zweites Mal. -->
-<link rel="preload" href="/schrift/archivo-var-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/schrift/instrument-sans-schmal-var-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/src/stil.css">
 <!-- Blockierend und ohne `type="module"`: eine gemerkte Farbwahl muss
      stehen, bevor das erste Bild der Seite gezeichnet wird. Begruendung
@@ -36,6 +31,10 @@
 <!-- teil:kopf -->
 <main class="huelle" id="inhalt" tabindex="-1" data-inhalt>
 
+  <!-- Der Auftakt: Frage und Einleitung neben der Tafel, sobald beide
+       nebeneinander Platz haben (stil.css, "Startseite"). Ein eigener Kasten,
+       damit das Seitenraster ab 1400 px ihn nicht in Zellen zerlegt. -->
+  <div class="auftakt">
   <h1>Wie pünktlich fahren Straßenbahn und Bus im Rhein-Neckar-Raum?</h1>
   <p class="lead">Straßenbahnen und Busse der Rhein-Neckar-Verkehr fahren jeden Tag
      mehrere tausend Fahrten durch Mannheim, Ludwigshafen und Heidelberg. Wie pünktlich
@@ -43,17 +42,25 @@
      zwar öffentlich, beschreiben aber immer nur den Moment und sind am nächsten Tag
      verschwunden. TramPuls schreibt sie mit und rechnet nach.</p>
 
-  <!-- Der Umschalter steht in der ausgelieferten HTML und nicht erst im
-       Skript: jede Eingabe hat vom ersten Aufbau an einen Wert, und "Aktueller
-       Tag" ist die Voreinstellung, wegen der die meisten hier sind. -->
-  <div class="zeitwahl" role="radiogroup" aria-label="Zeitraum der Zahlen" data-zeitwahl>
-    <label><input type="radio" name="zeitraum" value="tag" checked> Aktueller Tag</label>
-    <label><input type="radio" name="zeitraum" value="gesamt"> Gesamter Zeitraum</label>
-  </div>
-  <section class="kennzahlen" data-netz>
-    <p class="hinweis">Zahlen werden geladen…</p>
+  <!-- Die Anzeigetafel: Zeitwahl, beide Kennzahlen und ihr Vorbehalt in einem
+       Kasten, damit der Vorbehalt auf keiner Breite von seiner Zahl getrennt
+       werden kann (ADR-016). Der Umschalter steht in der ausgelieferten HTML
+       und nicht erst im Skript: jede Eingabe hat vom ersten Aufbau an einen
+       Wert, und "Aktueller Tag" ist die Voreinstellung. -->
+  <section class="tafel" aria-labelledby="tafel-titel">
+    <div class="tafel-kopf">
+      <h2 class="tafel-titel" id="tafel-titel">Pünktlichkeit im Netz der RNV</h2>
+      <div class="zeitwahl segmente" role="radiogroup" aria-label="Zeitraum der Zahlen" data-zeitwahl>
+        <label><input type="radio" name="zeitraum" value="tag" checked> Aktueller Tag</label>
+        <label><input type="radio" name="zeitraum" value="gesamt"> Gesamter Zeitraum</label>
+      </div>
+    </div>
+    <div class="kennzahlen" data-netz>
+      <p class="hinweis">Zahlen werden geladen…</p>
+    </div>
+    <p class="vorbehalt" data-vorbehalt></p>
   </section>
-  <p class="vorbehalt" data-vorbehalt></p>
+  </div>
 
   <div class="wege">
     <a class="knopf haupt" href="/netz.html">Alle Zahlen ansehen</a>

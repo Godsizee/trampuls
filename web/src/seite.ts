@@ -62,6 +62,28 @@ export function escape(s: string): string {
   );
 }
 
+/**
+ * Das Linienschild als Auszeichnung — an genau einer Stelle, weil es an drei
+ * Stellen steht (/linien, Kopf der Linienseite, Vergleich). Die Form traegt die
+ * Verkehrsart mit (stil.css, "Linienschild"). `data-lang` ab vier Zeichen:
+ * "1003", "43/46", "Moonliner 1" bekommen einen kleineren Grad, damit das
+ * Schild nicht breiter wird als der Verlauf daneben (gemessen 2026-09-24:
+ * laengste Nummer "Moonliner 1", 11 Zeichen). Ruftaxi (ADR-011) als Umriss.
+ */
+export function schild(
+  nummer: string,
+  art: string,
+  optionen: { bedarf?: boolean; verborgen?: boolean } = {},
+): string {
+  return (
+    `<span class="nummer" data-art="${escape(art)}"` +
+    (nummer.length >= 4 ? " data-lang" : "") +
+    (optionen.bedarf ? " data-bedarf" : "") +
+    (optionen.verborgen ? ' aria-hidden="true"' : "") +
+    `>${escape(nummer)}</span>`
+  );
+}
+
 let begriffZaehler = 0;
 
 /**
@@ -168,6 +190,10 @@ export function tabelle(
   zeilen: string[][],
   modus?: Tabellenmodus,
   beschriftung = "Zahlentabelle",
+  // Darf einer Zelle nach dem Befuellen Zeichen hinzufuegen (Streckentabelle
+  // auf /linie: Linienband und Zuwachsbalken). Der Text der Zelle bleibt, wie
+  // er ist — ein Zeichen ergaenzt eine Zahl, es ersetzt sie nie.
+  schmuck?: (zelle: HTMLTableCellElement, zeile: number, spalte: number) => void,
 ): HTMLDivElement {
   const spalten: Spalte[] = kopf.map((k, i) =>
     typeof k === "string" ? { name: k, typ: i === 0 ? "text" : "zahl" } : k,
@@ -193,23 +219,23 @@ export function tabelle(
   t.appendChild(thead);
 
   const tbody = document.createElement("tbody");
-  for (const zeile of zeilen) {
+  zeilen.forEach((zeile, zi) => {
     const tr = document.createElement("tr");
     zeile.forEach((z, i) => {
       const zelle = document.createElement(i === 0 ? "th" : "td");
       if (i === 0) {
         (zelle as HTMLTableCellElement).scope = "row";
         // Die erste Spalte wird bei Bedarf gekuerzt, nie umgebrochen. Der volle
-        // Wert bleibt als `title` erreichbar — auf dem Telefon nicht antippbar,
-        // dort ist er dafuer im Diagramm-Ablesefeld zu sehen (TPULS-115).
+        // Wert bleibt als `title` erreichbar.
         zelle.title = z;
       }
       zelle.dataset.typ = spalten[i]?.typ ?? "zahl";
       zelle.textContent = z;
+      schmuck?.(zelle, zi, i);
       tr.appendChild(zelle);
     });
     tbody.appendChild(tr);
-  }
+  });
   t.appendChild(tbody);
 
   const huelle = document.createElement("div");

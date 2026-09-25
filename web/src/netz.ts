@@ -52,7 +52,7 @@ function zeigeNetz(index: IndexDatei, zahlen: NetzZahlen[]): void {
     // Siehe start.ts: die Verkehrsart faerbt eine Flaeche, keinen Text.
     karte.dataset.art = n.verkehrsart;
     karte.innerHTML = `
-      <h2>${VERKEHRSART_NAME[n.verkehrsart] ?? n.verkehrsart}</h2>
+      <h3 class="art" data-art="${n.verkehrsart}">${VERKEHRSART_NAME[n.verkehrsart] ?? n.verkehrsart}</h3>
       <p class="gross">${grosseZahl(n.puenktlich, n.bewertbare_halte)}</p>
       <p class="klein">${
         q === null
@@ -162,10 +162,12 @@ function zeigeVerlauf(netz: NetzDatei): void {
     // derselben Rasterzeile (siehe stil.css, "Geruest").
     const block = document.createElement("section");
     block.className = "block";
+    // Die Saeulen nehmen die Farbe der Verkehrsart (stil.css, "Diagramme").
+    block.dataset.art = art;
 
     const haupt = document.createElement("div");
     haupt.className = "block-haupt";
-    haupt.innerHTML = `<h3>${VERKEHRSART_NAME[art]}</h3>`;
+    haupt.innerHTML = `<h3 class="art" data-art="${art}">${VERKEHRSART_NAME[art]}</h3>`;
     saeulenIn(haupt, punkte);
 
     const rand = document.createElement("aside");
@@ -273,7 +275,8 @@ function zeigeFerien(netz: NetzDatei, kalender: KalenderDatei): void {
     const je = eimer.get(art);
     if (!je) continue;
     const block = document.createElement("section");
-    block.innerHTML = `<h3>${VERKEHRSART_NAME[art]}</h3>`;
+    block.dataset.art = art;
+    block.innerHTML = `<h3 class="art" data-art="${art}">${VERKEHRSART_NAME[art]}</h3>`;
     block.appendChild(
       tabelle(
         ["Tage", "Betriebstage", "Gemessene Halte", `Weniger als ${SCHWELLE} Min zu spät`],

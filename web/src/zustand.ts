@@ -9,8 +9,6 @@ export interface Auswahl {
   linie: string | null;
   richtung: number;
   schwelle: number;
-  /** Verkehrsart-Filter der Linienauswahl. Null = alle. */
-  art: string | null;
   /** Zeitraum als Betriebstags-Grenzen. Beide null = alles, was vorliegt.
    *  Ein einzelner Tag ist von === bis — dafuer braucht es keinen dritten
    *  Parameter und keine zweite Schreibweise in der Adresse. */
@@ -34,7 +32,6 @@ export function leseAuswahl(): Auswahl {
     linie: p.get("linie"),
     richtung: richtungRoh === 1 ? 1 : 0,
     schwelle: (SCHWELLEN as readonly number[]).includes(schwelleRoh) ? schwelleRoh : 3,
-    art: p.get("art"),
     von: p.get("von"),
     bis: p.get("bis"),
   };

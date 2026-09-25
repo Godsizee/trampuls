@@ -3,11 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#faf9f6" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#121317" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f3f5f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0b0e13" media="(prefers-color-scheme: dark)">
 <title>Alle Linien — TramPuls</title>
-<!-- Begruendung: index.html, gleiche Stelle (TPULS-109). -->
-<link rel="icon" href="data:,">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <meta name="description" content="Alle Straßenbahn- und Buslinien der Rhein-Neckar-Verkehr, jede mit ihrer Pünktlichkeit und der Anzahl gemessener Halte.">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="TramPuls">
@@ -16,12 +15,12 @@
 <meta property="og:title" content="Alle Linien — TramPuls">
 <meta property="og:description" content="Alle Straßenbahn- und Buslinien der Rhein-Neckar-Verkehr, jede mit ihrer Pünktlichkeit und der Anzahl gemessener Halte.">
 <meta name="twitter:card" content="summary">
-<!-- Nur die Groteske wird vorgeladen: sie traegt die erste Zahl. Die Serif
-     traegt Ueberschriften und darf per font-display:swap nachkommen.
+<!-- Nur die schmale Instanz wird vorgeladen: sie traegt die erste Zahl auf
+     der Tafel. Der Lesetext darf per font-display:swap nachkommen.
      crossorigin ist auch bei gleicher Herkunft Pflicht — Schriften werden
      im CORS-Modus geholt, und ohne das Attribut laedt der Browser die
      Datei ein zweites Mal. -->
-<link rel="preload" href="/schrift/archivo-var-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/schrift/instrument-sans-schmal-var-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/src/stil.css">
 <!-- Blockierend und ohne `type="module"`: eine gemerkte Farbwahl muss
      stehen, bevor das erste Bild der Seite gezeichnet wird. Begruendung
@@ -37,12 +36,12 @@
      führt zur Linie mit Tagesverlauf, Strecke und Ausfällen. Das Suchfeld findet auch
      eine Haltestelle entlang der Strecke, nicht nur Liniennummer und Verlauf.</p>
   <div class="regler">
-    <label>Linie suchen
+    <label class="feld feld--breit suche"><span class="feld-name">Linie suchen</span>
       <input type="search" data-suche placeholder="Liniennummer oder Haltestelle" value="">
     </label>
   </div>
   <div data-linien><p class="hinweis">Linien werden geladen…</p></div>
-  <p class="weiter"><a href="/vergleich.html">Zwei Zeiträume vergleichen →</a></p>
+  <p class="weiter"><a href="/vergleich.html">Zwei Zeiträume vergleichen</a></p>
 </main>
 <!-- teil:fuss -->
 <script type="module" src="/src/linien.ts"></script>

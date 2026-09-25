@@ -7,7 +7,7 @@
 import { ladeIndex } from "./daten";
 import type { LinieKopf } from "./daten";
 import { liniennummer, quoteText, zahl, VERKEHRSART_NAME } from "./format";
-import { escape, fussnote, zeigeFehler } from "./seite";
+import { escape, fussnote, schild, zeigeFehler } from "./seite";
 
 async function start(): Promise<void> {
   const index = await ladeIndex();
@@ -104,6 +104,8 @@ function blockBauen(
 
 function eintrag(l: LinieKopf, halt?: string): HTMLLIElement {
   const li = document.createElement("li");
+  // Balken und Schild nehmen die Farbe der Verkehrsart (stil.css).
+  li.dataset.art = l.verkehrsart;
   const richtungen = l.richtungen.map((r) => escape(r.name)).join(" · ");
 
   // Der Balken zeigt denselben Wert, den die Prozentzahl daneben nennt — er
@@ -151,7 +153,7 @@ function eintrag(l: LinieKopf, halt?: string): HTMLLIElement {
   // zwischen Schild/Verlauf und Zahl.
   li.innerHTML = `
     <a href="linie.html?linie=${encodeURIComponent(l.datei)}">
-      <span class="nummer" data-art="${escape(l.verkehrsart)}">${escape(liniennummer(l.linie))}</span>
+      ${schild(liniennummer(l.linie), l.verkehrsart, { bedarf: l.bedarfsverkehr === true })}
       <span class="verlauf">${escape(l.verlauf)}</span>
     </a>
     <span class="werte">

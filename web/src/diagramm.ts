@@ -2,17 +2,18 @@
 //
 // Abweichung von TramPuls_Frontend, die begruendet sein will: dort ist uPlot
 // (~45 KB) fuer Tagesgang und Verlauf vorgesehen. Gebraucht werden hier ein
-// Saeulendiagramm ueber 24 Betriebsstunden und ein waagerechtes Balkendiagramm
-// entlang des Laufwegs — beides ohne Zoom, ohne Pan, ohne Tooltip-Engine. Der
-// gesamte Code dafuer steht unten und wiegt rund 4 KB statt 45 KB, und das
+// Saeulendiagramm ueber Stunden oder Tage und ein Zuwachsbalken je Halt fuer
+// die Streckentabelle — beides ohne Zoom, ohne Pan, ohne Tooltip-Engine. Der
+// gesamte Code dafuer steht unten und wiegt rund 3,6 KB statt 45 KB, und das
 // Frontend bleibt damit ohne Laufzeitabhaengigkeit.
 //
-// Jedes Diagramm hat eine Tabellenentsprechung daneben (siehe die Aufrufer):
-// das SVG ist aria-hidden, die Zahlen stehen in einer echten Tabelle darunter.
+// Jedes Saeulendiagramm traegt role="img" mit einer Zusammenfassung und hat
+// eine Tabellenentsprechung daneben (siehe die Aufrufer). Der Zuwachsbalken
+// ist aria-hidden: er steht in derselben Tabellenzelle wie seine Zahl.
 //
 // Farben und Schrift kommen aus dem Stylesheet, nicht aus diesem Modul. Die
-// Klassen (.saeule, .luecke, .balken.plus, .haltname …) sind dort definiert,
-// damit helles und dunkles Farbschema ohne JavaScript umschalten.
+// Klassen (.saeule, .luecke, .balken.plus …) sind dort definiert, damit helles
+// und dunkles Farbschema ohne JavaScript umschalten.
 
 const NS = "http://www.w3.org/2000/svg";
 
@@ -96,26 +97,6 @@ function haltAnBreite(
     beobachter.observe(svg);
   });
   beobachter.observe(svg);
-}
-
-// Schnitt der Groteske ueber deutschen Haltestellennamen, gemessen 2026-08-29.
-// Traegt seit TPULS-116 zwei Stellen: die Kuerzung hier im SVG und die
-// Kappungswerte der stehenden ersten Tabellenspalte (`--spalte-erste` in
-// stil.css, Abschnitt "Tabellen") rechnen mit derselben Zahl.
-const EM_JE_ZEICHEN = 0.52;
-
-/**
- * Text auf eine Pixelbreite kuerzen. SVG kennt kein `text-overflow`, und ein
- * Haltestellenname wie "Heidelberg Betriebshof/Gaisbergstrasse" laeuft sonst
- * quer durch das Diagramm. Genauer ginge nur mit `getComputedTextLength`, und
- * das kostet ein Layout je Zeile.
- */
-function kuerze(inhalt: string, maxBreite: number, schriftgroesse: number): string {
-  const proZeichen = schriftgroesse * EM_JE_ZEICHEN;
-  const passt = Math.floor(maxBreite / proZeichen);
-  if (inhalt.length <= passt) return inhalt;
-  if (passt <= 1) return "";
-  return inhalt.slice(0, passt - 1).trimEnd() + "…";
 }
 
 export interface Saeule {
@@ -332,176 +313,48 @@ function zusammenfassung(daten: Saeule[]): string {
   return `${teile.join(", ")}.`;
 }
 
-export interface Balken {
-  beschriftung: string;
-  /**
-   * Sekunden Zuwachs auf dem Abschnitt vor diesem Halt. Negativ heisst
-   * aufgeholt; `null` heisst, dass es fuer diesen Halt keinen einzigen
-   * gemessenen Abschnitt gab — und das ist etwas anderes als "null Sekunden
-   * dazugekommen". Vorher reichte der Aufrufer dafuer eine 0 herein, und ein
-   * ungemessener Halt sah damit aus wie ein besonders ruhiger.
-   */
-  wert: number | null;
-}
-
 /**
- * Haltestellenprofil (T3): der Laufweg ist die senkrechte Achse, der
- * Verspaetungszuwachs je Abschnitt der Balken. Werte koennen negativ sein —
- * dann holt der Abschnitt Verspaetung auf, und der Balken geht nach links.
- * Deshalb liegt die Nulllinie in der Mitte des Balkenfelds und nicht am Rand.
+ * Der Balken in der Spalte "Dazugekommen" der Streckentabelle (T3): nach rechts
+ * kommt Verspaetung dazu, nach links wird aufgeholt. Die Nulllinie steht in der
+ * Mitte, alle Zeilen teilen sich einen Massstab — den groessten Betrag der
+ * Tabelle, damit zwei Balken derselben Laenge dieselbe Zahl bedeuten.
  *
- * Vorher war das ein festes 320er Bild ohne eine einzige Beschriftung: die
- * Haltestellennamen standen nur in der Tabelle darunter, das SVG war damit
- * eher Verzierung als Diagramm. Jetzt traegt es den Laufweg selbst — Namen,
- * Haltpunkte und Verbindungslinie —, sobald genug Breite dafuer da ist. Auf
- * dem Telefon bleibt die kompakte Form, und die Namen stehen weiter in der
- * Tabelle.
+ * `null` heisst: fuer diesen Halt gab es keinen gemessenen Abschnitt. Das ist
+ * etwas anderes als "null Sekunden dazugekommen" und bekommt deshalb ein
+ * eigenes Zeichen, einen gestrichelten Strich auf der Nulllinie (Regel 8).
+ *
+ * `aria-hidden`: die Zahl steht in derselben Zelle als Text. Gerechnet wird
+ * nichts — die Werte kommen fertig vom Aufrufer, hier wird nur skaliert.
+ * Masse als Praesentationsattribute, nie als `style` (CSP, ADR-025).
  */
-export function balkenProfil(
-  daten: Balken[],
-  breite = 320,
-  zeilenhoehe = 24,
-): SVGSVGElement {
-  const NAMENSGROESSE = 11;
-  // Bis zum 2026-09-20 wurden Namen erst ab 460 px gezeichnet — auf dem
-  // Telefon stand damit eine Reihe unbeschrifteter Balken, und die Zuordnung
-  // lag allein in der Tabelle darunter. Jetzt bekommt der Name immer eine
-  // Spalte; wie breit, haengt an der verfuegbaren Breite (TPULS-116).
-  const namenAnteil = breite < 460 ? 0.45 : 0.4;
-  const namenBreite = Math.min(breite * namenAnteil, breite < 460 ? 150 : 240);
-  const laufwegX = namenBreite + 10;
-  const feldX = laufwegX + 12;
-  const feldBreite = Math.max(breite - feldX - 4, 40);
-  const nullX = feldX + feldBreite / 2;
-  const maxLaenge = feldBreite / 2 - 4;
-
-  // +26 statt +14: die Legende ("− aufgeholt" / "+ dazugekommen") braucht 12 px
-  // zusaetzlich ueber der ersten Zeile (TPULS-115).
-  const hoehe = Math.max(daten.length * zeilenhoehe + 26, 52);
-  const groesster = Math.max(1, ...daten.map((d) => (d.wert === null ? 0 : Math.abs(d.wert))));
-
+export function zuwachsbalken(wert: number | null, alle: (number | null)[]): SVGSVGElement {
+  const groesster = Math.max(1, ...alle.map((w) => (w === null ? 0 : Math.abs(w))));
+  // viewBox 200 x 10: die Mitte liegt bei 100, ein voller Balken ist 96 lang.
   const svg = el("svg", {
-    viewBox: `0 0 ${breite} ${hoehe}`,
-    class: "profil",
-    // Verliert `aria-hidden` in TPULS-115, wie das Saeulendiagramm -- die
-    // Tabellenentsprechung darunter bleibt Pflicht, das Label die Kurzfassung.
-    role: "img",
-    "aria-label": zusammenfassungBalken(daten),
+    viewBox: "0 0 200 10",
+    preserveAspectRatio: "none",
+    class: "zuwachsbalken",
+    "aria-hidden": "true",
+    focusable: "false",
   });
-
-  // Links und rechts der Nulllinie steht, was die Richtung bedeutet. Bis zum
-  // 2026-09-20 stand das nur in der Randspalte — auf dem Schreibtisch neben
-  // dem Bild, auf dem Telefon darunter. Wer das Bild zuerst ansah, sah zwei
-  // Farben ohne Bedeutung.
-  svg.appendChild(text("− aufgeholt", { x: nullX - 6, y: 9, class: "achse rechts" }));
-  svg.appendChild(text("+ dazugekommen", { x: nullX + 6, y: 9, class: "achse" }));
-
-  // Der Laufweg: eine durchgehende Linie mit einem Punkt je Halt, von der
-  // ersten bis zur letzten Zeilenmitte. Sie macht aus einer Reihe von Balken
-  // eine Strecke.
-  const ersteMitte = 19 + zeilenhoehe / 2;
-  const letzteMitte = 19 + (daten.length - 1) * zeilenhoehe + zeilenhoehe / 2;
-  if (daten.length > 1) {
-    svg.appendChild(el("line", {
-      x1: scharf(laufwegX), y1: ersteMitte,
-      x2: scharf(laufwegX), y2: letzteMitte, class: "streckenlinie",
-    }));
-  }
-
   svg.appendChild(el("line", {
-    x1: scharf(nullX), y1: 0, x2: scharf(nullX), y2: hoehe, class: "nulllinie",
+    x1: 100, y1: 0, x2: 100, y2: 10, class: "nulllinie", "vector-effect": "non-scaling-stroke",
   }));
-
-  daten.forEach((d, i) => {
-    const mitte = 19 + i * zeilenhoehe + zeilenhoehe / 2;
-
-    // Jede fuenfte Zeile bekommt eine schwache Fuehrungslinie ueber die volle
-    // Breite -- bei 73 Zeilen (der laengsten Linie im Bestand) ist die
-    // Zuordnung Name zu Balken sonst nicht zu halten (TPULS-116).
-    if (i % 5 === 0 && i > 0) {
-      svg.appendChild(el("line", {
-        x1: 0, y1: scharf(mitte - zeilenhoehe / 2),
-        x2: breite, y2: scharf(mitte - zeilenhoehe / 2),
-        class: "gitter",
-      }));
-    }
-
-    svg.appendChild(el("circle", { cx: laufwegX, cy: mitte, r: 3, class: "haltpunkt" }));
-
-    svg.appendChild(text(kuerze(d.beschriftung, namenBreite - 6, NAMENSGROESSE), {
-      x: namenBreite, y: mitte + 4, class: "haltname rechts",
+  if (wert === null) {
+    svg.appendChild(el("line", {
+      x1: 88, y1: 5, x2: 112, y2: 5, class: "luecke", "vector-effect": "non-scaling-stroke",
     }));
-
-    if (d.wert === null) {
-      // Dasselbe Zeichen wie im Saeulendiagramm: ein gestrichelter Strich auf
-      // der Nulllinie besetzt den Platz sichtbar, statt ihn leer zu lassen.
-      svg.appendChild(el("line", {
-        x1: scharf(nullX) - 5, y1: mitte, x2: scharf(nullX) + 5, y2: mitte, class: "luecke",
-      }));
-      return;
-    }
-
-    const laenge = (Math.abs(d.wert) / groesster) * maxLaenge;
-    // Ein gemessener Zuwachs von genau null bekommt keinen Balken: der Punkt
-    // auf der Streckenlinie steht ohnehin da, und ein halbes Pixel in der
-    // Farbe fuer "dazugekommen" waere eine Aussage, die die Zahl nicht macht.
-    if (laenge >= 0.5) {
-      svg.appendChild(el("rect", {
-        x: d.wert >= 0 ? nullX : nullX - laenge,
-        y: mitte - (zeilenhoehe - 10) / 2,
-        width: laenge,
-        height: zeilenhoehe - 10,
-        class: d.wert >= 0 ? "balken plus" : "balken minus",
-        rx: 1,
-      }));
-    }
-  });
-
+    return svg;
+  }
+  const laenge = (Math.abs(wert) / groesster) * 96;
+  // Ein gemessener Zuwachs von genau null bekommt keinen Balken: ein halbes
+  // Pixel in der Farbe fuer "dazugekommen" waere eine Aussage, die die Zahl
+  // nicht macht.
+  if (laenge >= 0.5) {
+    svg.appendChild(el("rect", {
+      x: wert >= 0 ? 100 : 100 - laenge, y: 1.5, width: laenge, height: 7,
+      class: wert >= 0 ? "balken plus" : "balken minus",
+    }));
+  }
   return svg;
-}
-
-/**
- * Kurzfassung des Profils fuers `aria-label` -- Umfang, staerkster Zuwachs,
- * staerkster Aufholer, und die Zahl der Halte ohne gemessenen Abschnitt
- * (Regel 8: "nicht gemessen" faellt nie unter den Tisch).
- */
-function zusammenfassungBalken(daten: Balken[]): string {
-  const gemessen = daten.filter(
-    (d): d is Balken & { wert: number } => d.wert !== null,
-  );
-  const ungemessen = daten.length - gemessen.length;
-  if (gemessen.length === 0) {
-    return `${daten.length} ${daten.length === 1 ? "Halt" : "Halte"}, keiner gemessen.`;
-  }
-  const groesster = gemessen.reduce((a, b) => (b.wert > a.wert ? b : a));
-  const aufholer = gemessen.reduce((a, b) => (b.wert < a.wert ? b : a));
-  const teile = [
-    `${daten.length} ${daten.length === 1 ? "Halt" : "Halte"}`,
-    `staerkster Zuwachs bei ${groesster.beschriftung}`,
-    `staerkster Aufholer ${aufholer.beschriftung}`,
-  ];
-  if (ungemessen > 0) {
-    teile.push(`${ungemessen} ohne gemessenen Abschnitt`);
-  }
-  return `${teile.join(", ")}.`;
-}
-
-/**
- * Zeichnet das Haltestellenprofil in `ziel` und haelt es an dessen Breite.
- *
- * Die Zeilenhoehe haengt seit TPULS-116 an der gemessenen Breite statt an
- * einem festen Vorgabewert. Bei 73 Halten — der laengsten Linie im Bestand,
- * de-vrn-02005, gemessen 2026-09-20 — ergaben 24 px Zeilenhoehe auf jeder
- * Breite ein 1766 px hohes Bild. Auf dem Telefon sind 20 px genug: der Balken
- * bleibt 10 px hoch, der Name passt.
- */
-export function balkenProfilIn(ziel: Element, daten: Balken[]): void {
-  // Die Hoehe des Profils ergibt sich aus der Zahl der Halte, nicht aus dem
-  // Stylesheet (`.profil { height: auto }`) — die gemessene bleibt hier also
-  // ausdruecklich ungenutzt.
-  haltAnBreite(ziel, (breite) => {
-    const b = breite ?? 320;
-    const zeilenhoehe = b < 460 ? 20 : b < 760 ? 22 : 26;
-    return balkenProfil(daten, b, zeilenhoehe);
-  });
 }

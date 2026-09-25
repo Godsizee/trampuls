@@ -143,6 +143,13 @@ Fahrten.
   Schriftgrad, Kopfleiste (ADR-025)
 - **Die erste Spalte einer Tabelle bricht nie um.** Sie wird bei Bedarf gekürzt
   (`text-overflow: ellipsis`), nie umgebrochen (ADR-025)
+- **Farbe trägt keine Wertung.** Keine Zahl wird nach ihrem Wert eingefärbt, keine
+  Ampelfarben (Regel 14, ADR-029)
+- **Farb-Tokens bleiben unregistriert** — kein `@property`. Anzeigetafel und
+  Fußzeile setzen `color-scheme: dark` und brauchen `light-dark()` als vererbten
+  Ausdruck (ADR-029)
+- **Kopf- und Fußzeile nur in `web/src/teile/` ändern.** Der Build setzt sie in alle
+  neun Seiten ein und bricht ab, wenn einer Seite der Platzhalter fehlt (TPULS-138)
 
 ---
 

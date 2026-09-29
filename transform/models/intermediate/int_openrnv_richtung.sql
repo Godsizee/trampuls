@@ -32,26 +32,18 @@ with vrn_position as (
 
     -- Mittlere relative Position je Station, ueber alle Fahrten der Richtung 0.
     -- Relativ (0..1), weil Kurzlaeufe sonst die absolute Sequenz verschieben.
+    --
+    -- Die Teilsummen je Sollfahrplan-Version liegen fertig in
+    -- int_vrn_position_je_version (TPULS-144, ADR-030): eine Version aendert sich
+    -- nach dem Schreiben nicht mehr, sie muss nur einmal gerechnet werden. Der
+    -- Mittelwert ueber alle Versionen ist sum(summe) / sum(n) -- exakt derselbe
+    -- Wert wie vorher, nicht eine Naeherung.
     select
-        f.route_id,
-        {{ station_normalisiert('h.station_id') }} as station_id,
-        avg(sh.stop_sequence * 1.0 / nullif(g.letzte, 0))     as position
-    from {{ ref('stg_static_fahrt') }} f
-    join {{ ref('stg_static_sollhalt') }} sh
-      on  sh.trip_id       = f.trip_id
-     and sh.static_version = f.static_version
-    join (
-        select trip_id, static_version, max(stop_sequence) as letzte
-        from {{ ref('stg_static_sollhalt') }}
-        group by 1, 2
-    ) g
-      on  g.trip_id       = f.trip_id
-     and g.static_version = f.static_version
-    join {{ ref('stg_static_halt') }} h
-      on  h.stop_id        = sh.stop_id
-     and h.static_version  = sh.static_version
-    where f.richtung = 0
-      and f.route_id in (select route_id from {{ ref('quelle_openrnv') }})
+        route_id,
+        station_id,
+        sum(position_summe) / nullif(sum(position_n), 0)      as position
+    from {{ ref('int_vrn_position_je_version') }}
+    where route_id in (select route_id from {{ ref('quelle_openrnv') }})
     group by 1, 2
 
 ),
@@ -99,31 +91,13 @@ openrnv_lauf as (
 -- -- eine Endstation, die beide Richtungen bedienen, sagt nichts.
 vrn_lauf as (
 
-    select
-        f.route_id,
-        f.richtung,
-        {{ station_normalisiert('ha.station_id') }} as anfang,
-        {{ station_normalisiert('he.station_id') }} as ende
-    from {{ ref('stg_static_fahrt') }} f
-    join (
-        select trip_id, static_version,
-               min(stop_sequence) as erste, max(stop_sequence) as letzte
-        from {{ ref('stg_static_sollhalt') }}
-        group by 1, 2
-    ) g
-      on  g.trip_id       = f.trip_id
-     and g.static_version = f.static_version
-    join {{ ref('stg_static_sollhalt') }} sa
-      on  sa.trip_id = f.trip_id and sa.static_version = f.static_version
-     and sa.stop_sequence = g.erste
-    join {{ ref('stg_static_sollhalt') }} se
-      on  se.trip_id = f.trip_id and se.static_version = f.static_version
-     and se.stop_sequence = g.letzte
-    join {{ ref('stg_static_halt') }} ha
-      on ha.stop_id = sa.stop_id and ha.static_version = sa.static_version
-    join {{ ref('stg_static_halt') }} he
-      on he.stop_id = se.stop_id and he.static_version = se.static_version
-    where f.route_id in (select route_id from {{ ref('quelle_openrnv') }})
+    -- Je Sollfahrplan-Version vorgerechnet (int_vrn_endpaar_je_version). Eine
+    -- Menge von Tupeln setzt sich aus den Mengen je Version exakt zusammen, und
+    -- ob ein Paar eindeutig ist, entscheiden vrn_paar und vrn_nur_ende weiter
+    -- ueber alle Versionen.
+    select route_id, richtung, anfang, ende
+    from {{ ref('int_vrn_endpaar_je_version') }}
+    where route_id in (select route_id from {{ ref('quelle_openrnv') }})
 
 ),
 

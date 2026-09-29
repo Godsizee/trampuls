@@ -25,44 +25,25 @@
 -- Nach einem Viertel ist entschieden, herum welchen Weg die Fahrt nimmt —
 -- RNV 5 Richtung 0 "Mannheim, Lange Roetterstrasse", Richtung 1 "Dossenheim,
 -- Bahnhof".
-with halte as (
-
-    select
-        f.route_id,
-        f.richtung,
-        f.static_version,
-        sh.trip_id,
-        sh.stop_sequence,
-        h.station_id,
-        coalesce(h.station_name, h.halt_name, sh.stop_id) as name,
-        row_number() over (partition by sh.trip_id, sh.static_version
-                           order by sh.stop_sequence)      as nr,
-        count(*)     over (partition by sh.trip_id, sh.static_version) as halte_der_fahrt
-    from {{ ref('stg_static_fahrt') }} f
-    join {{ ref('stg_static_sollhalt') }} sh
-      on  sh.trip_id        = f.trip_id
-     and sh.static_version  = f.static_version
-    left join {{ ref('stg_static_halt') }} h
-      on  h.stop_id        = sh.stop_id
-     and h.static_version  = sh.static_version
-
-),
-
-je_fahrt as (
+-- Der Laufweg je Fahrt und Version liegt fertig in int_richtung_fahrt_je_version
+-- (TPULS-144, ADR-030): eine Version aendert sich nach dem Schreiben nicht mehr,
+-- ihr Laufweg muss nur einmal gerechnet werden. Hier kommen die Versionen wieder
+-- zusammen -- eine Fahrt, die in mehreren Versionen steht, zaehlt einmal, wie
+-- vorher. Alles, was dabei ueber Versionen zusammenkommt, ist max(), und ein
+-- max() ueber Teilmaxima ist das Gesamtmaximum: dasselbe Ergebnis, keine
+-- Naeherung.
+with je_fahrt as (
 
     select
         route_id,
         richtung,
         trip_id,
-        max(halte_der_fahrt)                                  as halte,
-        max(case when nr = halte_der_fahrt then name end)       as endhalt,
-        max(case when nr = 1 then station_id end)               as anfang_station,
-        max(case when nr = halte_der_fahrt then station_id end) as ende_station,
-        -- Mindestens der zweite Halt: bei sehr kurzen Fahrten faellt der
-        -- Viertelpunkt sonst auf den Startpunkt und unterscheidet nichts.
-        max(case when nr = greatest(2, cast(halte_der_fahrt * 0.25 as int))
-                 then name end)                                 as viertelhalt
-    from halte
+        max(halte)              as halte,
+        max(endhalt)            as endhalt,
+        max(anfang_station)     as anfang_station,
+        max(ende_station)       as ende_station,
+        max(viertelhalt)        as viertelhalt
+    from {{ ref('int_richtung_fahrt_je_version') }}
     group by 1, 2, 3
 
 ),

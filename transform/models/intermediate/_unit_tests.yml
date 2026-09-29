@@ -124,8 +124,18 @@ unit_tests:
   # derselben Station, der Endhalt unterscheidet also nichts. Erwartet wird der
   # Zwischenhalt nach einem Viertel des Laufwegs -- und der ist je Umlaufsinn ein
   # anderer.
-  - name: int_richtung_unterscheidet_gleiche_endhalte
-    model: int_richtung
+  #
+  # Seit TPULS-144 (ADR-030) sind das zwei Stufen: den Laufweg je Fahrt und Version
+  # bestimmt int_richtung_fahrt_je_version, die Namensregel steht in int_richtung.
+  # Beide bekommen ihre Fixture -- die Ringfahrt zuerst in der Vorstufe, dann als
+  # deren Ergebnis in int_richtung.
+  - name: int_richtung_fahrt_je_version_bestimmt_den_laufweg
+    model: int_richtung_fahrt_je_version
+    # Inkrementelles Modell: der Test prueft den Erstaufbau, den Zuwachs prueft der
+    # Vergleich gegen den Vollaufbau (ADR-030).
+    overrides:
+      macros:
+        is_incremental: false
     given:
       - input: ref('stg_static_fahrt')
         rows:
@@ -149,6 +159,22 @@ unit_tests:
           - {stop_id: d, static_version: "2026-08-27", station_id: D, station_name: Ostweg, halt_name: Ostweg}
     expect:
       rows:
+        - {route_id: R, richtung: 0, trip_id: t0, static_version: "2026-08-27", halte: 4,
+           endhalt: Ringende, anfang_station: A, ende_station: A, viertelhalt: Westweg}
+        - {route_id: R, richtung: 1, trip_id: t1, static_version: "2026-08-27", halte: 4,
+           endhalt: Ringende, anfang_station: A, ende_station: A, viertelhalt: Ostweg}
+
+  - name: int_richtung_unterscheidet_gleiche_endhalte
+    model: int_richtung
+    given:
+      - input: ref('int_richtung_fahrt_je_version')
+        rows:
+          - {route_id: R, richtung: 0, trip_id: t0, static_version: "2026-08-27", halte: 4,
+             endhalt: Ringende, anfang_station: A, ende_station: A, viertelhalt: Westweg}
+          - {route_id: R, richtung: 1, trip_id: t1, static_version: "2026-08-27", halte: 4,
+             endhalt: Ringende, anfang_station: A, ende_station: A, viertelhalt: Ostweg}
+    expect:
+      rows:
         - {route_id: R, richtung: 0, richtung_name: "über Westweg", namensregel: zwischenhalt,
            fahrten_mit_diesem_endhalt: 1, fahrten_gesamt: 1, kurzlauf_anteil: 0.0, ringfahrten_anteil: 1.0}
         - {route_id: R, richtung: 1, richtung_name: "über Ostweg", namensregel: zwischenhalt,
@@ -159,25 +185,36 @@ unit_tests:
   - name: int_richtung_laesst_klare_endhalte_in_ruhe
     model: int_richtung
     given:
-      - input: ref('stg_static_fahrt')
+      - input: ref('int_richtung_fahrt_je_version')
         rows:
-          - {route_id: R, richtung: 0, trip_id: t0, static_version: "2026-08-27"}
-          - {route_id: R, richtung: 1, trip_id: t1, static_version: "2026-08-27"}
-      - input: ref('stg_static_sollhalt')
-        rows:
-          - {trip_id: t0, static_version: "2026-08-27", stop_id: a, stop_sequence: 1}
-          - {trip_id: t0, static_version: "2026-08-27", stop_id: b, stop_sequence: 2}
-          - {trip_id: t1, static_version: "2026-08-27", stop_id: b, stop_sequence: 1}
-          - {trip_id: t1, static_version: "2026-08-27", stop_id: a, stop_sequence: 2}
-      - input: ref('stg_static_halt')
-        rows:
-          - {stop_id: a, static_version: "2026-08-27", station_id: A, station_name: Nord, halt_name: Nord}
-          - {stop_id: b, static_version: "2026-08-27", station_id: B, station_name: Sued, halt_name: Sued}
+          - {route_id: R, richtung: 0, trip_id: t0, static_version: "2026-08-27", halte: 2,
+             endhalt: Sued, anfang_station: A, ende_station: B, viertelhalt: Sued}
+          - {route_id: R, richtung: 1, trip_id: t1, static_version: "2026-08-27", halte: 2,
+             endhalt: Nord, anfang_station: B, ende_station: A, viertelhalt: Nord}
     expect:
       rows:
         - {route_id: R, richtung: 0, richtung_name: Sued, namensregel: endhalt,
            fahrten_mit_diesem_endhalt: 1, fahrten_gesamt: 1, kurzlauf_anteil: 0.0, ringfahrten_anteil: 0.0}
         - {route_id: R, richtung: 1, richtung_name: Nord, namensregel: endhalt,
+           fahrten_mit_diesem_endhalt: 1, fahrten_gesamt: 1, kurzlauf_anteil: 0.0, ringfahrten_anteil: 0.0}
+
+  # Dieselbe Fahrt steht in jeder Fahrplanversion. Sie zaehlt einmal, nicht einmal
+  # je Version -- sonst wuchsen fahrten_gesamt und der Kurzlauf-Anteil mit jedem
+  # Tag, an dem der Sammler eine neue Version schreibt.
+  - name: int_richtung_zaehlt_eine_fahrt_ueber_versionen_einmal
+    model: int_richtung
+    given:
+      - input: ref('int_richtung_fahrt_je_version')
+        rows:
+          - {route_id: R, richtung: 0, trip_id: t0, static_version: "2026-08-27", halte: 2,
+             endhalt: Sued, anfang_station: A, ende_station: B, viertelhalt: Sued}
+          - {route_id: R, richtung: 0, trip_id: t0, static_version: "2026-08-28", halte: 2,
+             endhalt: Sued, anfang_station: A, ende_station: B, viertelhalt: Sued}
+          - {route_id: R, richtung: 0, trip_id: t0, static_version: "2026-08-29", halte: 2,
+             endhalt: Sued, anfang_station: A, ende_station: B, viertelhalt: Sued}
+    expect:
+      rows:
+        - {route_id: R, richtung: 0, richtung_name: Sued, namensregel: endhalt,
            fahrten_mit_diesem_endhalt: 1, fahrten_gesamt: 1, kurzlauf_anteil: 0.0, ringfahrten_anteil: 0.0}
 
   # ADR-021: der Umschalttag als Fixture. Der Feed meldet an einem Betriebstag

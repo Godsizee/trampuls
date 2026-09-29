@@ -7,6 +7,14 @@
 -- ein Halt sichtbar, zu dem nie eine Meldung kam. Ein Join in die andere
 -- Richtung wuerde still nur zeigen, was gemeldet wurde, und jede Ausfallquote
 -- waere strukturell zu niedrig.
+--
+-- **Inkrementell (TPULS-144, ADR-030).** Die Modelle, die dieses Makro rufen,
+-- bauen nur noch die juengsten Betriebstage neu (inkrementelles_fenster()); die
+-- Historie bleibt stehen. Alles unterhalb von `tage` haengt an `tage`, nur die
+-- beiden Beobachtungsseiten (`beobachtete_fahrten`, `ist`, `fahrt`) lesen
+-- unabhaengig davon und tragen das Fenster deshalb selbst. Vorher rechnete
+-- dieses Modell jede Stunde alle Betriebstage neu -- 129 s von 291 s
+-- Gesamtlaufzeit (gemessen 2026-09-29), linear wachsend.
 with tage as (
 
     select
@@ -14,6 +22,9 @@ with tage as (
         coalesce(static_version, aelteste_version) as static_version,
         static_version is null                     as version_ersatzweise
     from {{ ref('int_' ~ p ~ 'static_version') }}
+    {%- if is_incremental() %}
+    where betriebstag >= {{ inkrementelles_fenster() }}
+    {%- endif %}
 
 ),
 
@@ -101,6 +112,9 @@ beobachtete_fahrten as (
       on f.trip_id = b.trip_id
     {{ nur_uebernommene_linien('f') }}
 {%- endif %}
+{%- if is_incremental() %}
+    where b.betriebstag >= {{ inkrementelles_fenster() }}
+{%- endif %}
 
 ),
 
@@ -143,6 +157,9 @@ ist as (
         beobachtet_am
     from {{ ref('int_' ~ p ~ 'betriebstag') }}
     where stop_id is not null
+    {%- if is_incremental() %}
+      and betriebstag >= {{ inkrementelles_fenster() }}
+    {%- endif %}
     order by betriebstag, trip_id, stop_id, stop_sequence, beobachtet_am desc
 
 ),
@@ -154,6 +171,11 @@ fahrt as (
         trip_id,
         max(case when schedule_relationship = 'CANCELED' then 1 else 0 end) = 1 as fahrt_ausgefallen
     from {{ ref('stg_' ~ p ~ 'rt_fahrtmeldung') }}
+    {%- if is_incremental() %}
+    -- Ohne Betriebstag im Feed gilt die Meldung fuer jeden Betriebstag der Fahrt
+    -- (siehe Join unten) -- diese Zeilen bleiben deshalb ausdruecklich drin.
+    where betriebstag_feed >= {{ inkrementelles_fenster() }} or betriebstag_feed is null
+    {%- endif %}
     group by 1, 2
 
 )

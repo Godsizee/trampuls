@@ -150,6 +150,67 @@ models:
           - dbt_utils.accepted_range: {min_value: 0, max_value: 30}
       - name: erhoben
         data_tests: [not_null]
+
+  # --------------------------------------------------- inkrementelle Zwischenstufen
+  # TPULS-144, ADR-030. Der Rebuild wuchs mit jedem Tag um rund 10 s und riss am
+  # 2026-09-27 das 300-s-Limit. Diese Modelle rechnen nur noch, was neu ist. Weil
+  # ein inkrementeller Fehler still doppelte Zeilen erzeugt statt abzubrechen,
+  # steht hier zu jedem die Eindeutigkeit.
+
+  - name: int_soll_ist
+    description: >
+      Soll-Halt x Beobachtung je Betriebstag. Inkrementell: die juengsten
+      Betriebstage werden neu gebaut (inkrementelles_fenster()), die Historie
+      bleibt stehen.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [betriebstag, trip_id, stop_sequence]
+
+  - name: int_vrn_position_je_version
+    description: >
+      Teilsummen der mittleren Stationsposition in Richtung 0, je VRN-Sollfahrplan-
+      Version. int_openrnv_richtung setzt sie zum Mittelwert ueber alle Versionen
+      zusammen (sum(summe) / sum(n)). Eine Version ist nach dem Schreiben
+      unveraenderlich und wird deshalb nur einmal gerechnet; die juengste wird
+      jedes Mal neu gerechnet.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [static_version, route_id, station_id]
+    columns:
+      - name: position_summe
+        data_tests: [not_null]
+      - name: position_n
+        data_tests:
+          - not_null
+          - dbt_utils.accepted_range: {min_value: 1}
+
+  - name: int_richtung_fahrt_je_version
+    description: >
+      Anfang, Ende und Viertelhalt je Fahrt und VRN-Sollfahrplan-Version --
+      Zwischenstufe von int_richtung, das sie ueber die Versionen zusammensetzt.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [trip_id, static_version]
+    columns:
+      - name: halte
+        data_tests:
+          - not_null
+          - dbt_utils.accepted_range: {min_value: 1}
+
+  - name: int_vrn_endpaar_je_version
+    description: >
+      Welche Richtung hat im VRN-Sollfahrplan dieser Anfang und dieses Ende, je
+      Version. Grundlage der Gegenprobe in int_openrnv_richtung; ob ein Paar
+      eindeutig ist, wird beim Lesen ueber alle Versionen entschieden.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [static_version, route_id, richtung, anfang, ende]
+    columns:
+      - name: anfang
+        data_tests: [not_null]
+      - name: ende
+        data_tests: [not_null]
+
   # ------------------------------------------------------------------ openRNV
   # Die Zustandslogik ist dieselbe wie im VRN-Zweig und steht in Makros
   # (ADR-023). Getestet wird deshalb hier nur, was den zweiten Zweig

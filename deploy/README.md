@@ -149,8 +149,14 @@ erste Mal existiert.
 Der Task läuft um `:10`, also nach dem Stundenflush des Collectors um `:00` — sonst
 fehlte der zuletzt abgeschlossenen Stunde regelmäßig ihre Partition.
 
-**Timeout des Tasks steht auf 300 s.** Das reicht beim jetzigen Datenstand deutlich; mit
-wachsender Historie ist es der erste Wert, der zu klein wird.
+**Timeout von `rebuild-stuendlich` steht auf 900 s** (seit 2026-09-29; `pruefung-stuendlich`
+bleibt bei 300 s). Der Wert stand ursprünglich auf 300 s und war am 2026-09-27 zu klein: die
+Laufzeit war von 14 s am 2026-08-28 stetig auf 291 s gewachsen (rund 10 s pro Tag), weil
+`int_soll_ist` und `int_openrnv_richtung` jede Stunde die ganze Historie neu rechneten. Seit
+TPULS-144 (ADR-030) rechnen sie nur noch, was neu ist; die 900 s sind Sicherheitsabstand, nicht
+Arbeitsbereich. **Die Dauer steht am Ende des Task-Protokolls** (`[rebuild] fertig: … in N s`).
+Steigt sie über 300 s, ist wieder etwas nicht inkrementell — dann nicht das Limit anheben,
+sondern nachsehen, welches Modell in der dbt-Ausgabe die Zeit braucht.
 
 ### Was der Container beim Start tut
 

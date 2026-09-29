@@ -31,6 +31,14 @@ cd "$PROJEKT"
 # Marts sind inkrementell (Regel 10): kein naechtlicher Vollaufbau, kein
 # gewohnheitsmaessiges --full-refresh. Der zuletzt geladene Betriebstag wird
 # jedes Mal neu gebaut, weil er bis zu 30 h reicht.
+#
+# Seit TPULS-144 (ADR-030) gilt das auch fuer die teuren Zwischenstufen
+# (int_soll_ist, die Versionshilfen von int_openrnv_richtung). Vorher rechnete
+# der Lauf sie jede Stunde ueber die ganze Historie neu und wuchs dadurch um rund
+# 10 s pro Tag, bis er am 2026-09-27 das 300-s-Limit des Scheduled Tasks riss.
+# Folge: Aenderungen an dieser Logik erreichen alte Betriebstage nur noch ueber
+# vollaufbau.sh, nicht mehr von selbst.
+START=$(date +%s)
 dbt build --project-dir . --profiles-dir . --vars "{\"datenwurzel\": \"$DATEN\"}"
 
 dbt run-operation export_marts --project-dir . --profiles-dir . \
@@ -38,4 +46,7 @@ dbt run-operation export_marts --project-dir . --profiles-dir . \
 
 exporter -marts "$DATEN/export/marts" -ziel "$ZIEL"
 
-echo "[rebuild] fertig: $(find "$ZIEL" -name '*.json' | wc -l) JSON-Dateien"
+# Die Dauer steht im Protokoll des Scheduled Tasks. Sie war das Fruehwarnsignal,
+# das gefehlt hat: der Lauf wuchs 30 Tage lang stetig, ohne dass es jemand sah,
+# und scheiterte erst am Limit.
+echo "[rebuild] fertig: $(find "$ZIEL" -name '*.json' | wc -l) JSON-Dateien in $(( $(date +%s) - START )) s"

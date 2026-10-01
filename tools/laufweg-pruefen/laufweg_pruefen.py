@@ -1,0 +1,270 @@
+#!/usr/bin/env python3
+"""Stimmt die Reihenfolge der Halte auf den Linienseiten? (TPULS-147, ADR-031)
+
+Prueft die ausgelieferten JSON-Dateien gegen den Sollfahrplan, fuer **jede**
+Linie in **jeder** Richtung, und beantwortet drei Fragen:
+
+  1. Steht eine Haltestelle zweimal in derselben Liste? Das passiert, wenn
+     dieselbe Station unter zwei Kennungen gefuehrt wird -- der Verbundfeed
+     hoerte am 2026-09-10 fuer zehn Stationen auf, `parent_station` zu fuellen,
+     und aus `de:08222:2472_Parent` wurde `de:08222:2472`.
+  2. Steht die Liste in der Reihenfolge, in der die Linie faehrt? Geprueft wird
+     ueber **Nachbarpaare**: faehrt irgendeine Fahrt des Sollfahrplans von A
+     direkt nach B, muss A in der Anzeige vor B stehen.
+  3. Gibt es Halte, zu denen der Sollfahrplan ueberhaupt keine Stelle im
+     Laufweg kennt?
+
+**Zu Frage 2 gehoert eine Einschraenkung, und sie ist keine Ausrede.** Eine
+Ringlinie hat keine lineare Reihenfolge: ihr Nachbargraph enthaelt einen Zyklus,
+und dann *muss* jede Liste irgendein Paar verkehrt herum zeigen. Das Skript
+rechnet das aus und weist beide Zahlen getrennt aus -- Verletzungen auf
+zyklenfreien Linienrichtungen sind Fehler, die auf zyklischen sind die Kosten
+der Darstellungsform.
+
+Liest ausschliesslich (Regel 1).
+
+    python3 tools/laufweg-pruefen/laufweg_pruefen.py
+    python3 tools/laufweg-pruefen/laufweg_pruefen.py --daten https://trampuls.dasdann.jetzt/daten
+"""
+
+import argparse
+import collections
+import csv
+import json
+import os
+import re
+import sys
+import urllib.request
+
+try:
+    import duckdb
+except ImportError:
+    sys.exit("duckdb fehlt -- dieses Skript braucht die Umgebung von transform/")
+
+WURZEL = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+
+def station(stop_id, parent):
+    """Dieselbe Regel wie stg_static_halt: parent_station, sonst die ersten drei
+    Komponenten der DHID, und das `_Parent`-Suffix faellt weg (ADR-031)."""
+    roh = parent or ":".join(stop_id.split(":")[:3]) or stop_id
+    return re.sub(r"_Parent$", "", roh)
+
+
+def sollfahrplan(wurzel):
+    """Nachbarpaare je (route_id, richtung) aus allen vorliegenden Versionen.
+
+    Alle Versionen, nicht nur die juengste: eine Umleitung, die vor zwei Wochen
+    gefahren wurde, steht noch in den Kennzahlen des Zeitraums und gehoert
+    deshalb auch in die Pruefung.
+    """
+    con = duckdb.connect()
+    nach_stop = {}
+    for pfad in sorted(_glob(os.path.join(wurzel, "static"), "stops.txt")):
+        with open(pfad, encoding="utf-8") as f:
+            for r in csv.DictReader(f):
+                nach_stop[r["stop_id"].strip()] = station(
+                    r["stop_id"].strip(), (r.get("parent_station") or "").strip() or None)
+
+    muster_st = os.path.join(wurzel, "static", "v=*", "rnv_stop_times.parquet").replace("\\", "/")
+    muster_tr = os.path.join(wurzel, "static", "v=*", "rnv_trips.parquet").replace("\\", "/")
+    zeilen = con.sql(f"""
+        select t.route_id, cast(t.direction_id as int) as richtung,
+               st.v::varchar || ' ' || st.trip_id as lauf, st.stop_id
+        from read_parquet('{muster_st}') st
+        join read_parquet('{muster_tr}') t on t.trip_id = st.trip_id and t.v = st.v
+        order by 1, 2, 3, st.stop_sequence
+    """).fetchall()
+
+    paare = collections.defaultdict(collections.Counter)
+    aktuell, vorher = None, None
+    for route, richtung, lauf, stop in zeilen:
+        schluessel = (route, richtung)
+        if (schluessel, lauf) != aktuell:
+            aktuell, vorher = (schluessel, lauf), None
+        s = nach_stop.get(stop, stop)
+        if vorher is not None and vorher != s:
+            paare[schluessel][(vorher, s)] += 1
+        vorher = s
+    return paare
+
+
+def _glob(wurzel, name):
+    for ordner, _, dateien in os.walk(wurzel):
+        if name in dateien:
+            yield os.path.join(ordner, name)
+
+
+def hat_zyklus(kanten):
+    """Tiefensuche ohne Rekursion -- einzelne Linien haben ueber 200 Stationen."""
+    graph = collections.defaultdict(set)
+    for a, b in kanten:
+        graph[a].add(b)
+    farbe = {}
+    for start in list(graph):
+        if farbe.get(start):
+            continue
+        farbe[start] = 1
+        stapel = [(start, iter(graph[start]))]
+        while stapel:
+            knoten, kinder = stapel[-1]
+            for kind in kinder:
+                if farbe.get(kind) == 1:
+                    return True
+                if farbe.get(kind) is None:
+                    farbe[kind] = 1
+                    stapel.append((kind, iter(graph[kind])))
+                    break
+            else:
+                farbe[knoten] = 2
+                stapel.pop()
+    return False
+
+
+def lies(basis, pfad):
+    if basis.startswith("http"):
+        with urllib.request.urlopen(f"{basis}/{pfad}", timeout=60) as antwort:
+            return json.loads(antwort.read().decode("utf-8"))
+    with open(os.path.join(basis, pfad), encoding="utf-8") as f:
+        return json.load(f)
+
+
+def anzeige(halte, richtung):
+    """Baut nach, was web/src/linie.ts anzeigt: je station_id ein Eintrag, Name
+    und Position vom juengsten Betriebstag, sortiert nach Position und Name."""
+    je = {}
+    for i in range(len(halte["station_id"])):
+        if halte["richtung"][i] != richtung:
+            continue
+        kennung = halte["station_id"][i]
+        name = halte["halt_name"][i]
+        pos = halte["position"][i]
+        alt = je.get(kennung)
+        je[kennung] = (name if name is not None else (alt or (None, None))[0],
+                       pos if pos is not None else (alt or (None, None))[1])
+    gereiht = sorted(je.items(), key=lambda kv: (kv[1][1] is None, kv[1][1] or 0, kv[1][0] or ""))
+    return [(kennung, name, pos) for kennung, (name, pos) in gereiht]
+
+
+def main():
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawDescriptionHelpFormatter)
+    p.add_argument("--daten", default=os.path.join(WURZEL, "export", "web", "daten"),
+                   help="Verzeichnis oder Basis-URL der ausgelieferten JSON-Dateien")
+    p.add_argument("--static", default=WURZEL,
+                   help="Wurzel mit static/v=*/ (Vorgabe: das Repo)")
+    p.add_argument("--zeige", type=int, default=12, help="Wie viele Beispiele je Befund")
+    a = p.parse_args()
+
+    print("# Reihenfolge der Halte auf den Linienseiten\n")
+    print(f"  Daten:        {a.daten}")
+    print(f"  Sollfahrplan: {a.static}\n")
+
+    paare = sollfahrplan(a.static)
+    index = lies(a.daten, "index.json")
+
+    richtungen = 0
+    doppelte, ohne_pos, verletzt_frei, verletzt_zyk = [], [], [], []
+    paare_geprueft = paare_verletzt = 0
+    halte_gesamt = 0
+
+    for linie in index["linien"]:
+        halte = lies(a.daten, f"linie/{linie['datei']}-halte.json")
+        if not halte["station_id"]:
+            continue
+        for richtung in sorted(set(halte["richtung"])):
+            richtungen += 1
+            liste = anzeige(halte, richtung)
+            halte_gesamt += len(liste)
+            # Fuer Frage 2 zaehlt die Station, nicht ihre Kennung: solange
+            # dieselbe Station unter zwei Kennungen laeuft (Frage 1), stuenden
+            # sonst beide Vorkommen ausserhalb der Pruefung, und die Reihenfolge
+            # saehe besser aus, als sie ist. Nach ADR-031 ist das Abschneiden
+            # wirkungslos -- der Vergleich alter und neuer Staende bleibt so
+            # aber moeglich.
+            pos = {}
+            for i, (kennung, _, _) in enumerate(liste):
+                pos.setdefault(re.sub(r"_Parent$", "", kennung), i)
+
+            nach_name = collections.defaultdict(list)
+            for kennung, name, _ in liste:
+                nach_name[name].append(kennung)
+            for name, kennungen in sorted(nach_name.items()):
+                if len(kennungen) > 1:
+                    doppelte.append((linie["linie"], richtung, name, kennungen))
+
+            for kennung, name, p_ in liste:
+                if p_ is None:
+                    ohne_pos.append((linie["linie"], richtung, name))
+
+            alle_kanten = list(paare.get((linie["route_id"], richtung), {}))
+            kanten = [(x, y) for (x, y) in alle_kanten if x in pos and y in pos]
+            schlimm = [(x, y) for x, y in kanten if pos[x] >= pos[y]]
+            paare_geprueft += len(kanten)
+            paare_verletzt += len(schlimm)
+            if schlimm:
+                # Gezaehlt wird auf den dargestellten Halten, entschieden wird auf
+                # dem ganzen Laufweg: ob die Linie eine Schleife faehrt, haengt
+                # nicht daran, welche ihrer Halte schon gemessen wurden. Sonst
+                # saehe eine Ringlinie, von der ein Halt fehlt, wie ein Fehler aus.
+                ziel = verletzt_zyk if hat_zyklus(alle_kanten) else verletzt_frei
+                ziel.append((linie["linie"], linie["datei"], richtung, len(schlimm), len(kanten)))
+
+    print(f"  Linien-Richtungen geprueft: {richtungen}")
+    print(f"  Halte darin:                {halte_gesamt}")
+    print(f"  Nachbarpaare geprueft:      {paare_geprueft}\n")
+
+    print("## 1. Doppelt dargestellte Haltestellen\n")
+    if not doppelte:
+        print("  keine.\n")
+    else:
+        print(f"  {len(doppelte)} Faelle in {len({(d[0], d[1]) for d in doppelte})} Linien-Richtungen:\n")
+        for linie, richtung, name, kennungen in doppelte[:a.zeige]:
+            print(f"    {linie:<16} R{richtung}  {name:<34} {sorted(kennungen)}")
+        if len(doppelte) > a.zeige:
+            print(f"    ... und {len(doppelte) - a.zeige} weitere")
+        print()
+
+    print("## 2. Reihenfolge gegen den Sollfahrplan\n")
+    anteil = paare_verletzt / paare_geprueft if paare_geprueft else 0
+    print(f"  Nachbarpaare verkehrt herum: {paare_verletzt} von {paare_geprueft} ({anteil:.2%})")
+    print(f"  Linien-Richtungen fehlerfrei: {richtungen - len(verletzt_frei) - len(verletzt_zyk)}"
+          f" von {richtungen}\n")
+    if verletzt_zyk:
+        print(f"  {len(verletzt_zyk)} davon sind Ringe oder Schleifen -- dort hat die Linie")
+        print("  keine lineare Reihenfolge, und die Liste zeigt einen echten Lauf:\n")
+        for linie, datei, richtung, v, n in sorted(verletzt_zyk, key=lambda x: -x[3])[:a.zeige]:
+            print(f"    {linie:<16} {datei:<22} R{richtung}  {v}/{n}")
+        print()
+    print("  Zyklenfreie Linien-Richtungen mit Verletzungen (das sind die Fehler):\n")
+    if not verletzt_frei:
+        print("    keine.\n")
+    else:
+        for linie, datei, richtung, v, n in sorted(verletzt_frei, key=lambda x: -x[3]):
+            print(f"    {linie:<16} {datei:<22} R{richtung}  {v}/{n}")
+        print()
+
+    print("## 3. Halte ohne Stelle im Laufweg\n")
+    if not ohne_pos:
+        print("  keine.\n")
+    else:
+        print(f"  {len(ohne_pos)} von {halte_gesamt} ({len(ohne_pos) / halte_gesamt:.1%}) --")
+        print("  sie stehen am Ende der Liste:\n")
+        for linie, richtung, name in ohne_pos[:a.zeige]:
+            print(f"    {linie:<16} R{richtung}  {name}")
+        if len(ohne_pos) > a.zeige:
+            print(f"    ... und {len(ohne_pos) - a.zeige} weitere")
+        print()
+
+    befunde = len(doppelte) + len(verletzt_frei)
+    print("## Befund\n")
+    if befunde == 0:
+        print("  Keine doppelte Haltestelle, keine vermeidbare Verdrehung.")
+        return 0
+    print(f"  {len(doppelte)} doppelte Haltestellen, {len(verletzt_frei)} Linien-Richtungen")
+    print("  mit vermeidbar verdrehter Reihenfolge.")
+    return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

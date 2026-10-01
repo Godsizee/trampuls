@@ -137,7 +137,12 @@ export interface HalteDatei {
   richtung: number[];
   station_id: string[];
   halt_name: string[];
-  position: number[];
+  /**
+   * Die Stelle im Laufweg, 1 bis n. `null` heisst: der Sollfahrplan kennt zu
+   * diesem Halt keine — eine Umleitung, die nur der Ist-Feed faehrt. Nicht 0
+   * (TPULS-147).
+   */
+  position: (number | null)[];
   soll_halte: number[];
   bewertbare_halte: number[];
   halte_ausgelassen: number[];

@@ -298,3 +298,67 @@ models:
         data_tests:
           - not_null
           - dbt_utils.accepted_range: {min_value: 1}
+
+  - name: int_laufweg_je_version
+    description: >
+      Die Reihenfolge der Stationen je Linienrichtung aus einer
+      VRN-Sollfahrplan-Version: der laengste Lauf gibt die Achse vor, alle
+      uebrigen Fahrten werden mit laufweg_einordnen() dagegen gelegt. Eine
+      Version ist nach dem Schreiben unveraenderlich und wird nur einmal
+      gerechnet; die juengste wird jedes Mal neu gerechnet.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [static_version, route_id, richtung, station_id]
+      # Die Reihenfolge ist eine Ordnung, keine Gruppierung: zwei Stationen
+      # duerfen nie denselben Rang tragen. Genau das war der Fehler, den dieses
+      # Modell abloest (TPULS-147).
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [static_version, route_id, richtung, nr]
+    columns:
+      - name: station_id
+        data_tests: [not_null]
+      - name: nr
+        data_tests:
+          - not_null
+          - dbt_utils.accepted_range: {min_value: 1}
+
+  - name: int_openrnv_laufweg_je_version
+    description: >
+      Dasselbe aus dem openRNV-Sollfahrplan. Noetig, weil fuer die vier Linien
+      aus quelle_openrnv jeder gemessene Halt aus dieser Quelle kommt -- eine
+      Variante, die der VRN-Sollfahrplan nicht fuehrt, haette sonst keine
+      Position.
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [static_version, route_id, richtung, station_id]
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [static_version, route_id, richtung, nr]
+    columns:
+      - name: station_id
+        data_tests: [not_null]
+      - name: nr
+        data_tests:
+          - not_null
+          - dbt_utils.accepted_range: {min_value: 1}
+
+  - name: int_laufweg
+    description: >
+      Die eine Reihenfolge je Linienrichtung, ueber alle Sollfahrplan-Versionen
+      und beide Quellen. Die juengste VRN-Version gibt sie vor, alles andere
+      liefert nur, was dort fehlt. Traegt die Achse des Haltestellenprofils
+      (mart_linie_halt.position).
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [route_id, richtung, station_id]
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [route_id, richtung, position]
+    columns:
+      - name: station_id
+        data_tests: [not_null]
+      - name: richtung
+        data_tests:
+          - accepted_values: {values: [0, 1], quote: false}
+      - name: position
+        data_tests:
+          - not_null
+          - dbt_utils.accepted_range: {min_value: 1}

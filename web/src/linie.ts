@@ -603,6 +603,13 @@ function tagesgang(
 }
 
 /**
+ * Wohin ein Halt sortiert, zu dem der Sollfahrplan keine Stelle im Laufweg
+ * kennt: ans Ende. Vorher stand hier eine 0 — ein solcher Halt sprang damit an
+ * den Anfang der Linie und sah aus wie ihr Ausgangspunkt (TPULS-147).
+ */
+const OHNE_POSITION = Number.MAX_SAFE_INTEGER;
+
+/**
  * Haltestellenprofil (T3) — hier steht der eigentliche Erkenntnisgewinn der
  * Seite: nicht "wo ist die Bahn spaet", sondern "wo *wird* sie spaet". Der
  * Zuwachs je Abschnitt trennt neu entstehende von mitgeschleppter Verspaetung.
@@ -623,9 +630,15 @@ function profil(
     if (!imZeitraum(halte.betriebstag[i] ?? "")) continue;
     const id = halte.station_id[i] ?? "";
     const e = je.get(id) ?? {
-      name: halte.halt_name[i] ?? id, pos: halte.position[i] ?? 0,
+      name: halte.halt_name[i] ?? id, pos: OHNE_POSITION,
       zuwachs: 0, gewicht: 0, bewertbar: 0, puenktlich: 0, delay: 0,
     };
+    // Name und Position vom juengsten Betriebstag, nicht vom ersten: der
+    // Exporter schreibt nach Betriebstag aufsteigend, die spaetere Zeile
+    // gewinnt. Aendert der Fahrplan den Laufweg, zeigt die Seite danach den
+    // neuen -- und nicht den vom ersten Tag des Zeitraums (TPULS-147).
+    e.name = halte.halt_name[i] ?? e.name;
+    e.pos = halte.position[i] ?? e.pos;
     const faelle = halte.zuwachs_faelle[i] ?? 0;
     e.zuwachs += (halte.zuwachs_schnitt_sek[i] ?? 0) * faelle;
     e.gewicht += faelle;
@@ -636,7 +649,13 @@ function profil(
     je.set(id, e);
   }
 
-  const reihe = [...je.values()].sort((a, b) => a.pos - b.pos);
+  // Nach der Stelle im Laufweg, bei Gleichstand nach Namen. Der zweite
+  // Schluessel ist nicht Kosmetik: `sort` ist zwar stabil, die Reihenfolge der
+  // Datei aber kein Ordnungskriterium — ohne ihn haengt die Anzeige von der
+  // Reihenfolge der Mart-Zeilen ab und wechselt zwischen zwei Rebuilds.
+  const reihe = [...je.values()].sort(
+    (a, b) => a.pos - b.pos || a.name.localeCompare(b.name, "de"),
+  );
   if (reihe.length === 0) {
     ziel.className = "";
     ziel.innerHTML =

@@ -30,10 +30,6 @@ halte as (
     select
         betriebstag, route_id, richtung, station_id,
         any_value(halt_name)                                            as halt_name,
-        -- Die Position im Laufweg: der Median der Sequenznummern. Nicht der
-        -- Mittelwert — Kurzlaeufe und abweichende Laufwege wuerden ihn
-        -- verschieben und die Achse des Profils durcheinanderbringen.
-        median(stop_sequence)                                           as position,
         count(*)                                                        as soll_halte,
         count(*) filter (where {{ ist_bewertbar('zustand') }})           as bewertbare_halte,
         count(*) filter (where zustand = 'ausgelassen')                  as halte_ausgelassen,
@@ -64,10 +60,24 @@ zuwachs as (
 
 select
     h.*,
+    -- Die Stelle im Laufweg, an der dieser Halt liegt. Sie kommt aus dem
+    -- Sollfahrplan (int_laufweg) und nicht aus den beobachteten Sequenznummern:
+    -- der frueher hier stehende `median(stop_sequence)` war keine Ordnung,
+    -- sondern sah nur aus wie eine -- Laufwegvarianten, Kurzlaeufe und die
+    -- zweite Quelle zaehlen alle unabhaengig voneinander ab 1. Die Begruendung
+    -- mit den gemessenen Zahlen steht in laufweg_einordnen().
+    --
+    -- Der Wert haengt bewusst **nicht** am Betriebstag: ueber einen Zeitraum von
+    -- Wochen zeigt das Profil eine Liste, und eine Liste hat eine Reihenfolge.
+    lw.position                                                     as position,
     z.zuwachs_schnitt_sek,
     z.zuwachs_median_sek,
     z.zuwachs_faelle
 from halte h
+left join {{ ref('int_laufweg') }} lw
+  on  lw.route_id   = h.route_id
+ and lw.richtung is not distinct from h.richtung
+ and lw.station_id  = h.station_id
 left join zuwachs z
   on  z.betriebstag = h.betriebstag
  and z.route_id     = h.route_id

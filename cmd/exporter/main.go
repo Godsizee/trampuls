@@ -933,13 +933,18 @@ func schreibeLinie(zielDir, slug string, l marts.Linie, d *daten) error {
 // ---------------------------------------------------------------------------
 
 type halteDatei struct {
-	RouteID     string    `json:"route_id"`
-	Linie       string    `json:"linie"`
-	Betriebstag []string  `json:"betriebstag"`
-	Richtung    []int32   `json:"richtung"`
-	StationID   []string  `json:"station_id"`
-	HaltName    []string  `json:"halt_name"`
-	Position    []float64 `json:"position"`
+	RouteID     string   `json:"route_id"`
+	Linie       string   `json:"linie"`
+	Betriebstag []string `json:"betriebstag"`
+	Richtung    []int32  `json:"richtung"`
+	StationID   []string `json:"station_id"`
+	HaltName    []string `json:"halt_name"`
+
+	// Nullable, und das ist der Punkt: ein Halt, zu dem der Sollfahrplan keine
+	// Stelle im Laufweg kennt, hat keine Position — er hat nicht die Position 0.
+	// Als 0 sortierte er vor den Anfangshalt und sah aus wie der Beginn der
+	// Linie (TPULS-147).
+	Position []*float64 `json:"position"`
 
 	SollHalte        []int64   `json:"soll_halte"`
 	BewertbareHalte  []int64   `json:"bewertbare_halte"`
@@ -964,6 +969,10 @@ func schreibeLinieHalte(zielDir, slug string, l marts.Linie, d *daten) error {
 		if richtungWert(a.Richtung) != richtungWert(b.Richtung) {
 			return richtungWert(a.Richtung) < richtungWert(b.Richtung)
 		}
+		// Ohne Position ans Ende, nicht an den Anfang.
+		if (a.Position == nil) != (b.Position == nil) {
+			return b.Position == nil
+		}
 		return wert(a.Position) < wert(b.Position)
 	})
 
@@ -973,7 +982,7 @@ func schreibeLinieHalte(zielDir, slug string, l marts.Linie, d *daten) error {
 		out.Richtung = append(out.Richtung, richtungWert(r.Richtung))
 		out.StationID = append(out.StationID, r.StationID)
 		out.HaltName = append(out.HaltName, r.HaltName)
-		out.Position = append(out.Position, wert(r.Position))
+		out.Position = append(out.Position, r.Position)
 		out.SollHalte = append(out.SollHalte, r.SollHalte)
 		out.BewertbareHalte = append(out.BewertbareHalte, r.BewertbareHalte)
 		out.HalteAusgelassen = append(out.HalteAusgelassen, r.HalteAusgelassen)

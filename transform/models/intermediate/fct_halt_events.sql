@@ -14,10 +14,11 @@
 --      VRN-Sollfahrplan.
 --   2. **Die Richtung.** openRNV liefert kein `direction_id` -- sie wird in
 --      int_openrnv_richtung aus dem Laufweg bestimmt, nicht geraten.
---   3. **Die Station.** Beide benennen sie mit derselben DHID, der VRN haengt an
---      301 Stationen ein `_Parent` an. Verglichen wird normalisiert,
---      ausgewiesen wird die VRN-Kennung -- sonst bekaeme dieselbe Haltestelle je
---      nach Quelle eine andere Adresse.
+--   3. **Die Station.** Beide benennen sie mit derselben DHID. Der VRN haengte
+--      an einem Teil der Stationen ein `_Parent` an, mal und mal nicht --
+--      seit TPULS-147 (ADR-031) schneidet stg_static_halt es ab, und beide
+--      Quellen tragen dieselbe Kennung. Das Zusammenlegen hier bleibt
+--      trotzdem noetig: der VRN fuehrt je Station mehrere Steige.
 --
 -- **Doppelt gezaehlt wird nichts.** Eine Linie, die an einem Betriebstag aus
 -- openRNV kommt, faellt an diesem Betriebstag aus dem VRN-Zweig heraus -- Soll
@@ -73,9 +74,8 @@ vrn_version_je_tag as (
 vrn_station as (
 
     select
-        {{ station_normalisiert('station_id') }} as station_norm,
+        station_id,
         static_version,
-        min(station_id)    as station_id,
         min(station_name)  as station_name
     from {{ ref('stg_static_halt') }}
     group by 1, 2
@@ -159,7 +159,7 @@ openrnv as (
     -- Die Station wird gegen die VRN-Version gesucht, die an diesem Betriebstag
     -- galt -- nicht gegen die aktuelle (Regel 9).
     left join vrn_station vs
-      on  vs.station_norm   = oh.station_id
+      on  vs.station_id     = oh.station_id
      and vs.static_version  = vv.static_version
 
 )

@@ -37,7 +37,7 @@ als Vorgabe benutzt:
 
 import argparse
 import collections
-import csv
+import glob
 import json
 import os
 import re
@@ -62,59 +62,80 @@ STATIC_WURZEL = os.environ.get("TRAMPULS_DATEN") or WURZEL
 WEBDATEN = os.environ.get("TRAMPULS_WEBDATEN") or os.path.join(WURZEL, "export", "web", "daten")
 
 
-def station(stop_id, parent):
-    """Dieselbe Regel wie stg_static_halt: parent_station, sonst die ersten drei
-    Komponenten der DHID, und das `_Parent`-Suffix faellt weg (ADR-031)."""
-    roh = parent or ":".join(stop_id.split(":")[:3]) or stop_id
-    return re.sub(r"_Parent$", "", roh)
-
-
 def sollfahrplan(wurzel):
     """Nachbarpaare je (route_id, richtung) aus allen vorliegenden Versionen.
 
     Alle Versionen, nicht nur die juengste: eine Umleitung, die vor zwei Wochen
     gefahren wurde, steht noch in den Kennzahlen des Zeitraums und gehoert
     deshalb auch in die Pruefung.
-    """
-    con = duckdb.connect()
-    nach_stop = {}
-    for pfad in sorted(_glob(os.path.join(wurzel, "static"), "stops.txt")):
-        with open(pfad, encoding="utf-8") as f:
-            for r in csv.DictReader(f):
-                nach_stop[r["stop_id"].strip()] = station(
-                    r["stop_id"].strip(), (r.get("parent_station") or "").strip() or None)
 
+    **Gezaehlt wird in DuckDB, nicht in Python.** Die erste Fassung holte alle
+    Sollhalte heraus und bildete die Paare in einer Schleife. Lokal mit *einer*
+    Version waren das 420.000 Zeilen und ging; in der Produktion mit 35 Versionen
+    sind es rund 15 Millionen, und das Skript blieb nach der Kopfzeile stehen
+    (gemessen 2026-10-01). Die Paare entstehen deshalb als `lead()` ueber den
+    Laufweg, und heraus kommt nur noch das Ergebnis -- wenige zehntausend Zeilen.
+
+    Die Stationskennung wird dabei genau wie in stg_static_halt gebildet:
+    parent_station, sonst die ersten drei Komponenten der DHID, `_Parent` ab
+    (ADR-031). Ein zweiter Ort fuer dieselbe Regel -- unvermeidlich, weil dieses
+    Skript bewusst *neben* dbt steht und nicht in ihm.
+    """
     muster_st = os.path.join(wurzel, "static", "v=*", "rnv_stop_times.parquet").replace("\\", "/")
     muster_tr = os.path.join(wurzel, "static", "v=*", "rnv_trips.parquet").replace("\\", "/")
-    if not nach_stop:
-        sys.exit(f"Kein Sollfahrplan unter {wurzel}/static/v=*/ — ohne ihn gibt es nichts,\n"
+    muster_sp = os.path.join(wurzel, "static", "v=*", "stops.txt").replace("\\", "/")
+    if not glob.glob(muster_st):
+        sys.exit(f"Kein Sollfahrplan unter {wurzel}/static/v=*/ -- ohne ihn gibt es nichts,\n"
                  f"wogegen geprueft werden koennte. Im Container liegt er auf dem Volume:\n"
                  f"    --static /data   (oder TRAMPULS_DATEN setzen)")
+
+    con = duckdb.connect()
+    # Die Haltestellen zuerst und fuer sich: ein Dreifachjoin ueber den CSV-View
+    # mit `filename` in einem Zug ist die Planungsfalle aus ADR-030/031.
+    con.sql(rf"""
+        create temp table halt as
+        select
+            trim(stop_id)                                           as stop_id,
+            strptime(regexp_extract(filename, 'v=(\d{{4}}-\d{{2}}-\d{{2}})', 1),
+                     '%Y-%m-%d')::date                              as v,
+            regexp_replace(coalesce(
+                nullif(trim(parent_station), ''),
+                array_to_string(string_split(trim(stop_id), ':')[1:3], ':'),
+                trim(stop_id)), '_Parent$', '')                     as station_id
+        from read_csv('{muster_sp}', header = true, all_varchar = true, filename = true)
+    """)
     zeilen = con.sql(f"""
-        select t.route_id, cast(t.direction_id as int) as richtung,
-               st.v::varchar || ' ' || st.trip_id as lauf, st.stop_id
-        from read_parquet('{muster_st}') st
-        join read_parquet('{muster_tr}') t on t.trip_id = st.trip_id and t.v = st.v
-        order by 1, 2, 3, st.stop_sequence
+        with lauf as (
+            select
+                t.route_id,
+                cast(t.direction_id as int)  as richtung,
+                st.v,
+                st.trip_id,
+                st.stop_sequence,
+                h.station_id
+            from read_parquet('{muster_st}') st
+            join read_parquet('{muster_tr}') t
+              on t.trip_id = st.trip_id and t.v = st.v
+            join halt h
+              on h.stop_id = st.stop_id and h.v = st.v
+        ),
+        nachbarn as (
+            select
+                route_id, richtung, station_id as a,
+                lead(station_id) over (partition by route_id, richtung, v, trip_id
+                                       order by stop_sequence) as b
+            from lauf
+        )
+        select route_id, richtung, a, b, count(*) as fahrten
+        from nachbarn
+        where b is not null and a <> b
+        group by 1, 2, 3, 4
     """).fetchall()
 
     paare = collections.defaultdict(collections.Counter)
-    aktuell, vorher = None, None
-    for route, richtung, lauf, stop in zeilen:
-        schluessel = (route, richtung)
-        if (schluessel, lauf) != aktuell:
-            aktuell, vorher = (schluessel, lauf), None
-        s = nach_stop.get(stop, stop)
-        if vorher is not None and vorher != s:
-            paare[schluessel][(vorher, s)] += 1
-        vorher = s
+    for route, richtung, a, b, n in zeilen:
+        paare[(route, richtung)][(a, b)] = n
     return paare
-
-
-def _glob(wurzel, name):
-    for ordner, _, dateien in os.walk(wurzel):
-        if name in dateien:
-            yield os.path.join(ordner, name)
 
 
 def hat_zyklus(kanten):

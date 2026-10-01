@@ -27,12 +27,26 @@ Lokal im Repo, gegen den eigenen Export:
 
     python3 tools/laufweg-pruefen/laufweg_pruefen.py
 
-Im Container `trampuls-web`, gegen die ausgelieferte Seite. Der Sollfahrplan liegt
-dort auf dem Volume und nicht unter /app -- `TRAMPULS_DATEN` ist gesetzt und wird
-als Vorgabe benutzt:
+Im Container `trampuls-web`, gegen die ausgelieferte Seite -- **ohne `--daten`**:
 
-    python3 /app/tools/laufweg-pruefen/laufweg_pruefen.py \\
-        --daten https://trampuls.dasdann.jetzt/daten
+    python3 /app/tools/laufweg-pruefen/laufweg_pruefen.py
+
+Beide Vorgaben kommen dort aus der Umgebung (Dockerfile.web): der Sollfahrplan aus
+`TRAMPULS_DATEN=/data`, die JSON-Dateien aus `TRAMPULS_WEBDATEN=/data/export/web/daten`
+-- genau das Verzeichnis, das nginx ausliefert.
+
+**Im Container nicht die URL benutzen.** Der eigene oeffentliche Name ist von innen
+nicht erreichbar: der Abruf laeuft ueber die oeffentliche Adresse des Hosts wieder
+herein, und das Container-Netz kann das nicht (gemessen 2026-10-01, `timed out`
+nach 60 s). Die URL-Form ist fuer Laeufe von aussen gedacht:
+
+    python3 tools/laufweg-pruefen/laufweg_pruefen.py \\
+        --daten https://trampuls.dasdann.jetzt/daten --static .
+
+Dabei zaehlt allerdings der **lokale** Sollfahrplan: liegt dort nur eine aeltere
+Version, widerspricht ein altes Nachbarpaar der Reihenfolge der juengsten Version
+voellig zu Recht, und die Zahl in Abschnitt 2 ist eine Obergrenze. Die belastbare
+Messung ist die im Container.
 """
 
 import argparse

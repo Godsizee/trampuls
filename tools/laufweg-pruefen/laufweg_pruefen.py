@@ -23,8 +23,16 @@ der Darstellungsform.
 
 Liest ausschliesslich (Regel 1).
 
+Lokal im Repo, gegen den eigenen Export:
+
     python3 tools/laufweg-pruefen/laufweg_pruefen.py
-    python3 tools/laufweg-pruefen/laufweg_pruefen.py --daten https://trampuls.dasdann.jetzt/daten
+
+Im Container `trampuls-web`, gegen die ausgelieferte Seite. Der Sollfahrplan liegt
+dort auf dem Volume und nicht unter /app -- `TRAMPULS_DATEN` ist gesetzt und wird
+als Vorgabe benutzt:
+
+    python3 /app/tools/laufweg-pruefen/laufweg_pruefen.py \\
+        --daten https://trampuls.dasdann.jetzt/daten
 """
 
 import argparse
@@ -42,6 +50,16 @@ except ImportError:
     sys.exit("duckdb fehlt -- dieses Skript braucht die Umgebung von transform/")
 
 WURZEL = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# Wo `static/v=*/` liegt. Im Container ist das **nicht** das Repo: `/app` traegt
+# den Code, die Fahrplanversionen liegen auf dem Volume (Regel 2), und
+# `TRAMPULS_DATEN` zeigt dorthin (Dockerfile.web). Lokal ist die Datenwurzel das
+# Repo selbst. Dieselbe Reihenfolge wie in tools/feed-abgleich.
+STATIC_WURZEL = os.environ.get("TRAMPULS_DATEN") or WURZEL
+
+# Dasselbe fuer die ausgelieferten JSON-Dateien: im Container schreibt der
+# Exporter sie nach `$TRAMPULS_WEBDATEN`, lokal nach export/web/daten.
+WEBDATEN = os.environ.get("TRAMPULS_WEBDATEN") or os.path.join(WURZEL, "export", "web", "daten")
 
 
 def station(stop_id, parent):
@@ -68,6 +86,10 @@ def sollfahrplan(wurzel):
 
     muster_st = os.path.join(wurzel, "static", "v=*", "rnv_stop_times.parquet").replace("\\", "/")
     muster_tr = os.path.join(wurzel, "static", "v=*", "rnv_trips.parquet").replace("\\", "/")
+    if not nach_stop:
+        sys.exit(f"Kein Sollfahrplan unter {wurzel}/static/v=*/ — ohne ihn gibt es nichts,\n"
+                 f"wogegen geprueft werden koennte. Im Container liegt er auf dem Volume:\n"
+                 f"    --static /data   (oder TRAMPULS_DATEN setzen)")
     zeilen = con.sql(f"""
         select t.route_id, cast(t.direction_id as int) as richtung,
                st.v::varchar || ' ' || st.trip_id as lauf, st.stop_id
@@ -149,10 +171,10 @@ def anzeige(halte, richtung):
 def main():
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--daten", default=os.path.join(WURZEL, "export", "web", "daten"),
+    p.add_argument("--daten", default=WEBDATEN,
                    help="Verzeichnis oder Basis-URL der ausgelieferten JSON-Dateien")
-    p.add_argument("--static", default=WURZEL,
-                   help="Wurzel mit static/v=*/ (Vorgabe: das Repo)")
+    p.add_argument("--static", default=STATIC_WURZEL,
+                   help="Wurzel mit static/v=*/ (Vorgabe: $TRAMPULS_DATEN, sonst das Repo)")
     p.add_argument("--zeige", type=int, default=12, help="Wie viele Beispiele je Befund")
     a = p.parse_args()
 

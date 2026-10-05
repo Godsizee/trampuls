@@ -24,11 +24,21 @@ import (
 // Tagen zur RNV gehörte, gehört mit sehr hoher Wahrscheinlichkeit weiter dazu — jede
 // eingehende Version ist ohnehin schon auf die Agency vrn-05 gefiltert (Regel 7).
 //
-// Sieben ist eine getroffene, keine gemessene Grenze: sie deckt eine Woche Versatz
-// zwischen Veröffentlichung und Betrieb ab und kostet bei ~21.000 Fahrten je Version
-// höchstens gut 100.000 Einträge in einer Map, die der Collector ohnehin im Speicher
-// hält. Zeigt sich ein längerer Versatz, ist das die Zahl, die steigt.
-const AktuellFenster = 7
+// Sieben war eine getroffene, keine gemessene Grenze — und sie zählt **Tage**, nicht
+// Veröffentlichungen: der Sammler legt täglich eine Version an, 39 Versionen am
+// 2026-10-05 enthielten nur rund sechs verschiedene Fahrpläne. Gemessen am 2026-10-05
+// (tools/openrnv-verlust/live_ids_pruefen.py): vier Tage nach der Veröffentlichung
+// vom 2026-10-01 sendete der Feed für RNV 2, 5, 6 und 6A noch die Kennungen der
+// Vorgänger, die nur in Versionen bis 2026-09-30 stehen. Mit Sieben wäre die Version
+// vom 30.09. am 2026-10-07 um 03:15 UTC aus dem Fenster gefallen und der Filter hätte
+// diese Linien verworfen, unwiederbringlich.
+//
+// 21 deckt drei Wochen Versatz ab (gemessen: mindestens vier Tage, bei RNV 4/4A länger).
+// Sieben Versionen ergaben am 2026-10-05 44.254 verschiedene Fahrten; höchstens das
+// Dreifache davon liegt als Map im Speicher des Collectors. Das ist eine Brücke: die
+// Zahl bemisst weiter Tage. Tragfähig ist ein Fenster nach Veröffentlichungen oder die
+// Annahme über das Präfix der RNV-route_id (TPULS-156).
+const AktuellFenster = 21
 
 // FahrtenlisteResult beschreibt, woraus die Fahrtenliste des Collectors entstanden ist.
 // Die Aufteilung ist der Zweck: geht die jüngste Version am Feed vorbei, wächst

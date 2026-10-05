@@ -1,9 +1,11 @@
 package static
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/parquet-go/parquet-go"
 )
@@ -95,9 +97,11 @@ func TestSchreibeAktuelleFahrtenliste(t *testing.T) {
 
 	t.Run("Fenster begrenzt die Zahl der Versionen", func(t *testing.T) {
 		dir := t.TempDir()
-		// AktuellFenster+2 Versionen, jede mit einer eigenen trip_id.
+		// AktuellFenster+2 Versionen, jede mit einer eigenen trip_id. Die Namen sind
+		// echte Kalendertage, damit der Test nicht an der Fenstergroesse haengt.
+		start := time.Date(2026, 8, 1, 0, 0, 0, 0, time.UTC)
 		for i := 0; i < AktuellFenster+2; i++ {
-			versionAnlegen(t, dir, "2026-08-0"+string(rune('1'+i)), "t"+string(rune('1'+i)))
+			versionAnlegen(t, dir, start.AddDate(0, 0, i).Format("2006-01-02"), fmt.Sprintf("t%d", i))
 		}
 		res, err := SchreibeAktuelleFahrtenliste(dir)
 		if err != nil {

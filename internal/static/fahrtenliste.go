@@ -34,9 +34,9 @@ import (
 // diese Linien verworfen, unwiederbringlich.
 //
 // 21 deckt drei Wochen Versatz ab (gemessen: mindestens vier Tage, bei RNV 4/4A länger).
-// Sieben Versionen ergaben am 2026-10-05 44.254 verschiedene Fahrten; höchstens das
-// Dreifache davon liegt als Map im Speicher des Collectors. Das ist eine Brücke: die
-// Zahl bemisst weiter Tage. Tragfähig ist ein Fenster nach Veröffentlichungen oder die
+// Gemessen am 2026-10-05: sieben Versionen ergaben 44.254 verschiedene Fahrten, 21
+// ergaben 68.677 — eine Map von wenigen MB im Speicher des Collectors. Das ist eine
+// Brücke: die Zahl bemisst weiter Tage. Tragfähig ist ein Fenster nach Veröffentlichungen oder die
 // Annahme über das Präfix der RNV-route_id (TPULS-156).
 const AktuellFenster = 21
 

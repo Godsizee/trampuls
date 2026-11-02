@@ -18,6 +18,18 @@ export interface Auswahl {
 
 export const SCHWELLEN = [1, 3, 6, 15, 60] as const;
 
+/** Deckt exakt das Dateinamenformat aus cmd/exporter/main.go::slug() ab. */
+const SLUG_MUSTER = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const DATUM_MUSTER = /^\d{4}-\d{2}-\d{2}$/;
+
+export function istGueltigerSlug(wert: string | null): wert is string {
+  return wert !== null && wert.length <= 80 && SLUG_MUSTER.test(wert);
+}
+
+function leseDatum(wert: string | null): string | null {
+  return wert !== null && DATUM_MUSTER.test(wert) ? wert : null;
+}
+
 /**
  * Jede Eingabe hat vom ersten Aufbau an einen Wert. Wer sie erst setzt, wenn
  * die Daten geladen sind, bekommt eine stumm leere Seite — das hat in Bahnpuls
@@ -27,13 +39,14 @@ export function leseAuswahl(): Auswahl {
   const p = new URLSearchParams(location.search);
   const schwelleRoh = Number(p.get("schwelle"));
   const richtungRoh = Number(p.get("richtung"));
+  const linieRoh = p.get("linie");
 
   return {
-    linie: p.get("linie"),
+    linie: istGueltigerSlug(linieRoh) ? linieRoh : null,
     richtung: richtungRoh === 1 ? 1 : 0,
     schwelle: (SCHWELLEN as readonly number[]).includes(schwelleRoh) ? schwelleRoh : 3,
-    von: p.get("von"),
-    bis: p.get("bis"),
+    von: leseDatum(p.get("von")),
+    bis: leseDatum(p.get("bis")),
   };
 }
 
@@ -82,10 +95,10 @@ export interface Vergleichszeitraum {
 export function leseVergleich(): Vergleichszeitraum {
   const p = new URLSearchParams(location.search);
   return {
-    aVon: p.get("a_von"),
-    aBis: p.get("a_bis"),
-    bVon: p.get("b_von"),
-    bBis: p.get("b_bis"),
+    aVon: leseDatum(p.get("a_von")),
+    aBis: leseDatum(p.get("a_bis")),
+    bVon: leseDatum(p.get("b_von")),
+    bBis: leseDatum(p.get("b_bis")),
   };
 }
 
@@ -165,7 +178,8 @@ const GEMERKT = "trampuls:linie";
 
 export function gemerkteLinie(): string | null {
   try {
-    return localStorage.getItem(GEMERKT);
+    const wert = localStorage.getItem(GEMERKT);
+    return istGueltigerSlug(wert) ? wert : null;
   } catch {
     // Privates Fenster oder blockierter Speicher: die Seite funktioniert ohne.
     return null;

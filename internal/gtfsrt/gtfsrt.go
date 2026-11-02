@@ -16,6 +16,14 @@ import (
 // erreichbar. Gemessen 576 KB je Abruf am 2026-08-27 (TramPuls_Datenquellen.md).
 const VRNRealtimeURL = "https://www.vrn.de/service/entwickler/gtfs-realtime/"
 
+// maxFeedBytes schützt den Collector vor Speichererschöpfung (OOM-Kill, Regel 3),
+// falls ein Upstream-Proxy oder gestörter Endpunkt einen endlosen Strom liefert.
+// 32 MiB liegt um Faktor > 50 über dem gemessenen VRN-Feed (576 KB) und > 500 über
+// openRNV (55 KB).
+const maxFeedBytes = 32 << 20
+
+var httpClient = &http.Client{Timeout: 20 * time.Second}
+
 // Fetch holt einen Einzelabruf des Echtzeitstroms und dekodiert ihn. Der produktive
 // Collector ruft das im 30-Sekunden-Takt auf (ADR-009); dies ist der Baustein dafür.
 func Fetch(ctx context.Context, url string) (*gtfs.FeedMessage, error) {
@@ -24,8 +32,7 @@ func Fetch(ctx context.Context, url string) (*gtfs.FeedMessage, error) {
 		return nil, fmt.Errorf("gtfsrt: Anfrage bauen: %w", err)
 	}
 
-	client := &http.Client{Timeout: 20 * time.Second}
-	resp, err := client.Do(req)
+	resp, err := httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("gtfsrt: abrufen: %w", err)
 	}
@@ -35,9 +42,12 @@ func Fetch(ctx context.Context, url string) (*gtfs.FeedMessage, error) {
 		return nil, fmt.Errorf("gtfsrt: unerwarteter Status %d", resp.StatusCode)
 	}
 
-	body, err := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxFeedBytes+1))
 	if err != nil {
 		return nil, fmt.Errorf("gtfsrt: Antwort lesen: %w", err)
+	}
+	if len(body) > maxFeedBytes {
+		return nil, fmt.Errorf("gtfsrt: Antwort überschreitet Limit von %d MiB", maxFeedBytes>>20)
 	}
 
 	return Decode(body)

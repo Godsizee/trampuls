@@ -197,17 +197,28 @@ func extractRawFiles(zr *zip.ReadCloser, versionDir string, entries []string) er
 }
 
 func copyToFileAtomic(dst string, r io.Reader) error {
+	return copyToFileAtomicLimit(dst, r, maxStaticEntryBytes)
+}
+
+func copyToFileAtomicLimit(dst string, r io.Reader, maxBytes int64) error {
 	tmp := dst + ".part"
 	out, err := os.Create(tmp)
 	if err != nil {
 		return fmt.Errorf("static: %s anlegen: %w", tmp, err)
 	}
-	if _, err := io.Copy(out, r); err != nil {
+	n, err := io.Copy(out, io.LimitReader(r, maxBytes+1))
+	if err != nil {
 		out.Close()
 		os.Remove(tmp)
 		return fmt.Errorf("static: nach %s schreiben: %w", tmp, err)
 	}
+	if n > maxBytes {
+		out.Close()
+		os.Remove(tmp)
+		return fmt.Errorf("static: Download nach %s überschreitet Limit von %d MiB", dst, maxBytes>>20)
+	}
 	if err := out.Close(); err != nil {
+		os.Remove(tmp)
 		return fmt.Errorf("static: %s schließen: %w", tmp, err)
 	}
 	return os.Rename(tmp, dst)

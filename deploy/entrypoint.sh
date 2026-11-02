@@ -8,6 +8,16 @@
 # endgueltig verlorene Historie (Regel 3).
 set -e
 
+# Fruehwarnung vor Regel-3-Verlust: schlaegt fehl, bevor der erste Poll puffert,
+# falls Volume-Rechte (z. B. nach Host-Umstellung) nicht zum Container-Nutzer passen.
+mkdir -p raw health
+probe="health/.schreibprobe.$$"
+if ! (: > "$probe") 2>/dev/null; then
+  echo "[entrypoint] FEHLER: Arbeitsverzeichnis $(pwd)/health ist nicht beschreibbar (uid=$(id -u)). Abbruch." >&2
+  exit 1
+fi
+rm -f "$probe"
+
 SCOPE_LIST="static/rnv_trips_aktuell.parquet"
 
 # Bestandsaufnahme vor dem Start. Ein Coolify-Redeploy loescht das Container-

@@ -259,3 +259,21 @@ Datenkontrolle läuft dauerhaft weiter und nicht nur in diesem einen Test.
   Kanal ntfy.sh/Webhook), **Coolify-Seite offen:** Scheduled Task `pruefung-stuendlich`
   auf `trampuls-web` anlegen (`15 * * * *`) und `TRAMPULS_NTFY_URL` setzen — beides von
   hier aus nicht erreichbar.
+
+## Betriebssicherheit & Checkliste (TPULS-160)
+
+1. **Token-Hygiene:** Coolify-API-Token nach API-Eingriffen rotieren und niemals im Repo
+   oder einer Klartext-`.env.local` belassen (`.gitignore` deckt `.env*` ab, ersetzt aber
+   keine Rotation).
+2. **Port-Exposition der Sammler:** `trampuls-collector` und `trampuls-openrnv` lauschen
+   intern auf `:3000` (`/health`) ausschließlich für den Docker-/Coolify-Healthcheck — in
+   Coolify darf dafür **keine** öffentliche Domain und kein Host-Port-Mapping
+   (`0.0.0.0:3000`) eingetragen sein.
+3. **Host-Firewall prüfen:** Auf dem VPS mit `ss -tlnp` kontrollieren, dass interne
+   Dienste (z. B. Port `25672` Erlang/RabbitMQ) nur lokal bzw. hinter UFW gebunden sind.
+4. **Zweistufiger Weg zu Non-Root (`uid=10001`):** Beide Sammler prüfen beim Start per
+   Schreibprobe (`health/.schreibprobe.$$`), ob `/data` beschreibbar ist. Vor einer
+   Aktivierung von `USER 10001:10001` in `Dockerfile.collector` / `Dockerfile.openrnv`
+   zuerst im Wartungsfenster (`:05`–`:25`) auf dem Host
+   `chown -R 10001:10001 /data/coolify/trampuls` ausführen — niemals in umgekehrter
+   Reihenfolge (Regel 3).

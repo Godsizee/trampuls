@@ -26,7 +26,9 @@ DATEN="${TRAMPULS_DATEN:-/data}"
 PROJEKT="${TRAMPULS_TRANSFORM:-/app/transform}"
 ZIEL="${TRAMPULS_WEBDATEN:-/data/export/web/daten}"
 PROTOKOLL="$DATEN/warehouse/vollaufbau.log"
-GRUND="${1:-kein Grund angegeben}"
+# Tabs und Zeilenumbrueche wuerden die TSV-Spalten in vollaufbau.log verschieben
+# und prg_seed_nach_vollaufbau in pruefung_stuendlich.py brechen.
+GRUND="$(printf '%s' "${1:-kein Grund angegeben}" | tr '\t\r\n' '   ')"
 
 TRAMPULS_WAREHOUSE="${TRAMPULS_WAREHOUSE:-$DATEN/warehouse/trampuls.duckdb}"
 export TRAMPULS_WAREHOUSE
@@ -48,11 +50,11 @@ printf '%s\tstart\t%s\n' "$start" "$GRUND" >> "$PROTOKOLL"
 
 cd "$PROJEKT"
 
-dbt build --full-refresh --project-dir . --profiles-dir . \
-    --vars "{\"datenwurzel\": \"$DATEN\"}"
+VARS_JSON="$("${TRAMPULS_PYTHON:-python3}" -c 'import json,sys; print(json.dumps({"datenwurzel": sys.argv[1]}))' "$DATEN")"
+ARGS_JSON="$("${TRAMPULS_PYTHON:-python3}" -c 'import json,sys; print(json.dumps({"ziel": sys.argv[1]}))' "$DATEN/export/marts")"
 
-dbt run-operation export_marts --project-dir . --profiles-dir . \
-    --vars "{\"datenwurzel\": \"$DATEN\"}" --args "{\"ziel\": \"$DATEN/export/marts\"}"
+dbt build --full-refresh --project-dir . --profiles-dir . --vars "$VARS_JSON"
+dbt run-operation export_marts --project-dir . --profiles-dir . --vars "$VARS_JSON" --args "$ARGS_JSON"
 
 exporter -marts "$DATEN/export/marts" -ziel "$ZIEL"
 

@@ -9,6 +9,16 @@
 # kosten, und der ist nicht nachholbar (Regel 3).
 set -e
 
+# Fruehwarnung vor Regel-3-Verlust: schlaegt fehl, bevor der erste Poll puffert,
+# falls Volume-Rechte (z. B. nach Host-Umstellung) nicht zum Container-Nutzer passen.
+mkdir -p raw-openrnv health
+probe="health/.schreibprobe.$$"
+if ! (: > "$probe") 2>/dev/null; then
+  echo "[entrypoint] FEHLER: Arbeitsverzeichnis $(pwd)/health ist nicht beschreibbar (uid=$(id -u)). Abbruch." >&2
+  exit 1
+fi
+rm -f "$probe"
+
 echo "[entrypoint] Bestand auf dem Volume ($(pwd)) vor dem Start:"
 echo "[entrypoint]   openRNV-Sollfahrplan:   $(ls -d static-openrnv/v=* 2>/dev/null | tr '\n' ' ')"
 echo "[entrypoint]   Rohdaten-Tage:          $(ls -d raw-openrnv/date=* 2>/dev/null | wc -l)"

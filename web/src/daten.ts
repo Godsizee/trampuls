@@ -5,6 +5,8 @@
 // Auswaehlen und Summieren ueber bereits fertige Zaehler; eine Quote entsteht
 // erst in `quote()`, und zwar aus zwei Zahlen, die beide aus dem Mart kommen.
 
+import { istGueltigerSlug } from "./zustand";
+
 export type Verkehrsart = "tram" | "bus" | "sonstige";
 
 export interface RichtungKopf {
@@ -285,5 +287,12 @@ export const ladeNetz = () => hole<NetzDatei>("netz.json");
 export const ladeKalender = () => hole<KalenderDatei>("kalender.json");
 export const ladeMethodik = () => hole<MethodikDatei>("methodik.json");
 export const ladePrognose = () => hole<PrognoseDatei>("prognose.json");
-export const ladeLinie = (datei: string) => hole<LinieDatei>(`linie/${datei}.json`);
-export const ladeLinieHalte = (datei: string) => hole<HalteDatei>(`linie/${datei}-halte.json`);
+function pruefeLinienSlug(datei: string): string {
+  if (!istGueltigerSlug(datei)) {
+    throw new Error(`Ungültige Linienkennung: ${datei}`);
+  }
+  return datei;
+}
+
+export const ladeLinie = (datei: string) => hole<LinieDatei>(`linie/${pruefeLinienSlug(datei)}.json`);
+export const ladeLinieHalte = (datei: string) => hole<HalteDatei>(`linie/${pruefeLinienSlug(datei)}-halte.json`);

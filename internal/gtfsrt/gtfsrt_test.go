@@ -1,8 +1,13 @@
 package gtfsrt
 
 import (
+	"bytes"
+	"context"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"regexp"
+	"strings"
 	"testing"
 
 	"github.com/MobilityData/gtfs-realtime-bindings/golang/gtfs"
@@ -94,4 +99,31 @@ func TestDecode_TripUpdates(t *testing.T) {
 		t.Fatal("keine TripUpdate-Entities im Snapshot — Fixture vermutlich kaputt")
 	}
 	t.Logf("%d TripUpdates, %d StopTimeUpdates, %d CANCELED im Snapshot", tripUpdates, stopTimeUpdates, canceled)
+}
+
+func TestFetch_StatusUndLimit(t *testing.T) {
+	t.Run("unerwarteter HTTP-Status", func(t *testing.T) {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusBadGateway)
+		}))
+		defer srv.Close()
+
+		_, err := Fetch(context.Background(), srv.URL)
+		if err == nil || !strings.Contains(err.Error(), "unerwarteter Status 502") {
+			t.Fatalf("Fetch() bei 502 = %v, wollte Fehler mit 'unerwarteter Status 502'", err)
+		}
+	})
+
+	t.Run("Antwort ueberschreitet maxFeedBytes", func(t *testing.T) {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write(bytes.Repeat([]byte{'A'}, maxFeedBytes+1))
+		}))
+		defer srv.Close()
+
+		_, err := Fetch(context.Background(), srv.URL)
+		if err == nil || !strings.Contains(err.Error(), "überschreitet Limit") {
+			t.Fatalf("Fetch() bei Übergroesse = %v, wollte Fehler mit 'überschreitet Limit'", err)
+		}
+	})
 }

@@ -27,6 +27,12 @@ const (
 
 	// RNVAgencyID ist der Scope-Filter (ADR-003): eine Spalte, keine gepflegte Liste.
 	RNVAgencyID = "vrn-05"
+
+	// Schutzgrenzen fuer Download und Entpacken: VRN-Zip liegt gemessen bei 158,2 MB,
+	// stop_times.txt entpackt bei ~320 MB. 512 MiB bzw. 1,5 GiB lassen reichlich
+	// Wachstum zu, verhindern aber Platten- und Speichererschöpfung bei defekten Archiven.
+	maxStaticZipBytes   = 512 << 20
+	maxStaticEntryBytes = 1536 << 20
 )
 
 // Route ist eine RNV-Linie. RouteID ist der Schlüssel in jedem Join; ShortName+Type
@@ -127,7 +133,7 @@ func ensureCachedFrom(ctx context.Context, versionDir, url, dateiname string) (s
 		return "", fmt.Errorf("static: unerwarteter Status %d beim Abruf des Sollfahrplans", resp.StatusCode)
 	}
 
-	if err := copyToFileAtomic(zipPath, resp.Body); err != nil {
+	if err := copyToFileAtomicLimit(zipPath, resp.Body, maxStaticZipBytes); err != nil {
 		return "", fmt.Errorf("static: Sollfahrplan schreiben: %w", err)
 	}
 
@@ -139,12 +145,15 @@ func withEntry(zr *zip.ReadCloser, suffix string, fn func(io.Reader) error) erro
 	if err != nil {
 		return err
 	}
+	if f.UncompressedSize64 > uint64(maxStaticEntryBytes) {
+		return fmt.Errorf("static: %s überschreitet Entpack-Limit (%d Bytes)", suffix, f.UncompressedSize64)
+	}
 	rc, err := f.Open()
 	if err != nil {
 		return fmt.Errorf("static: %s öffnen: %w", suffix, err)
 	}
 	defer rc.Close()
-	return fn(rc)
+	return fn(io.LimitReader(rc, maxStaticEntryBytes))
 }
 
 func findEntry(zr *zip.ReadCloser, suffix string) (*zip.File, error) {

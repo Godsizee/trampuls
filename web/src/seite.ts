@@ -128,12 +128,13 @@ function verdrahteBegriffe(): void {
     return k instanceof HTMLElement ? k : null;
   };
 
-  const schalte = (knopf: HTMLElement, offen: boolean): void => {
+  const feldZu = (knopf: HTMLElement): HTMLElement | null => {
     const id = knopf.getAttribute("popovertarget");
-    const feld = id ? document.getElementById(id) : null;
+    return id ? document.getElementById(id) : null;
+  };
+
+  const schalte = (feld: HTMLElement | null, offen: boolean): void => {
     if (!feld || typeof feld.showPopover !== "function") return;
-    // showPopover wirft, wenn schon offen — der Zustand ist dann aber genau
-    // der gewuenschte, also ist das hier folgenlos.
     try {
       if (offen) feld.showPopover();
       else feld.hidePopover();
@@ -144,12 +145,47 @@ function verdrahteBegriffe(): void {
 
   document.addEventListener("pointerover", (e) => {
     const k = knopfAus(e);
-    if (k) schalte(k, true);
+    if (!k) return;
+    const feld = feldZu(k);
+    if (feld && !feld.matches(":popover-open")) {
+      delete feld.dataset.fest;
+      schalte(feld, true);
+    }
   });
+
+  // Verhindert das Zeitrennen aus TPULS-139: hat pointerover das Feld bereits
+  // geoeffnet, wuerde der native popovertarget-Klick es sofort wieder schliessen.
+  // Stattdessen heftet der erste Klick das geoeffnete Feld fest (`data-fest="ja"`),
+  // sodass man mit der Maus Text kopieren kann; der zweite Klick schliesst es.
+  document.addEventListener("click", (e) => {
+    const k = knopfAus(e);
+    if (!k) return;
+    const feld = feldZu(k);
+    if (!feld || !feld.matches(":popover-open")) return;
+    if (feld.dataset.fest !== "ja") {
+      e.preventDefault();
+      feld.dataset.fest = "ja";
+    } else {
+      delete feld.dataset.fest;
+    }
+  });
+
   document.addEventListener("pointerout", (e) => {
     const k = knopfAus(e);
-    if (k) schalte(k, false);
+    if (!k) return;
+    const feld = feldZu(k);
+    if (!feld || feld.dataset.fest === "ja") return;
+    const wohin = (e as PointerEvent).relatedTarget;
+    if (wohin instanceof Node && (k.contains(wohin) || feld.contains(wohin))) return;
+    schalte(feld, false);
   });
+
+  document.addEventListener("toggle", (e) => {
+    const feld = e.target;
+    if (feld instanceof HTMLElement && !feld.matches(":popover-open")) {
+      delete feld.dataset.fest;
+    }
+  }, true);
 }
 
 verdrahteBegriffe();
@@ -157,6 +193,16 @@ verdrahteBegriffe();
 // Hier und nicht in jedem Seitenmodul: dieses Geruest laedt jede Seite, und der
 // Umschalter steht in der Kopfleiste jeder Seite.
 verdrahteFarbschalter();
+
+function aktualisiereDruckadresse(): void {
+  if (typeof document === "undefined" || typeof location === "undefined") return;
+  const fuss = document.querySelector<HTMLElement>("footer.fuss .huelle");
+  if (fuss) fuss.dataset.druckadresse = location.href;
+}
+aktualisiereDruckadresse();
+if (typeof window !== "undefined") {
+  window.addEventListener("beforeprint", aktualisiereDruckadresse);
+}
 
 /**
  * Tabellenentsprechung zu jedem Diagramm (Barrierefreiheit).

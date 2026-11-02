@@ -711,6 +711,13 @@ main.huelle > [data-ferien] {
 .tafel,
 .vergleichsspalte { padding: var(--r4) var(--innen) var(--r5); box-shadow: var(--schatten); }
 .vergleichsspalte .gross { color: var(--signal); }
+[data-kennzahl] .block-rand {
+  --hinter: var(--flaeche);
+  background: var(--flaeche);
+  border: 1px solid var(--linie);
+  border-radius: var(--radius-l);
+  padding: var(--r4) var(--r5);
+}
 
 .tafel-kopf {
   display: flex;
@@ -1255,6 +1262,32 @@ select:focus-visible, input[type="search"]:focus-visible { outline-offset: 1px; 
 /* ---------------------------------------------------------------------------
    Linienliste: die Kachelwand auf /linien
    --------------------------------------------------------------------------- */
+
+[data-art-wahl].segmente { flex-wrap: wrap; }
+
+.gemerkt-leiste {
+  --hinter: var(--flaeche);
+  margin: var(--r4) 0 0;
+  padding: var(--r3) var(--innen);
+  background: var(--flaeche);
+  border: 1px solid var(--linie);
+  border-radius: var(--radius-l);
+  box-shadow: var(--schatten);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--r3);
+}
+.gemerkt-leiste-ziel {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--r3);
+  min-height: var(--tippziel);
+  color: var(--tinte);
+  text-decoration: none;
+}
+.gemerkt-leiste-ziel:hover { text-decoration: underline; }
 
 .linienliste {
   list-style: none;
@@ -1886,10 +1919,14 @@ select:focus-visible, input[type="search"]:focus-visible { outline-offset: 1px; 
     align-content: start;
   }
 
-  /* Was den Einstieg traegt und was selbst ein Raster aufbaut, laeuft ueber
-     die ganze Zeile. */
+  /* Was den Einstieg traegt und was selbst ein zweispaltiges .block- oder
+     Vergleichsraster aufbaut, laeuft ueber die ganze Zeile. Ohne diese
+     Spannweite fielen Kennzahl, Ausfaelle, Verlauf, Tagesgang und Einordnung
+     in einzelne 28-rem-Zellen (< 55 rem), wodurch ihre Randspalten unter den
+     Hauptteil klappten und breite Zeitreihen gequetscht wurden. */
   main.huelle > h1,
   main.huelle > h2,
+  main.huelle > p,
   main.huelle > .lead,
   main.huelle > .tafel,
   main.huelle > .auftakt,
@@ -1902,9 +1939,15 @@ select:focus-visible, input[type="search"]:focus-visible { outline-offset: 1px; 
   main.huelle > .regler,
   main.huelle > [data-kopf],
   main.huelle > [data-regler],
+  main.huelle > [data-kennzahl],
+  main.huelle > [data-ausfaelle],
+  main.huelle > [data-verlauf],
+  main.huelle > [data-tagesgang],
   main.huelle > [data-profil],
-  main.huelle > [data-verlauf].breit,
+  main.huelle > [data-vergleich],
+  main.huelle > [data-einordnung],
   main.huelle > [data-ferien],
+  main.huelle > [data-gemerkt],
   main.huelle > [data-linien],
   main.huelle > [data-befunde],
   main.huelle > [data-einleitung] { grid-column: 1 / -1; }
@@ -1939,7 +1982,7 @@ select:focus-visible, input[type="search"]:focus-visible { outline-offset: 1px; 
      1440 px blieben bei 900 px Fensterhoehe unter Kopf- und Steuerleiste
      keine 630 px fuer die Streckentabelle. (TPULS-134 liess sie ab 1400 px
      kleben; im Bestand war sie dort 158 px hoch.) */
-  main.huelle > [data-regler] {
+  main.huelle > [data-regler]:not([data-nicht-klebend]) {
     position: sticky;
     top: calc(var(--kopf-hoehe, 0px) + var(--r2));
     z-index: 4;
@@ -1962,12 +2005,17 @@ select:focus-visible, input[type="search"]:focus-visible { outline-offset: 1px; 
      Leere Zeilen haben dann keine Hoehe; mit einem Zeilenabstand kaeme er je
      leerer Zeile dazu (gemessen: 999 Zeilen x 1,5 rem machten /methodik
      37.275 px hoch). Die Abstaende tragen die Aussenabstaende der Elemente. */
+  /* 92 rem haelt auf 2560 px Text und Inhaltsverzeichnis in Blickweite
+     zusammen, laesst aber der Hauptspalte mindestens 61 rem (> 55 rem), damit
+     die breiten T8-/T7-Bloecke auf /methodik ihre Randspalte behalten. */
   main.huelle:has(.inhaltsspalte) {
     display: grid;
     grid-template-columns: minmax(0, 1fr) var(--breite-rand);
     column-gap: var(--r8);
     row-gap: 0;
     align-items: start;
+    max-width: 92rem;
+    margin-inline: auto;
   }
   main.huelle:has(.inhaltsspalte) > * { grid-column: 1; }
   main.huelle:has(.inhaltsspalte) > h2 { margin-top: var(--r7); }
@@ -1977,6 +2025,9 @@ select:focus-visible, input[type="search"]:focus-visible { outline-offset: 1px; 
     grid-row: 1 / span 200;
     position: sticky;
     top: calc(var(--kopf-hoehe, 0px) + var(--r5));
+    max-height: calc(100dvh - var(--kopf-hoehe, 0px) - var(--r8));
+    overflow-y: auto;
+    overscroll-behavior: contain;
     max-width: none;
     font-size: var(--t-klein);
     padding: var(--r4) var(--r4) var(--r3);
@@ -2019,4 +2070,74 @@ select:focus-visible, input[type="search"]:focus-visible { outline-offset: 1px; 
   @view-transition { navigation: auto; }
   ::view-transition-old(root),
   ::view-transition-new(root) { animation-duration: 180ms; }
+}
+
+/* ---------------------------------------------------------------------------
+   Druckansicht (TPULS-143 / TPULS-163)
+
+   Ein Ausdruck ist ein Beleg: keine klebenden Leisten, keine dunkle Farbflaeche,
+   die ohne Hintergrunddruck weiss-auf-weiss wird, und unten immer die genaue
+   Adresse mit allen gewaehlten Parametern.
+   --------------------------------------------------------------------------- */
+
+@media print {
+  :root {
+    color-scheme: light;
+    font-size: 10.5pt;
+  }
+  body {
+    background: #fff;
+    color: #000;
+  }
+  .sprung,
+  header.kopfleiste nav,
+  .farbschalter,
+  .linienkopf-aktionen,
+  .wege,
+  .weiter,
+  .inhaltsspalte,
+  [data-regler] { display: none !important; }
+
+  header.kopfleiste {
+    position: static;
+    border-bottom: 1px solid #999;
+    background: none;
+  }
+  .huelle {
+    max-width: none !important;
+    padding: 0.5cm 0 !important;
+  }
+  .tafel,
+  .vergleichsspalte,
+  [data-kennzahl] .block-haupt,
+  [data-kennzahl] .block-rand,
+  .befund,
+  main.huelle > [data-verlauf],
+  main.huelle > [data-tagesgang],
+  main.huelle > [data-profil],
+  main.huelle > [data-ausfaelle],
+  main.huelle > [data-einordnung] {
+    color-scheme: light;
+    background: #fff !important;
+    color: #000 !important;
+    border: 1px solid #888 !important;
+    box-shadow: none !important;
+    break-inside: avoid;
+  }
+  .gross,
+  .vergleichsspalte .gross { color: #000 !important; }
+  [data-kennzahl] .tafel-zeile { display: block !important; color: #222 !important; }
+  .tabellenhuelle,
+  .scrollkasten {
+    overflow: visible !important;
+    border-color: #999 !important;
+  }
+  footer.fuss .huelle[data-druckadresse]::after {
+    content: "Abgerufen von: " attr(data-druckadresse);
+    display: block;
+    margin-top: 0.5rem;
+    font-size: 9pt;
+    color: #333;
+    word-break: break-all;
+  }
 }

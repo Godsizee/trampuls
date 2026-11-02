@@ -4,20 +4,125 @@
 // bedeuten dort etwas anderes (ADR-011). Nebeneinander gestellt wuerden sie
 // verglichen, und der Vergleich waere falsch.
 
-import { ladeIndex } from "./daten";
+import { ladeIndexVollstaendig } from "./daten";
 import type { LinieKopf } from "./daten";
-import { liniennummer, quoteText, zahl, VERKEHRSART_NAME } from "./format";
+import { liniennummer, quoteText, zahl, LINIENART_NAME, VERKEHRSART_NAME } from "./format";
 import { escape, fussnote, schild, zeigeFehler } from "./seite";
+import { gemerkteLinie, merkeLinie } from "./zustand";
+
+type ArtWahl = "alle" | "tram" | "bus" | "ruftaxi";
+type Sortierung = "nummer" | "quote-ab" | "quote-auf" | "halte";
+
+const ARTEN: readonly ArtWahl[] = ["alle", "tram", "bus", "ruftaxi"];
+const SORTIERUNGEN: readonly Sortierung[] = ["nummer", "quote-ab", "quote-auf", "halte"];
+
+function leseFilter(): { q: string; art: ArtWahl; sortierung: Sortierung } {
+  const p = new URLSearchParams(location.search);
+  const q = p.get("q") ?? "";
+  const artRoh = p.get("art") as ArtWahl | null;
+  const sortRoh = p.get("sortierung") as Sortierung | null;
+  return {
+    q,
+    art: artRoh !== null && ARTEN.includes(artRoh) ? artRoh : "alle",
+    sortierung: sortRoh !== null && SORTIERUNGEN.includes(sortRoh) ? sortRoh : "nummer",
+  };
+}
+
+function schreibeFilter(q: string, art: ArtWahl, sortierung: Sortierung): void {
+  const p = new URLSearchParams(location.search);
+  if (q.trim() === "") p.delete("q");
+  else p.set("q", q.trim());
+  if (art === "alle") p.delete("art");
+  else p.set("art", art);
+  if (sortierung === "nummer") p.delete("sortierung");
+  else p.set("sortierung", sortierung);
+  const frage = p.toString();
+  history.replaceState(null, "", frage === "" ? location.pathname : `${location.pathname}?${frage}`);
+}
+
+function sortiere(linien: LinieKopf[], sortierung: Sortierung): LinieKopf[] {
+  if (sortierung === "nummer") return linien;
+  const kopie = [...linien];
+  if (sortierung === "halte") {
+    return kopie.sort((a, b) => b.bewertbare_halte - a.bewertbare_halte || b.soll_halte - a.soll_halte);
+  }
+  const q = (l: LinieKopf): number => (l.bewertbare_halte > 0 ? l.puenktlich_3min / l.bewertbare_halte : -1);
+  return kopie.sort((a, b) => {
+    const diff = sortierung === "quote-ab" ? q(b) - q(a) : q(a) - q(b);
+    return diff !== 0 ? diff : b.bewertbare_halte - a.bewertbare_halte;
+  });
+}
 
 async function start(): Promise<void> {
-  const index = await ladeIndex();
+  const index = await ladeIndexVollstaendig();
   fussnote(index);
 
   const suche = document.querySelector<HTMLInputElement>("[data-suche]");
+  const sortFeld = document.querySelector<HTMLSelectElement>("[data-sortierung]");
+  const artWahl = document.querySelector<HTMLElement>("[data-art-wahl]");
+  const gemerktKasten = document.querySelector<HTMLElement>("[data-gemerkt]");
   const ziel = document.querySelector("[data-linien]");
   if (!ziel) return;
 
-  const zeichne = (filter: string): void => {
+  const initial = leseFilter();
+  if (suche) suche.value = initial.q;
+  if (sortFeld) sortFeld.value = initial.sortierung;
+  if (artWahl) {
+    const radio = artWahl.querySelector<HTMLInputElement>(`input[name="art"][value="${initial.art}"]`);
+    if (radio) radio.checked = true;
+  }
+
+  const zeichneGemerkt = (): void => {
+    if (!gemerktKasten) return;
+    const slug = gemerkteLinie();
+    const l = slug ? index.linien.find((e) => e.datei === slug) : undefined;
+    if (!l) {
+      gemerktKasten.innerHTML = "";
+      return;
+    }
+    const artName = LINIENART_NAME[l.verkehrsart] ?? "Linie";
+    const nummer = liniennummer(l.linie);
+    const quoteHinweis = l.bewertbare_halte > 0
+      ? `${quoteText(l.puenktlich_3min, l.bewertbare_halte)} unter 3 Min (${zahl(l.bewertbare_halte)} gemessene Halte)`
+      : "ohne Echtzeitmeldung";
+    gemerktKasten.innerHTML = `
+      <div class="gemerkt-leiste">
+        <a class="gemerkt-leiste-ziel" href="linie.html?linie=${encodeURIComponent(l.datei)}">
+          ${schild(nummer, l.verkehrsart, { bedarf: l.bedarfsverkehr === true, verborgen: true })}
+          <span><strong>Gemerkte ${escape(artName)} ${escape(nummer)}</strong> — ${escape(l.verlauf)} · <span class="klein">${escape(quoteHinweis)}</span></span>
+        </a>
+        <button type="button" class="knopf" data-gemerkt-loesen>Nicht mehr merken</button>
+      </div>`;
+    gemerktKasten.querySelector("[data-gemerkt-loesen]")?.addEventListener("click", () => {
+      merkeLinie(null);
+      zeichneGemerkt();
+    });
+  };
+  zeichneGemerkt();
+
+  const aktuelleArt = (): ArtWahl => {
+    const gewaehlt = artWahl?.querySelector<HTMLInputElement>('input[name="art"]:checked')?.value as ArtWahl | undefined;
+    return gewaehlt && ARTEN.includes(gewaehlt) ? gewaehlt : "alle";
+  };
+
+  const aktuelleSortierung = (): Sortierung => {
+    const wert = sortFeld?.value as Sortierung | undefined;
+    return wert && SORTIERUNGEN.includes(wert) ? wert : "nummer";
+  };
+
+  const passtArt = (l: LinieKopf, art: ArtWahl): boolean => {
+    if (art === "alle") return true;
+    if (art === "ruftaxi") return l.bedarfsverkehr === true;
+    if (art === "tram") return l.verkehrsart === "tram" && !l.bedarfsverkehr;
+    return l.verkehrsart !== "tram" && !l.bedarfsverkehr;
+  };
+
+  const zeichne = (): void => {
+    const filter = suche?.value ?? "";
+    const art = aktuelleArt();
+    const sortierung = aktuelleSortierung();
+    schreibeFilter(filter, art, sortierung);
+
     const begriff = filter.trim().toLowerCase();
     ziel.innerHTML = "";
 
@@ -26,15 +131,12 @@ async function start(): Promise<void> {
     // (Exporter, aus mart_linie_halt) traegt die tatsaechlichen Stationsnamen
     // entlang des Laufwegs.
     const passt = (l: LinieKopf): boolean =>
-      begriff === "" ||
-      l.linie.toLowerCase().includes(begriff) ||
-      l.verlauf.toLowerCase().includes(begriff) ||
-      (l.halte?.some((h) => h.toLowerCase().includes(begriff)) ?? false);
+      passtArt(l, art) &&
+      (begriff === "" ||
+        l.linie.toLowerCase().includes(begriff) ||
+        l.verlauf.toLowerCase().includes(begriff) ||
+        (l.halte?.some((h) => h.toLowerCase().includes(begriff)) ?? false));
 
-    // Welcher Haltename genau getroffen hat -- nur wenn der Treffer
-    // ausschliesslich ueber die Haltestelle kam. Passen Nummer oder Verlauf
-    // schon, steht der Grund sichtbar in der Zeile selbst und eine zweite
-    // Nennung waere Redundanz statt Beleg.
     const halteTreffer = (l: LinieKopf): string | undefined => {
       if (begriff === "") return undefined;
       if (l.linie.toLowerCase().includes(begriff) || l.verlauf.toLowerCase().includes(begriff)) {
@@ -43,14 +145,18 @@ async function start(): Promise<void> {
       return l.halte?.find((h) => h.toLowerCase().includes(begriff));
     };
 
-    for (const art of ["tram", "bus", "sonstige"] as const) {
-      const linien = index.linien.filter(
-        (l) => l.verkehrsart === art && !l.bedarfsverkehr && passt(l),
+    const gemessen = index.linien.filter((l) => l.bewertbare_halte > 0 && passt(l));
+    const stumm = index.linien.filter((l) => l.bewertbare_halte === 0 && passt(l));
+
+    for (const vArt of ["tram", "bus", "sonstige"] as const) {
+      const linien = sortiere(
+        gemessen.filter((l) => l.verkehrsart === vArt && !l.bedarfsverkehr),
+        sortierung,
       );
       if (linien.length === 0) continue;
       ziel.appendChild(
         blockBauen(
-          `${VERKEHRSART_NAME[art]} <span class="klein">${zahl(linien.length)}</span>`,
+          `${VERKEHRSART_NAME[vArt]} <span class="klein">${zahl(linien.length)}</span>`,
           linien,
           undefined,
           halteTreffer,
@@ -58,7 +164,10 @@ async function start(): Promise<void> {
       );
     }
 
-    const ruftaxi = index.linien.filter((l) => l.bedarfsverkehr && passt(l));
+    const ruftaxi = sortiere(
+      gemessen.filter((l) => l.bedarfsverkehr),
+      sortierung,
+    );
     if (ruftaxi.length > 0) {
       const block = blockBauen(
         `Ruftaxi <span class="klein">${zahl(ruftaxi.length)}</span>`,
@@ -72,6 +181,33 @@ async function start(): Promise<void> {
       ziel.appendChild(block);
     }
 
+    if (stumm.length > 0) {
+      const erklaerung =
+        "Diese Linien stehen im Sollfahrplan der rnv, liefern in den offenen Echtzeitströmen " +
+        "bisher aber keine einzige Ist-Meldung (siehe Befund auf der Seite „Was auffällt“).";
+      if (begriff !== "") {
+        ziel.appendChild(
+          blockBauen(
+            `Im Fahrplan, bisher ohne Echtzeitmeldung <span class="klein">${zahl(stumm.length)}</span>`,
+            stumm,
+            erklaerung,
+            halteTreffer,
+          ),
+        );
+      } else {
+        const details = document.createElement("details");
+        details.className = "weiter";
+        details.innerHTML =
+          `<summary>${zahl(stumm.length)} ${stumm.length === 1 ? "Linie" : "Linien"} im Fahrplan ohne Echtzeitmeldung anzeigen</summary>` +
+          `<p class="hinweis">${escape(erklaerung)} <a href="/befunde.html">Mehr dazu unter „Was auffällt“</a>.</p>`;
+        const liste = document.createElement("ul");
+        liste.className = "linienliste";
+        for (const l of stumm) liste.appendChild(eintrag(l));
+        details.appendChild(liste);
+        ziel.appendChild(details);
+      }
+    }
+
     if (ziel.children.length === 0) {
       ziel.innerHTML =
         `<p class="hinweis">Keine Linie passt zu „${escape(filter)}“. ` +
@@ -82,8 +218,10 @@ async function start(): Promise<void> {
 
   // Die Eingabe hat vom ersten Aufbau an einen Wert (leer = alle), und die
   // Liste steht sofort — nicht erst nach der ersten Eingabe.
-  zeichne(suche?.value ?? "");
-  suche?.addEventListener("input", () => zeichne(suche.value));
+  zeichne();
+  suche?.addEventListener("input", zeichne);
+  sortFeld?.addEventListener("change", zeichne);
+  artWahl?.addEventListener("change", zeichne);
 }
 
 function blockBauen(
@@ -151,15 +289,21 @@ function eintrag(l: LinieKopf, halt?: string): HTMLLIElement {
   // in eine eigene Zeile darunter, ohne die bestehenden davor zu beruehren.
   // Nur in der Kachelwand ab 87,5 rem (stil.css) ruecken ihn `order`-Werte
   // zwischen Schild/Verlauf und Zahl.
+  const werteText = l.bewertbare_halte > 0
+    ? `<strong>${quoteText(l.puenktlich_3min, l.bewertbare_halte)}</strong>
+       <span class="klein">weniger als 3 Min zu spät</span>
+       <span class="klein">${zahl(l.bewertbare_halte)} gemessene Halte</span>`
+    : `<strong>ohne Messung</strong>
+       <span class="klein">im Echtzeitstrom nicht enthalten</span>
+       <span class="klein">${zahl(l.soll_halte)} geplante Halte im Fahrplan</span>`;
+
   li.innerHTML = `
     <a href="linie.html?linie=${encodeURIComponent(l.datei)}">
       ${schild(liniennummer(l.linie), l.verkehrsart, { bedarf: l.bedarfsverkehr === true })}
       <span class="verlauf">${escape(l.verlauf)}</span>
     </a>
     <span class="werte">
-      <strong>${quoteText(l.puenktlich_3min, l.bewertbare_halte)}</strong>
-      <span class="klein">weniger als 3 Min zu spät</span>
-      <span class="klein">${zahl(l.bewertbare_halte)} gemessene Halte</span>
+      ${werteText}
     </span>
     ${richtungen ? `<span class="klein richtungen">${richtungen}</span>` : ""}
     ${

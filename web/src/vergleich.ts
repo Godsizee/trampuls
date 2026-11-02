@@ -19,13 +19,16 @@
 
 import { ladeIndex, ladeKalender, ladeLinie, ladeMethodik, tagesmengen } from "./daten";
 import type {
-  IndexDatei, KalenderDatei, LinieDatei, MethodikDatei, Tagesmenge,
+  IndexDatei, KalenderDatei, LinieDatei, LinieKopf, MethodikDatei, Tagesmenge,
 } from "./daten";
-import { datum, prozent, quote, sekunden, vonHundert, zahl } from "./format";
-import { escape, fussnote, grosseZahl, tabelle, zeigeFehler } from "./seite";
 import {
-  SCHWELLEN, leseAuswahl, leseModus, leseVergleich, schreibeAuswahl, schreibeModus,
-  schreibeVergleich,
+  datum, liniennummer, prozent, quote, sekunden, vonHundert, zahl,
+  LINIENART_NAME, VERKEHRSART_NAME,
+} from "./format";
+import { escape, fussnote, grosseZahl, schild, tabelle, zeigeFehler } from "./seite";
+import {
+  SCHWELLEN, gemerkteLinie, leseAuswahl, leseModus, leseVergleich, schreibeAuswahl,
+  schreibeModus, schreibeVergleich,
 } from "./zustand";
 import type { Vergleichsmodus } from "./zustand";
 
@@ -47,7 +50,7 @@ async function start(): Promise<void> {
   fussnote(index);
 
   const a = leseAuswahl();
-  const datei = a.linie ?? index.linien[0]?.datei ?? null;
+  const datei = a.linie ?? gemerkteLinie() ?? index.linien[0]?.datei ?? null;
   if (!datei) {
     zeigeFehler(new Error("keine Linie vorhanden"));
     return;
@@ -55,6 +58,7 @@ async function start(): Promise<void> {
   schreibeAuswahl({ linie: datei });
 
   const linie = await ladeLinie(datei);
+  document.querySelector("main")?.setAttribute("data-art", linie.verkehrsart);
   const tage = [...new Set(linie.tage.betriebstag)].sort();
 
   baueRegler(index, datei, linie, tage);
@@ -119,18 +123,42 @@ function bilanz(linie: LinieDatei, richtung: number, schwelle: number,
   return b;
 }
 
+function haltReglerklappe(klappe: HTMLDetailsElement): void {
+  const breit = matchMedia("(min-width: 34.0625rem)");
+  const setze = (): void => { klappe.open = breit.matches; };
+  setze();
+  breit.addEventListener("change", setze);
+}
+
+const MODUS_NAME: Record<Vergleichsmodus, string> = {
+  zeitraum: "Zwei Zeiträume",
+  ferien: "Schulzeit und Ferien",
+  wochentag: "Werktag und Wochenende",
+};
+
 function baueRegler(index: IndexDatei, datei: string, linie: LinieDatei, tage: string[]): void {
   const ziel = document.querySelector("[data-regler]");
   if (!ziel) return;
   const a = leseAuswahl();
   const g = grenzen(tage);
 
-  const linienOptionen = index.linien
-    .map(
-      (l) =>
-        `<option value="${escape(l.datei)}"${l.datei === datei ? " selected" : ""}>` +
-        `${escape(l.linie)} — ${escape(l.verlauf)}</option>`,
-    )
+  const gruppen: Array<[string, (l: LinieKopf) => boolean]> = [
+    [VERKEHRSART_NAME.tram ?? "Straßenbahn", (l) => l.verkehrsart === "tram" && !l.bedarfsverkehr],
+    [VERKEHRSART_NAME.bus ?? "Bus", (l) => l.verkehrsart !== "tram" && !l.bedarfsverkehr],
+    ["Ruftaxi", (l) => l.bedarfsverkehr === true],
+  ];
+  const linienOptionen = gruppen
+    .map(([name, passt]) => {
+      const optionen = index.linien
+        .filter(passt)
+        .map(
+          (l) =>
+            `<option value="${escape(l.datei)}"${l.datei === datei ? " selected" : ""}>` +
+            `${escape(l.linie)} — ${escape(l.verlauf)}</option>`,
+        )
+        .join("");
+      return optionen === "" ? "" : `<optgroup label="${escape(name)}">${optionen}</optgroup>`;
+    })
     .join("");
 
   const richtungen = linie.richtungen.length > 0
@@ -177,38 +205,63 @@ function baueRegler(index: IndexDatei, datei: string, linie: LinieDatei, tage: s
     .join("");
 
   ziel.innerHTML = `
-    <label class="feld feld--breit"><span class="feld-name">Linie</span>
-      <select data-feld="linie">${linienOptionen}</select>
-    </label>
-    <div class="feld feld--segmente">
-      <span class="feld-name" id="feld-richtung">Richtung</span>
-      <div class="segmente" role="radiogroup" aria-labelledby="feld-richtung"
-           data-feld="richtung">${richtungKnoepfe}</div>
-    </div>
-    <div class="feld feld--segmente">
-      <span class="feld-name" id="feld-modus">Verglichen wird</span>
-      <div class="segmente" role="radiogroup" aria-labelledby="feld-modus"
-           data-feld="modus">${modusKnoepfe}</div>
-    </div>
-    <div class="feld feld--segmente">
-      <span class="feld-name" id="feld-schwelle">Ab wann gilt „zu spät“?</span>
-      <div class="segmente" role="radiogroup" aria-labelledby="feld-schwelle"
-           data-feld="schwelle">${schwelleKnoepfe}</div>
-    </div>
-    <div class="feldgruppe" data-nur="zeitraum">
-      <label class="feld"><span class="feld-name">Zeitraum A von</span>
-        <select data-feld="a_von">${tagOptionen(g.aVon)}</select>
-      </label>
-      <label class="feld"><span class="feld-name">bis</span>
-        <select data-feld="a_bis">${tagOptionen(g.aBis)}</select>
-      </label>
-      <label class="feld"><span class="feld-name">Zeitraum B von</span>
-        <select data-feld="b_von">${tagOptionen(g.bVon)}</select>
-      </label>
-      <label class="feld"><span class="feld-name">bis</span>
-        <select data-feld="b_bis">${tagOptionen(g.bBis)}</select>
-      </label>
-    </div>`;
+    <details class="regler-aufklapp" data-reglerklappe>
+      <summary><span data-reglerstand></span></summary>
+      <form class="regler-felder" aria-label="Auswahl" novalidate>
+        <label class="feld feld--breit"><span class="feld-name">Linie</span>
+          <select data-feld="linie">${linienOptionen}</select>
+        </label>
+        <div class="feld feld--segmente">
+          <span class="feld-name" id="feld-richtung">Richtung</span>
+          <div class="segmente" role="radiogroup" aria-labelledby="feld-richtung"
+               data-feld="richtung">${richtungKnoepfe}</div>
+        </div>
+        <div class="feld feld--segmente">
+          <span class="feld-name" id="feld-modus">Verglichen wird</span>
+          <div class="segmente" role="radiogroup" aria-labelledby="feld-modus"
+               data-feld="modus">${modusKnoepfe}</div>
+        </div>
+        <div class="feld feld--segmente">
+          <span class="feld-name" id="feld-schwelle">Ab wann gilt „zu spät“?</span>
+          <div class="segmente" role="radiogroup" aria-labelledby="feld-schwelle"
+               data-feld="schwelle">${schwelleKnoepfe}</div>
+        </div>
+        <div class="feldgruppe" data-nur="zeitraum">
+          <label class="feld"><span class="feld-name">Zeitraum A von</span>
+            <select data-feld="a_von">${tagOptionen(g.aVon)}</select>
+          </label>
+          <label class="feld"><span class="feld-name">bis</span>
+            <select data-feld="a_bis">${tagOptionen(g.aBis)}</select>
+          </label>
+          <label class="feld"><span class="feld-name">Zeitraum B von</span>
+            <select data-feld="b_von">${tagOptionen(g.bVon)}</select>
+          </label>
+          <label class="feld"><span class="feld-name">bis</span>
+            <select data-feld="b_bis">${tagOptionen(g.bBis)}</select>
+          </label>
+        </div>
+      </form>
+    </details>`;
+
+  const klappe = ziel.querySelector<HTMLDetailsElement>("[data-reglerklappe]");
+  if (klappe) haltReglerklappe(klappe);
+  ziel.querySelector("form")?.addEventListener("submit", (e) => e.preventDefault());
+
+  const aktualisiereStand = (): void => {
+    const stand = ziel.querySelector<HTMLElement>("[data-reglerstand]");
+    if (!stand) return;
+    const aktuelleA = leseAuswahl();
+    const aktuellerModus = leseModus();
+    const richtungName =
+      richtungen.find((r) => r.richtung === aktuelleA.richtung)?.name ??
+      `Richtung ${aktuelleA.richtung}`;
+    stand.textContent =
+      `${LINIENART_NAME[linie.verkehrsart] ?? "Linie"} ${liniennummer(linie.linie)} · ` +
+      `${richtungName} · ${MODUS_NAME[aktuellerModus]} · ` +
+      `ab ${aktuelleA.schwelle} ${aktuelleA.schwelle === 1 ? "Minute" : "Minuten"}`;
+  };
+  aktualisiereStand();
+  ziel.addEventListener("change", aktualisiereStand);
 
   // Die vier Datumsfelder gehoeren nur zum Zeitraum-Vergleich. Sie bleiben im
   // Baum und werden mit `hidden` versteckt statt entfernt: ein Wechsel hin und
@@ -252,9 +305,33 @@ interface Seite {
   bilanz: Bilanz;
 }
 
+function zeichneKopf(linie: LinieDatei, richtung: number, schwelle: number): void {
+  const ziel = document.querySelector("[data-kopf]");
+  if (!ziel) return;
+  const art = LINIENART_NAME[linie.verkehrsart] ?? "Linie";
+  const nummer = liniennummer(linie.linie);
+  const datei = leseAuswahl().linie ?? "";
+  const p = new URLSearchParams({ linie: datei, richtung: String(richtung) });
+  if (schwelle !== 3) p.set("schwelle", String(schwelle));
+  const gewaehlt = linie.richtungen.find((r) => r.richtung === richtung);
+  const richtungName = gewaehlt?.name ?? `Richtung ${richtung}`;
+  const einleitung = gewaehlt?.namensregel === "zwischenhalt" ? "Umlauf" : "Richtung";
+  document.title = `Vergleich ${art} ${nummer} — TramPuls`;
+  ziel.innerHTML = `
+    <p class="zurueck"><a href="/linie.html?${escape(p.toString())}">Zurück zu ${escape(art)} ${escape(nummer)}</a></p>
+    <div class="linienkopf">
+      ${schild(nummer, linie.verkehrsart, { verborgen: true })}
+      <div class="linienkopf-text">
+        <h1>${escape(art)} ${escape(nummer)} vergleichen</h1>
+      </div>
+    </div>
+    <p class="richtung">${einleitung} <strong>${escape(richtungName)}</strong> · <span class="klein">${escape(linie.verlauf)}</span></p>`;
+}
+
 function zeichne(linie: LinieDatei, methodik: MethodikDatei, kalender: KalenderDatei,
                  tage: string[]): void {
   const auswahl = leseAuswahl();
+  zeichneKopf(linie, auswahl.richtung, auswahl.schwelle);
   const modus = leseModus();
   const rechne = (gilt: (tag: string) => boolean): Bilanz =>
     bilanz(linie, auswahl.richtung, auswahl.schwelle, gilt);
@@ -275,20 +352,30 @@ function zeichne(linie: LinieDatei, methodik: MethodikDatei, kalender: KalenderD
   einordnung(a, b, methodik, kalender, mengen, modus, auswahl.schwelle);
 }
 
+function ordneSpanne(von: string, bis: string): { start: string; ende: string; getauscht: boolean } {
+  return von <= bis
+    ? { start: von, ende: bis, getauscht: false }
+    : { start: bis, ende: von, getauscht: true };
+}
+
 function zeitraumSeiten(
   rechne: (gilt: (tag: string) => boolean) => Bilanz,
   g: ReturnType<typeof grenzen>,
 ): [Seite, Seite] {
+  const spanneA = ordneSpanne(g.aVon, g.aBis);
+  const spanneB = ordneSpanne(g.bVon, g.bBis);
   return [
     {
       name: "Zeitraum A",
-      unter: zeitraumText(g.aVon, g.aBis),
-      bilanz: rechne((tag) => tag >= g.aVon && tag <= g.aBis),
+      unter: zeitraumText(spanneA.start, spanneA.ende) +
+        (spanneA.getauscht ? " (Start und Ende getauscht)" : ""),
+      bilanz: rechne((tag) => tag >= spanneA.start && tag <= spanneA.ende),
     },
     {
       name: "Zeitraum B",
-      unter: zeitraumText(g.bVon, g.bBis),
-      bilanz: rechne((tag) => tag >= g.bVon && tag <= g.bBis),
+      unter: zeitraumText(spanneB.start, spanneB.ende) +
+        (spanneB.getauscht ? " (Start und Ende getauscht)" : ""),
+      bilanz: rechne((tag) => tag >= spanneB.start && tag <= spanneB.ende),
     },
   ];
 }

@@ -8,13 +8,18 @@
 <title>Alle Linien — TramPuls</title>
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <meta name="description" content="Alle Straßenbahn- und Buslinien der Rhein-Neckar-Verkehr, jede mit ihrer Pünktlichkeit und der Anzahl gemessener Halte.">
+<link rel="canonical" href="https://trampuls.dasdann.jetzt/linien.html">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="TramPuls">
 <meta property="og:locale" content="de_DE">
 <meta property="og:url" content="https://trampuls.dasdann.jetzt/linien.html">
 <meta property="og:title" content="Alle Linien — TramPuls">
 <meta property="og:description" content="Alle Straßenbahn- und Buslinien der Rhein-Neckar-Verkehr, jede mit ihrer Pünktlichkeit und der Anzahl gemessener Halte.">
-<meta name="twitter:card" content="summary">
+<meta property="og:image" content="https://trampuls.dasdann.jetzt/og-bild.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="TramPuls — Wie pünktlich fahren Straßenbahn und Bus im Rhein-Neckar-Raum?">
+<meta name="twitter:card" content="summary_large_image">
 <!-- Nur die schmale Instanz wird vorgeladen: sie traegt die erste Zahl auf
      der Tafel. Der Lesetext darf per font-display:swap nachkommen.
      crossorigin ist auch bei gleicher Herkunft Pflicht — Schriften werden
@@ -35,11 +40,29 @@
      wie viele ihrer gemessenen Halte weniger als 3 Minuten zu spät waren. Ein Klick
      führt zur Linie mit Tagesverlauf, Strecke und Ausfällen. Das Suchfeld findet auch
      eine Haltestelle entlang der Strecke, nicht nur Liniennummer und Verlauf.</p>
-  <div class="regler">
-    <label class="feld feld--breit suche"><span class="feld-name">Linie suchen</span>
+  <div class="regler" data-linien-regler>
+    <label class="feld feld--breit suche"><span class="feld-name">Linie oder Haltestelle suchen</span>
       <input type="search" data-suche placeholder="Liniennummer oder Haltestelle" value="">
     </label>
+    <div class="feld feld--segmente">
+      <span class="feld-name" id="feld-art">Verkehrsart</span>
+      <div class="segmente" role="radiogroup" aria-labelledby="feld-art" data-art-wahl>
+        <label><input type="radio" name="art" value="alle" checked> Alle</label>
+        <label><input type="radio" name="art" value="tram"> Straßenbahn</label>
+        <label><input type="radio" name="art" value="bus"> Bus</label>
+        <label><input type="radio" name="art" value="ruftaxi"> Ruftaxi</label>
+      </div>
+    </div>
+    <label class="feld"><span class="feld-name">Reihenfolge</span>
+      <select data-sortierung>
+        <option value="nummer" selected>Liniennummer</option>
+        <option value="quote-ab">Pünktlichkeit (höchste zuerst)</option>
+        <option value="quote-auf">Pünktlichkeit (niedrigste zuerst)</option>
+        <option value="halte">Gemessene Halte (meiste zuerst)</option>
+      </select>
+    </label>
   </div>
+  <div data-gemerkt></div>
   <div data-linien><p class="hinweis">Linien werden geladen…</p></div>
   <p class="weiter"><a href="/vergleich.html">Zwei Zeiträume vergleichen</a></p>
 </main>

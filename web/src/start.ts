@@ -8,10 +8,11 @@
 
 import { ladeIndex, ladeNetz } from "./daten";
 import type { IndexDatei } from "./daten";
-import { datum, quote, vonHundert, zahl, VERKEHRSART_NAME } from "./format";
+import { datum, liniennummer, quote, vonHundert, zahl, LINIENART_NAME, VERKEHRSART_NAME } from "./format";
 import { BETRIEBSTAG_ERKLAERUNG, begriff, fussnote, grosseZahl, zeigeFehler } from "./seite";
 import { ausTag, ausZeitraum, spanne, verdrahteZeitwahl } from "./netzzahlen";
 import type { NetzZahlen } from "./netzzahlen";
+import { gemerkteLinie } from "./zustand";
 import type { Zeitwahl } from "./zustand";
 
 // Die Startseite zeigt genau eine Schwelle. Wer eine andere braucht, waehlt sie
@@ -24,6 +25,20 @@ async function start(): Promise<void> {
   // die erste Zahl um eine ganze Umlaufzeit.
   const [index, netz] = await Promise.all([ladeIndex(), ladeNetz()]);
   fussnote(index);
+
+  const gemerktSlug = gemerkteLinie();
+  const gemerkt = gemerktSlug
+    ? index.linien.find((l) => l.datei === gemerktSlug && l.bewertbare_halte > 0)
+    : undefined;
+  const wege = document.querySelector(".wege");
+  if (gemerkt && wege) {
+    const a = document.createElement("a");
+    a.className = "knopf";
+    a.href = `/linie.html?linie=${encodeURIComponent(gemerkt.datei)}`;
+    const art = LINIENART_NAME[gemerkt.verkehrsart] ?? "Linie";
+    a.textContent = `Gemerkte ${art} ${liniennummer(gemerkt.linie)}`;
+    wege.appendChild(a);
+  }
 
   const zeichne = (wahl: Zeitwahl): void => {
     const zahlen = wahl === "gesamt" ? ausZeitraum(netz, SCHWELLE) : ausTag(index.netz_aktuell);

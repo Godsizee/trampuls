@@ -1,5 +1,5 @@
-// Die Linienseite. Kopf, Kennzahl, Tagesgang (T2), Haltestellenprofil (T3),
-// Ausfaelle (T4) — in dieser Reihenfolge (TramPuls_Frontend).
+// Die Linienseite. Kopf, Kennzahl, Ausfaelle (T4), Tagesverlauf, Tagesgang (T2),
+// Streckentabelle (T3) — in dieser Reihenfolge (linie.html, TramPuls_Frontend).
 //
 // Die Ueberschriften heissen hier nicht wie die Analysen im Vault, sondern wie
 // die Frage, die jemand tatsaechlich hat: "Ueber den Tag verteilt" statt
@@ -45,11 +45,12 @@ async function start(): Promise<void> {
   // Linie (stil.css, "Diagramme"). An <main>, weil alle Abschnitte sie teilen.
   document.querySelector("main")?.setAttribute("data-art", linie.verkehrsart);
 
+  const kopfDaten = index.linien.find((l) => l.datei === datei);
   baueRegler(index, datei, linie);
-  zeichne(linie, halte);
+  zeichne(linie, halte, kopfDaten);
 
   document.querySelector("[data-regler]")?.addEventListener("change", () => {
-    zeichne(linie, halte);
+    zeichne(linie, halte, kopfDaten);
   });
 }
 
@@ -261,17 +262,17 @@ function baueRegler(index: IndexDatei, datei: string, linie: LinieDatei): void {
   });
 }
 
-function zeichne(linie: LinieDatei, halte: HalteDatei): void {
+function zeichne(linie: LinieDatei, halte: HalteDatei, kopfDaten?: LinieKopf): void {
   const { richtung, schwelle, imZeitraum } = aktuelleAuswahl();
-  kopf(linie, richtung);
+  kopf(linie, richtung, kopfDaten);
   kennzahl(linie, richtung, schwelle, imZeitraum);
   verlauf(linie, richtung, schwelle);
   tagesgang(linie, richtung, schwelle, imZeitraum);
-  profil(halte, richtung, imZeitraum);
+  profil(halte, richtung, schwelle, imZeitraum);
   ausfaelle(linie, richtung, imZeitraum);
 }
 
-function kopf(linie: LinieDatei, richtung: number): void {
+function kopf(linie: LinieDatei, richtung: number, kopfDaten?: LinieKopf): void {
   const ziel = document.querySelector("[data-kopf]");
   if (!ziel) return;
   const gewaehlt = linie.richtungen.find((r) => r.richtung === richtung);
@@ -300,6 +301,13 @@ function kopf(linie: LinieDatei, richtung: number): void {
     zusatz.push(
       `${gross(vonHundert(gewaehlt?.kurzlauf ?? 0))} Fahrten enden schon vorher und ` +
         "erreichen das genannte Ziel nicht.",
+    );
+  }
+  if (kopfDaten?.openrnv_ab) {
+    zusatz.push(
+      `Die Echtzeitdaten dieser Linie stammen ab dem ${datum(kopfDaten.openrnv_ab)} ` +
+        "aus dem eigenen Datenstrom der rnv (openRNV); ihre Aufzeichnung beginnt " +
+        "deshalb später als im übrigen Netz.",
     );
   }
   const art = LINIENART_NAME[linie.verkehrsart] ?? "Linie";
@@ -345,15 +353,22 @@ function kopf(linie: LinieDatei, richtung: number): void {
     ${zusatz.length > 0 ? `<p class="klein">${escape(zusatz.join(" "))}</p>` : ""}`;
 
   ziel.querySelector("[data-merken]")?.addEventListener("click", (e) => {
-    merkeLinie(datei);
     const knopf = e.currentTarget as HTMLButtonElement;
-    knopf.textContent = "Gemerkt";
-    knopf.setAttribute("aria-pressed", "true");
+    const schonGemerkt = datei !== "" && gemerkteLinie() === datei;
+    if (schonGemerkt) {
+      merkeLinie(null);
+      knopf.textContent = "Linie merken";
+      knopf.setAttribute("aria-pressed", "false");
+    } else {
+      merkeLinie(datei);
+      knopf.textContent = "Gemerkt";
+      knopf.setAttribute("aria-pressed", "true");
+    }
   });
 }
 
 /**
- * Verweis auf die Vergleichsseite fuer dieselbe Linie und Richtung.
+ * Verweis auf die Vergleichsseite fuer dieselbe Linie, Richtung und Schwelle.
  *
  * Der Dateiname der Linie steht in der Adresse und nicht im geladenen Datensatz
  * — dort liegt die route_id, und die ist als Dateiname unbrauchbar (Doppelpunkte).
@@ -361,8 +376,13 @@ function kopf(linie: LinieDatei, richtung: number): void {
  * ueberhaupt gezeichnet wird.
  */
 function vergleichsLink(richtung: number): string {
-  const datei = leseAuswahl().linie ?? "";
-  return `/vergleich.html?linie=${encodeURIComponent(datei)}&richtung=${richtung}`;
+  const a = leseAuswahl();
+  const p = new URLSearchParams({
+    linie: a.linie ?? "",
+    richtung: String(richtung),
+  });
+  if (a.schwelle !== 3) p.set("schwelle", String(a.schwelle));
+  return `/vergleich.html?${p.toString()}`;
 }
 
 /** Summiert die fertigen Zaehler des Marts ueber alle Betriebstage der Richtung. */
@@ -617,6 +637,7 @@ const OHNE_POSITION = Number.MAX_SAFE_INTEGER;
 function profil(
   halte: HalteDatei,
   richtung: number,
+  schwelle: number,
   imZeitraum: (betriebstag: string) => boolean,
 ): void {
   const ziel = document.querySelector("[data-profil]");
@@ -671,6 +692,11 @@ function profil(
   // (gemessen 2026-09-24 bei 1440 px). Jetzt ist die Tabelle das Bild: der
   // Screenreader liest echte Zellen statt einer Zusammenfassung, und jede Zahl
   // steht in der Zeile ihres Halts.
+  const schwellenHinweis = schwelle !== 3
+    ? `<p class="klein">Die Spalte „Weniger als 3 Min zu spät“ je Halt ist fest auf ` +
+      `3 Minuten gerechnet; die oben gewählte Schwelle von ${zahl(schwelle)} ` +
+      `${schwelle === 1 ? "Minute" : "Minuten"} gilt für Kennzahl, Verlauf und Tagesgang.</p>`
+    : "";
   ziel.className = "";
   ziel.innerHTML =
     `<h2>Wo die Verspätung entsteht</h2>
@@ -681,6 +707,7 @@ function profil(
        <p>Ein Balken nach rechts heißt: auf diesem Abschnitt kommt Verspätung dazu.
        Nach links: hier wird wieder aufgeholt. Wo ein gestrichelter Strich auf der
        Mittellinie steht, wurde für diesen Halt kein einziger Abschnitt gemessen.</p>
+       ${schwellenHinweis}
      </div>`;
 
   // null, nicht 0: fuer diesen Halt gab es keinen gemessenen Abschnitt (Regel 8).

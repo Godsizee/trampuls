@@ -13,7 +13,7 @@ import { expect, test } from "@playwright/test";
 
 const SEITEN = [
   "/", "/netz.html", "/linien.html", "/linie.html", "/vergleich.html",
-  "/befunde.html", "/methodik.html", "/lizenz.html", "/impressum.html",
+  "/befunde.html", "/methodik.html", "/lizenz.html", "/datenschutz.html", "/impressum.html",
 ] as const;
 
 // 344 und 360 decken das Frontdisplay eines Galaxy Z Fold ab. 320 ist der

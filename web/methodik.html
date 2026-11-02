@@ -8,13 +8,18 @@
 <title>Wie diese Zahlen entstehen — TramPuls</title>
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <meta name="description" content="Wie TramPuls Pünktlichkeit misst, was dabei nicht mitzählt und wie vollständig jeder einzelne Tag aufgezeichnet wurde.">
+<link rel="canonical" href="https://trampuls.dasdann.jetzt/methodik.html">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="TramPuls">
 <meta property="og:locale" content="de_DE">
 <meta property="og:url" content="https://trampuls.dasdann.jetzt/methodik.html">
 <meta property="og:title" content="Wie diese Zahlen entstehen — TramPuls">
 <meta property="og:description" content="Wie TramPuls Pünktlichkeit misst, was dabei nicht mitzählt und wie vollständig jeder einzelne Tag aufgezeichnet wurde.">
-<meta name="twitter:card" content="summary">
+<meta property="og:image" content="https://trampuls.dasdann.jetzt/og-bild.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="TramPuls — Wie pünktlich fahren Straßenbahn und Bus im Rhein-Neckar-Raum?">
+<meta name="twitter:card" content="summary_large_image">
 <!-- Nur die schmale Instanz wird vorgeladen: sie traegt die erste Zahl auf
      der Tafel. Der Lesetext darf per font-display:swap nachkommen.
      crossorigin ist auch bei gleicher Herkunft Pflicht — Schriften werden
@@ -53,12 +58,12 @@
      der Tag überhaupt trägt.</p>
 
   <h2>Warum vier Linien aus einer anderen Quelle kommen</h2>
-  <p>Der Verbund-Datenstrom des VRN führt nicht alle Fahrten der Rhein-Neckar-Verkehr.
-     Zu einigen Linien meldet er über den gesamten Aufzeichnungszeitraum <strong>keine
-     einzige</strong> Ist-Zeit, obwohl sie im Fahrplan stehen. Für vier
-     Straßenbahnlinien — 4, 4A, 6 und 6A — nimmt TramPuls die Ist-Zeiten deshalb aus
-     dem eigenen offenen Datenstrom der Rhein-Neckar-Verkehr (openRNV), der dieselben
-     Fahrten führt.</p>
+  <p>Der Verbund-Datenstrom des VRN führt nicht alle Fahrten der Rhein-Neckar-Verkehr:
+     zu rund zwanzig Linien im Fahrplan meldet er gar keine Ist-Zeiten, und auch die
+     vier Straßenbahnlinien 4, 4A, 6 und 6A fehlten dort zu Beginn der Aufzeichnung
+     wochenlang (und liefern teils weiterhin mit Unterbrechungen). Für diese vier
+     Straßenbahnlinien bezieht TramPuls die Ist-Zeiten deshalb durchgehend aus dem
+     eigenen offenen Datenstrom der Rhein-Neckar-Verkehr (openRNV).</p>
   <p>Drei Dinge sind daran wichtig, und alle drei stehen auf <a href="/befunde.html">
      Befunde</a> mit Zahlen:</p>
   <ul>
@@ -268,8 +273,8 @@
     <div class="block-haupt" data-qualitaet></div>
     <aside class="block-rand">
       <p>„Anteil gemessen“ ist der Anteil der geplanten Halte, zu denen etwas ankam.
-         Ein Tag gilt als durchgehend aufgezeichnet, wenn mindestens 24 Stunden belegt
-         sind.</p>
+         Ein Tag gilt als durchgehend aufgezeichnet, wenn in keiner Betriebsstunde die
+         Aufzeichnung selbst ausfiel (0 Stunden ohne Aufzeichnung).</p>
       <p>Diese Tabelle ist die unbequemste auf der ganzen Seite: sie zeigt, wo die
          Messung selbst schwach war.</p>
     </aside>

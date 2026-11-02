@@ -16,6 +16,7 @@ const AKTUELL: Record<string, string> = {
   "befunde.html": "/befunde.html",
   "methodik.html": "/methodik.html",
   "lizenz.html": "/lizenz.html",
+  "datenschutz.html": "/datenschutz.html",
   "impressum.html": "/impressum.html",
 };
 
@@ -87,6 +88,7 @@ export default defineConfig({
         linie: resolve(__dirname, "linie.html"),
         methodik: resolve(__dirname, "methodik.html"),
         lizenz: resolve(__dirname, "lizenz.html"),
+        datenschutz: resolve(__dirname, "datenschutz.html"),
         impressum: resolve(__dirname, "impressum.html"),
       },
     },

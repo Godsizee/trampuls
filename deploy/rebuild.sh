@@ -7,6 +7,15 @@
 # die Seite zeigt weiter den letzten guten Stand.
 set -eu
 
+# Dateilimit anheben, bevor DuckDB die Rohdaten liest. Gemessen 2026-11-10 im
+# Container: Soft-Limit 1024, Hard-Limit 524288, dazu 1.696 Parquets unter raw/
+# und 1.621 unter raw-openrnv/. Seit dem Image vom 2026-11-02 (DuckDB 2.0.0)
+# scheiterten 1-4 Laeufe am Tag mit "Too many open files", je nachdem, welche
+# Modelle die 4 dbt-Threads gerade gleichzeitig scannen. Das Soft-Limit darf
+# jeder Prozess bis zum Hard-Limit selbst anheben, ohne Root.
+ulimit -n 65536 2>/dev/null || echo "[rebuild] WARNUNG: ulimit -n 65536 abgelehnt"
+echo "[rebuild] offene Dateien erlaubt: $(ulimit -n)"
+
 DATEN="${TRAMPULS_DATEN:-/data}"
 PROJEKT="${TRAMPULS_TRANSFORM:-/app/transform}"
 ZIEL="${TRAMPULS_WEBDATEN:-/data/export/web/daten}"

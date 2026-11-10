@@ -22,6 +22,11 @@
 #     /usr/local/bin/vollaufbau.sh "Grund ..."  # Grund landet im Protokoll
 set -eu
 
+# Dateilimit anheben wie in rebuild.sh (Begruendung und Messung dort). Der
+# Vollaufbau liest dieselben Globs, nur ueber alle Tage.
+ulimit -n 65536 2>/dev/null || echo "[vollaufbau] WARNUNG: ulimit -n 65536 abgelehnt"
+echo "[vollaufbau] offene Dateien erlaubt: $(ulimit -n)"
+
 DATEN="${TRAMPULS_DATEN:-/data}"
 PROJEKT="${TRAMPULS_TRANSFORM:-/app/transform}"
 ZIEL="${TRAMPULS_WEBDATEN:-/data/export/web/daten}"

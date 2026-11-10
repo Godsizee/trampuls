@@ -17,3 +17,9 @@ trampuls:
       threads: 4
       extensions:
         - parquet
+      # Ohne Grenze darf DuckDB 90 % des freien Platzes zum Auslagern nutzen. Am
+      # 2026-11-09 um 23:10 UTC hat ein Rebuild so 82,6 GiB geschrieben, bei 92 GB
+      # frei auf /data. Dieselbe Platte braucht der Collector fuer die Rohdaten,
+      # die kein Archiv haben (Regel 3). Lieber bricht ein Lauf ab.
+      settings:
+        max_temp_directory_size: "30GB"
